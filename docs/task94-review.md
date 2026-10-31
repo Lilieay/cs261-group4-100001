@@ -16,7 +16,7 @@
 
 Branch `docs/task94-api-contract` ใช้ฐาน `sprint2` commit `db682e2044be73498fea6d9fcfe4c80bd42c1a09`
 
-PR ยังไม่เปิด บันทึกลิงก์หลังนำ branch ขึ้น remote แล้ว
+PR [#103](https://github.com/Lilieay/cs261-group4-100001/pull/103) เปิดเป็น Draft เข้า `sprint2` แล้ว สถานะยังรอ Frontend Backend และ PO review
 
 ## Definition of Done
 
