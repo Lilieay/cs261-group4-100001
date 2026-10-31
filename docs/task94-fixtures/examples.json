@@ -1,0 +1,5813 @@
+{
+  "version": "0.2",
+  "status": "design_examples_not_live_test_results",
+  "reset_before_each_case": true,
+  "auth_note": "Resolve owner/reader/other to real test sessions after seeding. anonymous omits Authorization. expired uses an invalid session. No passwords or real tokens are stored.",
+  "setup_note": "For each case start with only the named records in each setup group, then execute steps in order. IDs are explicit test IDs. parallel_steps run together and response order is unspecified.",
+  "fault_note": "fault describes a future test-double or integration fault. It is not a public API parameter and no fault endpoint is added.",
+  "data": {
+    "users": {
+      "owner": {
+        "id": 11,
+        "display_name": "นักศึกษา A"
+      },
+      "reader": {
+        "id": 22,
+        "display_name": "นักศึกษา B"
+      },
+      "other": {
+        "id": 33,
+        "display_name": "นักศึกษา C"
+      }
+    },
+    "courses": {
+      "cs261": {
+        "id": 1,
+        "course_code": "CS261",
+        "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+      },
+      "cs104": {
+        "id": 2,
+        "course_code": "CS104",
+        "course_name": "INTRODUCTION TO PROGRAMMING"
+      },
+      "non_cs": {
+        "id": 3,
+        "course_code": "MA111",
+        "course_name": "CALCULUS"
+      }
+    },
+    "guides": {
+      "guide_cs261": {
+        "id": 42,
+        "course_id": 1,
+        "owner_id": 22,
+        "title": "แนวข้อสอบ CS261"
+      }
+    },
+    "summaries": {
+      "summary_owner": {
+        "id": 101,
+        "course": {
+          "id": 1,
+          "course_code": "CS261",
+          "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+        },
+        "title": "สรุป CS261 ก่อนสอบ",
+        "description": null,
+        "owner": {
+          "id": 11,
+          "display_name": "นักศึกษา A"
+        },
+        "file": {
+          "original_name": "valid-summary.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 603,
+          "read_path": "/api/summaries/101/file"
+        },
+        "created_at": "2026-10-31T02:00:00Z",
+        "updated_at": "2026-10-31T02:00:00Z"
+      },
+      "summary_reader": {
+        "id": 102,
+        "course": {
+          "id": 1,
+          "course_code": "CS261",
+          "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+        },
+        "title": "สรุป CS261 ก่อนสอบ",
+        "description": null,
+        "owner": {
+          "id": 22,
+          "display_name": "นักศึกษา B"
+        },
+        "file": {
+          "original_name": "valid-summary.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 603,
+          "read_path": "/api/summaries/102/file"
+        },
+        "created_at": "2026-10-31T01:00:00Z",
+        "updated_at": "2026-10-31T01:00:00Z"
+      }
+    },
+    "reviews": {
+      "review_summary": {
+        "id": 501,
+        "target_type": "summary",
+        "target_id": 101,
+        "rating": 5,
+        "comment": "อ่านง่ายและตรงประเด็น",
+        "author": {
+          "id": 22,
+          "display_name": "นักศึกษา B"
+        },
+        "created_at": "2026-10-31T03:00:00Z",
+        "updated_at": "2026-10-31T03:00:00Z"
+      },
+      "review_guide": {
+        "id": 502,
+        "target_type": "guide",
+        "target_id": 42,
+        "rating": 5,
+        "comment": "อ่านง่ายและตรงประเด็น",
+        "author": {
+          "id": 11,
+          "display_name": "นักศึกษา A"
+        },
+        "created_at": "2026-10-31T03:00:00Z",
+        "updated_at": "2026-10-31T03:00:00Z"
+      }
+    },
+    "saved_courses": {
+      "owner_cs261": {
+        "user_id": 11,
+        "course_id": 1
+      },
+      "owner_cs104": {
+        "user_id": 11,
+        "course_id": 2
+      },
+      "reader_cs104": {
+        "user_id": 22,
+        "course_id": 2
+      }
+    }
+  },
+  "endpoints": {
+    "summary_create": {
+      "method": "POST",
+      "path": "/api/summaries",
+      "response": "SummaryDTO",
+      "statuses": [
+        201,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_list": {
+      "method": "GET",
+      "path": "/api/courses/{course_id}/summaries",
+      "response": "CourseSummaryListResponse",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_read": {
+      "method": "GET",
+      "path": "/api/summaries/{summary_id}",
+      "response": "SummaryDTO",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_file": {
+      "method": "GET",
+      "path": "/api/summaries/{summary_id}/file",
+      "response": "PDF",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_mine": {
+      "method": "GET",
+      "path": "/api/my-summaries",
+      "response": "SummaryListResponse",
+      "statuses": [
+        200,
+        400,
+        401,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_update": {
+      "method": "PUT",
+      "path": "/api/summaries/{summary_id}",
+      "response": "SummaryDTO",
+      "statuses": [
+        200,
+        400,
+        401,
+        403,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_delete": {
+      "method": "DELETE",
+      "path": "/api/summaries/{summary_id}",
+      "response": "none",
+      "statuses": [
+        204,
+        400,
+        401,
+        403,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "guide_reviews": {
+      "method": "GET",
+      "path": "/api/guides/{guide_id}/reviews",
+      "response": "ReviewListResponse",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "guide_review_create": {
+      "method": "POST",
+      "path": "/api/guides/{guide_id}/reviews",
+      "response": "ReviewDTO",
+      "statuses": [
+        201,
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_reviews": {
+      "method": "GET",
+      "path": "/api/summaries/{summary_id}/reviews",
+      "response": "ReviewListResponse",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "summary_review_create": {
+      "method": "POST",
+      "path": "/api/summaries/{summary_id}/reviews",
+      "response": "ReviewDTO",
+      "statuses": [
+        201,
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "review_update": {
+      "method": "PUT",
+      "path": "/api/reviews/{review_id}",
+      "response": "ReviewDTO",
+      "statuses": [
+        200,
+        400,
+        401,
+        403,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "review_delete": {
+      "method": "DELETE",
+      "path": "/api/reviews/{review_id}",
+      "response": "none",
+      "statuses": [
+        204,
+        400,
+        401,
+        403,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "course_save": {
+      "method": "PUT",
+      "path": "/api/saved-courses/{course_id}",
+      "response": "SavedCourseState",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "course_state": {
+      "method": "GET",
+      "path": "/api/saved-courses/{course_id}",
+      "response": "SavedCourseState",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "course_saved_list": {
+      "method": "GET",
+      "path": "/api/saved-courses",
+      "response": "SavedCourseListResponse",
+      "statuses": [
+        200,
+        400,
+        401,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    },
+    "course_remove": {
+      "method": "DELETE",
+      "path": "/api/saved-courses/{course_id}",
+      "response": "SavedCourseState",
+      "statuses": [
+        200,
+        400,
+        401,
+        404,
+        413,
+        415,
+        422,
+        500,
+        502,
+        503
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "u6-publish-and-read",
+      "test_cases": [
+        "U6-TC01",
+        "U6-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 103,
+              "course": {
+                "id": 1,
+                "course_code": "CS261",
+                "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+              },
+              "title": "สรุป CS261 ก่อนสอบ",
+              "description": null,
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "valid-summary.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 603,
+                "read_path": "/api/summaries/103/file"
+              },
+              "created_at": "2026-10-31T04:00:00Z",
+              "updated_at": "2026-10-31T04:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        },
+        {
+          "endpoint": "summary_list",
+          "method": "GET",
+          "path": "/api/courses/1/summaries",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "items": [
+                {
+                  "id": 103,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "description": null,
+                  "owner": {
+                    "id": 11,
+                    "display_name": "นักศึกษา A"
+                  },
+                  "file": {
+                    "original_name": "valid-summary.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 603,
+                    "read_path": "/api/summaries/103/file"
+                  },
+                  "created_at": "2026-10-31T04:00:00Z",
+                  "updated_at": "2026-10-31T04:00:00Z"
+                },
+                {
+                  "id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "description": null,
+                  "owner": {
+                    "id": 11,
+                    "display_name": "นักศึกษา A"
+                  },
+                  "file": {
+                    "original_name": "valid-summary.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 603,
+                    "read_path": "/api/summaries/101/file"
+                  },
+                  "created_at": "2026-10-31T02:00:00Z",
+                  "updated_at": "2026-10-31T02:00:00Z"
+                },
+                {
+                  "id": 102,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "description": null,
+                  "owner": {
+                    "id": 22,
+                    "display_name": "นักศึกษา B"
+                  },
+                  "file": {
+                    "original_name": "valid-summary.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 603,
+                    "read_path": "/api/summaries/102/file"
+                  },
+                  "created_at": "2026-10-31T01:00:00Z",
+                  "updated_at": "2026-10-31T01:00:00Z"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/103",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 103,
+              "course": {
+                "id": 1,
+                "course_code": "CS261",
+                "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+              },
+              "title": "สรุป CS261 ก่อนสอบ",
+              "description": null,
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "valid-summary.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 603,
+                "read_path": "/api/summaries/103/file"
+              },
+              "created_at": "2026-10-31T04:00:00Z",
+              "updated_at": "2026-10-31T04:00:00Z"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_file",
+          "method": "GET",
+          "path": "/api/summaries/103/file",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "content_type": "application/pdf",
+            "file": "valid-summary.pdf",
+            "headers": {
+              "Cache-Control": "no-store",
+              "Content-Disposition": "inline; filename=\"summary-103.pdf\"",
+              "X-Content-Type-Options": "nosniff"
+            }
+          }
+        }
+      ],
+      "invariant": "Reload uses the same persisted summary ID and file. description is null when omitted."
+    },
+    {
+      "id": "u6-required-course_id-1",
+      "test_cases": [
+        "U6-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "course_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No summary is created."
+    },
+    {
+      "id": "u6-required-title-2",
+      "test_cases": [
+        "U6-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "title",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No summary is created."
+    },
+    {
+      "id": "u6-required-title-3",
+      "test_cases": [
+        "U6-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "title",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "   "
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No summary is created."
+    },
+    {
+      "id": "u6-required-file",
+      "test_cases": [
+        "U6-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "file",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u6-file-disguised.pdf",
+      "test_cases": [
+        "U6-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "PDF_INVALID",
+                "message": "ไฟล์ไม่ใช่ PDF ที่รับได้",
+                "fields": [
+                  {
+                    "field": "file",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "disguised.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No published summary or readable file is left behind."
+    },
+    {
+      "id": "u6-file-empty.pdf",
+      "test_cases": [
+        "U6-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "PDF_INVALID",
+                "message": "ไฟล์ไม่ใช่ PDF ที่รับได้",
+                "fields": [
+                  {
+                    "field": "file",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "empty.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No published summary or readable file is left behind."
+    },
+    {
+      "id": "u6-file-unreadable.pdf",
+      "test_cases": [
+        "U6-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "PDF_UNREADABLE",
+                "message": "เปิดอ่าน PDF ไม่ได้",
+                "fields": [
+                  {
+                    "field": "file",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "unreadable.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No published summary or readable file is left behind."
+    },
+    {
+      "id": "u6-file-no-pages.pdf",
+      "test_cases": [
+        "U6-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "PDF_UNREADABLE",
+                "message": "เปิดอ่าน PDF ไม่ได้",
+                "fields": [
+                  {
+                    "field": "file",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "no-pages.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No published summary or readable file is left behind."
+    },
+    {
+      "id": "u6-file-over-limit.pdf",
+      "test_cases": [
+        "U6-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 413,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "PDF_TOO_LARGE",
+                "message": "ไฟล์ PDF เกิน 10 MiB",
+                "fields": [
+                  {
+                    "field": "file",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "over-limit.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "No published summary or readable file is left behind."
+    },
+    {
+      "id": "u6-course-999999",
+      "test_cases": [
+        "U6-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "COURSE_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "999999",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ]
+    },
+    {
+      "id": "u6-course-3",
+      "test_cases": [
+        "U6-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "COURSE_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "3",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ]
+    },
+    {
+      "id": "u6-forged-owner",
+      "test_cases": [
+        "U6-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "owner_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ",
+              "owner_id": "22"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ]
+    },
+    {
+      "id": "u6-auth-anonymous",
+      "test_cases": [
+        "U6-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_list",
+          "method": "GET",
+          "path": "/api/courses/1/summaries",
+          "actor": "anonymous",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/101",
+          "actor": "anonymous",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "summary_file",
+          "method": "GET",
+          "path": "/api/summaries/101/file",
+          "actor": "anonymous",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u6-auth-expired",
+      "test_cases": [
+        "U6-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_list",
+          "method": "GET",
+          "path": "/api/courses/1/summaries",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/101",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "summary_file",
+          "method": "GET",
+          "path": "/api/summaries/101/file",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u6-publish-fails-database",
+      "test_cases": [
+        "U6-TC07"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_publish_success"
+      },
+      "invariant": "No newly published summary appears in course or owner lists."
+    },
+    {
+      "id": "u6-publish-fails-file_storage",
+      "test_cases": [
+        "U6-TC07"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "valid-summary.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "fault": {
+        "layer": "file_storage",
+        "phase": "before_publish_success"
+      },
+      "invariant": "No newly published summary appears in course or owner lists."
+    },
+    {
+      "id": "u6-course-empty",
+      "test_cases": [
+        "U6-TC08"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_list",
+          "method": "GET",
+          "path": "/api/courses/2/summaries",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 2,
+              "items": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u7-own-list",
+      "test_cases": [
+        "U7-TC01"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_mine",
+          "method": "GET",
+          "path": "/api/my-summaries",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "description": null,
+                  "owner": {
+                    "id": 11,
+                    "display_name": "นักศึกษา A"
+                  },
+                  "file": {
+                    "original_name": "valid-summary.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 603,
+                    "read_path": "/api/summaries/101/file"
+                  },
+                  "created_at": "2026-10-31T02:00:00Z",
+                  "updated_at": "2026-10-31T02:00:00Z"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 101,
+              "course": {
+                "id": 1,
+                "course_code": "CS261",
+                "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+              },
+              "title": "สรุป CS261 ก่อนสอบ",
+              "description": null,
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "valid-summary.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 603,
+                "read_path": "/api/summaries/101/file"
+              },
+              "created_at": "2026-10-31T02:00:00Z",
+              "updated_at": "2026-10-31T02:00:00Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u7-empty-list",
+      "test_cases": [
+        "U7-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_mine",
+          "method": "GET",
+          "path": "/api/my-summaries",
+          "actor": "other",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": []
+            }
+          }
+        }
+      ],
+      "ui_expectation": "Show an empty state and a link to publish a summary."
+    },
+    {
+      "id": "u7-update",
+      "test_cases": [
+        "U7-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 101,
+              "course": {
+                "id": 1,
+                "course_code": "CS261",
+                "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+              },
+              "title": "สรุป CS261 ฉบับแก้ไข",
+              "description": "อ่านก่อนสอบ",
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "valid-summary.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 603,
+                "read_path": "/api/summaries/101/file"
+              },
+              "created_at": "2026-10-31T02:00:00Z",
+              "updated_at": "2026-10-31T05:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "title": "สรุป CS261 ฉบับแก้ไข",
+              "description": "อ่านก่อนสอบ"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/101",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 101,
+              "course": {
+                "id": 1,
+                "course_code": "CS261",
+                "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+              },
+              "title": "สรุป CS261 ฉบับแก้ไข",
+              "description": "อ่านก่อนสอบ",
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "valid-summary.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 603,
+                "read_path": "/api/summaries/101/file"
+              },
+              "created_at": "2026-10-31T02:00:00Z",
+              "updated_at": "2026-10-31T05:00:00Z"
+            }
+          }
+        }
+      ],
+      "invariant": "ID, owner, course, file and created_at remain unchanged."
+    },
+    {
+      "id": "u7-invalid-title-21",
+      "test_cases": [
+        "U7-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "title",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "title": ""
+            }
+          }
+        }
+      ],
+      "invariant": "Metadata and PDF remain unchanged."
+    },
+    {
+      "id": "u7-invalid-title-22",
+      "test_cases": [
+        "U7-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "title",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "title": "   "
+            }
+          }
+        }
+      ],
+      "invariant": "Metadata and PDF remain unchanged."
+    },
+    {
+      "id": "u7-delete",
+      "test_cases": [
+        "U7-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_delete",
+          "method": "DELETE",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 204,
+            "headers": {
+              "Cache-Control": "no-store"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/101",
+          "actor": "reader",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "summary_file",
+          "method": "GET",
+          "path": "/api/summaries/101/file",
+          "actor": "reader",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "invariant": "Course, summary 102 and unrelated reviews remain."
+    },
+    {
+      "id": "u7-cancel-delete",
+      "test_cases": [
+        "U7-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [],
+      "ui_expectation": "Cancel the confirmation without sending DELETE. Original summary and PDF remain available."
+    },
+    {
+      "id": "u7-permissions-reader",
+      "test_cases": [
+        "U7-TC07"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "reader",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_FORBIDDEN",
+                "message": "จัดการได้เฉพาะสรุปของตน",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "title": "changed"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_delete",
+          "method": "DELETE",
+          "path": "/api/summaries/101",
+          "actor": "reader",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_FORBIDDEN",
+                "message": "จัดการได้เฉพาะสรุปของตน",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "invariant": "Owner metadata and PDF remain unchanged."
+    },
+    {
+      "id": "u7-permissions-expired",
+      "test_cases": [
+        "U7-TC07"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "title": "changed"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_delete",
+          "method": "DELETE",
+          "path": "/api/summaries/101",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "invariant": "Owner metadata and PDF remain unchanged."
+    },
+    {
+      "id": "u7-deleted",
+      "test_cases": [
+        "U7-TC08"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "title": "changed"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_delete",
+          "method": "DELETE",
+          "path": "/api/summaries/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "invariant": "PUT never recreates a deleted summary."
+    },
+    {
+      "id": "u7-fails-summary_update",
+      "test_cases": [
+        "U7-TC08"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "title": "changed"
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "Metadata and file remain unchanged."
+    },
+    {
+      "id": "u7-fails-summary_delete",
+      "test_cases": [
+        "U7-TC08"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_delete",
+          "method": "DELETE",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "Metadata and file remain unchanged."
+    },
+    {
+      "id": "u8-summary-create",
+      "test_cases": [
+        "U8-TC01"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 503,
+              "target_type": "summary",
+              "target_id": 101,
+              "rating": 5,
+              "comment": "อ่านง่ายและตรงประเด็น",
+              "author": {
+                "id": 22,
+                "display_name": "นักศึกษา B"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T03:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5,
+              "comment": "อ่านง่ายและตรงประเด็น"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_reviews",
+          "method": "GET",
+          "path": "/api/summaries/101/reviews",
+          "actor": "other",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "target_type": "summary",
+              "target_id": 101,
+              "items": [
+                {
+                  "id": 503,
+                  "target_type": "summary",
+                  "target_id": 101,
+                  "rating": 5,
+                  "comment": "อ่านง่ายและตรงประเด็น",
+                  "author": {
+                    "id": 22,
+                    "display_name": "นักศึกษา B"
+                  },
+                  "created_at": "2026-10-31T03:00:00Z",
+                  "updated_at": "2026-10-31T03:00:00Z"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-stars-1",
+      "test_cases": [
+        "U8-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 503,
+              "target_type": "summary",
+              "target_id": 101,
+              "rating": 1,
+              "comment": null,
+              "author": {
+                "id": 22,
+                "display_name": "นักศึกษา B"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T03:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-stars-5",
+      "test_cases": [
+        "U8-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 503,
+              "target_type": "summary",
+              "target_id": 101,
+              "rating": 5,
+              "comment": null,
+              "author": {
+                "id": 22,
+                "display_name": "นักศึกษา B"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T03:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-invalid-None",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-invalid-0",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-invalid-6",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-invalid--1",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": -1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-invalid-2.5",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 2.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-update",
+      "test_cases": [
+        "U8-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_summary"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/501",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 501,
+              "target_type": "summary",
+              "target_id": 101,
+              "rating": 4,
+              "comment": null,
+              "author": {
+                "id": 22,
+                "display_name": "นักศึกษา B"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T05:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 4,
+              "comment": null
+            }
+          }
+        }
+      ],
+      "invariant": "Review ID and target remain unchanged. No duplicate review is created."
+    },
+    {
+      "id": "u8-summary-delete",
+      "test_cases": [
+        "U8-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_summary"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/501",
+          "actor": "reader",
+          "response": {
+            "status": 204,
+            "headers": {
+              "Cache-Control": "no-store"
+            }
+          }
+        }
+      ],
+      "invariant": "Other reviews remain unchanged."
+    },
+    {
+      "id": "u8-summary-permissions",
+      "test_cases": [
+        "U8-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_summary"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/501",
+          "actor": "other",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_FORBIDDEN",
+                "message": "จัดการได้เฉพาะรีวิวของตน",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 2
+            }
+          }
+        },
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/501",
+          "actor": "other",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_FORBIDDEN",
+                "message": "จัดการได้เฉพาะรีวิวของตน",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 3
+            }
+          }
+        },
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "author_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 3,
+              "author_id": 33
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-self",
+      "test_cases": [
+        "U8-TC07"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SELF_REVIEW_FORBIDDEN",
+                "message": "รีวิวผลงานของตนเองไม่ได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-duplicate",
+      "test_cases": [
+        "U8-TC08"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_summary"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 409,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_ALREADY_EXISTS",
+                "message": "มีรีวิวแล้ว กรุณาแก้ไขรีวิวเดิม",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-missing",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/999999/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        },
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/999999",
+          "actor": "reader",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        },
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/999999",
+          "actor": "reader",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-summary-storage-create",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No review changes are committed."
+    },
+    {
+      "id": "u8-summary-storage-update",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_summary"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/501",
+          "actor": "reader",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No review changes are committed."
+    },
+    {
+      "id": "u8-summary-storage-delete",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_summary"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/501",
+          "actor": "reader",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No review changes are committed."
+    },
+    {
+      "id": "u8-guide-create",
+      "test_cases": [
+        "U8-TC01"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 503,
+              "target_type": "guide",
+              "target_id": 42,
+              "rating": 5,
+              "comment": "อ่านง่ายและตรงประเด็น",
+              "author": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T03:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5,
+              "comment": "อ่านง่ายและตรงประเด็น"
+            }
+          }
+        },
+        {
+          "endpoint": "guide_reviews",
+          "method": "GET",
+          "path": "/api/guides/42/reviews",
+          "actor": "other",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "target_type": "guide",
+              "target_id": 42,
+              "items": [
+                {
+                  "id": 503,
+                  "target_type": "guide",
+                  "target_id": 42,
+                  "rating": 5,
+                  "comment": "อ่านง่ายและตรงประเด็น",
+                  "author": {
+                    "id": 11,
+                    "display_name": "นักศึกษา A"
+                  },
+                  "created_at": "2026-10-31T03:00:00Z",
+                  "updated_at": "2026-10-31T03:00:00Z"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-stars-1",
+      "test_cases": [
+        "U8-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 503,
+              "target_type": "guide",
+              "target_id": 42,
+              "rating": 1,
+              "comment": null,
+              "author": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T03:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-stars-5",
+      "test_cases": [
+        "U8-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 503,
+              "target_type": "guide",
+              "target_id": 42,
+              "rating": 5,
+              "comment": null,
+              "author": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T03:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-invalid-None",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-invalid-0",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-invalid-6",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-invalid--1",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": -1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-invalid-2.5",
+      "test_cases": [
+        "U8-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "rating",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 2.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-update",
+      "test_cases": [
+        "U8-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_guide"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/502",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 502,
+              "target_type": "guide",
+              "target_id": 42,
+              "rating": 4,
+              "comment": null,
+              "author": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T05:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 4,
+              "comment": null
+            }
+          }
+        }
+      ],
+      "invariant": "Review ID and target remain unchanged. No duplicate review is created."
+    },
+    {
+      "id": "u8-guide-delete",
+      "test_cases": [
+        "U8-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_guide"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/502",
+          "actor": "owner",
+          "response": {
+            "status": 204,
+            "headers": {
+              "Cache-Control": "no-store"
+            }
+          }
+        }
+      ],
+      "invariant": "Other reviews remain unchanged."
+    },
+    {
+      "id": "u8-guide-permissions",
+      "test_cases": [
+        "U8-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_guide"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/502",
+          "actor": "other",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_FORBIDDEN",
+                "message": "จัดการได้เฉพาะรีวิวของตน",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 2
+            }
+          }
+        },
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/502",
+          "actor": "other",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_FORBIDDEN",
+                "message": "จัดการได้เฉพาะรีวิวของตน",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 3
+            }
+          }
+        },
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "author_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 3,
+              "author_id": 33
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-self",
+      "test_cases": [
+        "U8-TC07"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 403,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SELF_REVIEW_FORBIDDEN",
+                "message": "รีวิวผลงานของตนเองไม่ได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-duplicate",
+      "test_cases": [
+        "U8-TC08"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_guide"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 409,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_ALREADY_EXISTS",
+                "message": "มีรีวิวแล้ว กรุณาแก้ไขรีวิวเดิม",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-missing",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/999999/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "GUIDE_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        },
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        },
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u8-guide-storage-create",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "guide_review_create",
+          "method": "POST",
+          "path": "/api/guides/42/reviews",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No review changes are committed."
+    },
+    {
+      "id": "u8-guide-storage-update",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_guide"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_update",
+          "method": "PUT",
+          "path": "/api/reviews/502",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No review changes are committed."
+    },
+    {
+      "id": "u8-guide-storage-delete",
+      "test_cases": [
+        "U8-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [
+          "review_guide"
+        ],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "review_delete",
+          "method": "DELETE",
+          "path": "/api/reviews/502",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No review changes are committed."
+    },
+    {
+      "id": "u9-save",
+      "test_cases": [
+        "U9-TC01"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "course_saved_list",
+          "method": "GET",
+          "path": "/api/saved-courses",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "id": 1,
+                  "course_code": "CS261",
+                  "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "invariant": "Saved course persists across reload and a new session for the same account."
+    },
+    {
+      "id": "u9-save-empty-course",
+      "test_cases": [
+        "U9-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/2",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 2,
+              "saved": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u9-save-again",
+      "test_cases": [
+        "U9-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": true
+            }
+          }
+        }
+      ],
+      "invariant": "Exactly one saved relation exists for user 11 and course 1."
+    },
+    {
+      "id": "u9-save-permissions",
+      "test_cases": [
+        "U9-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "anonymous",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "COURSE_NOT_FOUND",
+                "message": "ไม่พบรายการ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1?user_id=22",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "user_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u9-save-fails",
+      "test_cases": [
+        "U9-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No saved relation is created."
+    },
+    {
+      "id": "u10-own-list",
+      "test_cases": [
+        "U10-TC01"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": [
+          "owner_cs261",
+          "reader_cs104"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "course_saved_list",
+          "method": "GET",
+          "path": "/api/saved-courses",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "id": 1,
+                  "course_code": "CS261",
+                  "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "endpoint": "course_saved_list",
+          "method": "GET",
+          "path": "/api/saved-courses",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "id": 2,
+                  "course_code": "CS104",
+                  "course_name": "INTRODUCTION TO PROGRAMMING"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u10-open-course",
+      "test_cases": [
+        "U10-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": [
+          "owner_cs261",
+          "owner_cs104"
+        ]
+      },
+      "steps": [],
+      "ui_actor": "owner",
+      "ui_expectation": "As owner, select CS261 and CS104 separately from the same saved list using CourseRefDTO.id. Open the existing /api/courses/{course_id} proxy. Empty content does not block opening the course."
+    },
+    {
+      "id": "u10-empty-list",
+      "test_cases": [
+        "U10-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "course_saved_list",
+          "method": "GET",
+          "path": "/api/saved-courses",
+          "actor": "other",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": []
+            }
+          }
+        }
+      ],
+      "ui_expectation": "Show an empty state and a course search link."
+    },
+    {
+      "id": "u10-remove",
+      "test_cases": [
+        "U10-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": [
+          "owner_cs261",
+          "reader_cs104"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "course_remove",
+          "method": "DELETE",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "course_state",
+          "method": "GET",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": false
+            }
+          }
+        }
+      ],
+      "invariant": "Courses, content and reader saved relations remain unchanged."
+    },
+    {
+      "id": "u10-remove-again",
+      "test_cases": [
+        "U10-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "course_remove",
+          "method": "DELETE",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "course_remove",
+          "method": "DELETE",
+          "path": "/api/saved-courses/1",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "course_remove",
+          "method": "DELETE",
+          "path": "/api/saved-courses/1?user_id=22",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "user_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "u10-fails-course_saved_list",
+      "test_cases": [
+        "U10-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": [
+          "owner_cs261"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "course_saved_list",
+          "method": "GET",
+          "path": "/api/saved-courses",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "read"
+      },
+      "invariant": "A load failure is not an empty list. A failed remove keeps the saved relation."
+    },
+    {
+      "id": "u10-fails-course_remove",
+      "test_cases": [
+        "U10-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": [
+          "owner_cs261"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "course_remove",
+          "method": "DELETE",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "A load failure is not an empty list. A failed remove keeps the saved relation."
+    },
+    {
+      "id": "u8-concurrent-create",
+      "test_cases": [
+        "U8-TC08"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "parallel_steps": [
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 503,
+              "target_type": "summary",
+              "target_id": 101,
+              "rating": 5,
+              "comment": null,
+              "author": {
+                "id": 22,
+                "display_name": "นักศึกษา B"
+              },
+              "created_at": "2026-10-31T03:00:00Z",
+              "updated_at": "2026-10-31T03:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        },
+        {
+          "endpoint": "summary_review_create",
+          "method": "POST",
+          "path": "/api/summaries/101/reviews",
+          "actor": "reader",
+          "response": {
+            "status": 409,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "REVIEW_ALREADY_EXISTS",
+                "message": "มีรีวิวแล้ว กรุณาแก้ไขรีวิวเดิม",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "application/json",
+            "body": {
+              "rating": 5
+            }
+          }
+        }
+      ],
+      "invariant": "Responses are an unordered multiset: one 201 and one 409. Exactly one review exists."
+    },
+    {
+      "id": "u9-concurrent-save",
+      "test_cases": [
+        "U9-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "parallel_steps": [
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "course_save",
+          "method": "PUT",
+          "path": "/api/saved-courses/1",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "course_id": 1,
+              "saved": true
+            }
+          }
+        }
+      ],
+      "invariant": "Both requests return saved true. Exactly one relation exists."
+    }
+  ]
+}
