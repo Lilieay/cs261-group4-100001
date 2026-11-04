@@ -23,7 +23,7 @@ sequenceDiagram
             DAO->>DB: DELETE saved_courses WHERE user_id=? AND course_id=?
             alt write/commit ล้มเหลว
                 DB-->>DAO: SQL error
-                DAO-->>API: rollback; storage exception
+                DAO-->>API: rollback and storage error
                 API-->>UI: 503 STORAGE_UNAVAILABLE
             else ลบได้หรือไม่มี row (idempotent)
                 DB-->>DAO: rowcount 1 หรือ 0
