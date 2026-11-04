@@ -1,0 +1,15 @@
+erDiagram
+    users ||--o{ saved_courses : bookmarks
+    courses ||--o{ saved_courses : bookmarked_by
+    users {
+        int id PK
+    }
+    courses {
+        int id PK
+        string course_code UK
+        string course_name
+    }
+    saved_courses {
+        int user_id PK,FK
+        int course_id PK,FK
+    }
