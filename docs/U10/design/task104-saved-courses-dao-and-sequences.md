@@ -185,7 +185,7 @@ sequenceDiagram
                 DAO-->>API: ผลลบ
                 API->>DB: COMMIT
                 API-->>UI: 200 {course_id, saved:false}
-                UI-->>Student: เอารายวิชาออกจากรายการและคง Course/เนื้อหาเดิม
+                UI-->>Student: เอาออกจากรายการ และคง Course/เนื้อหาเดิม
             end
         end
     end

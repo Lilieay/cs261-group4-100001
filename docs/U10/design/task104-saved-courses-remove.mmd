@@ -30,7 +30,7 @@ sequenceDiagram
                 DAO-->>API: result
                 API->>DB: COMMIT
                 API-->>UI: 200 {course_id, saved:false}
-                UI-->>Student: เอาออกจากรายการ; Course/เนื้อหายังคงอยู่
+                UI-->>Student: เอาออกจากรายการ และคง Course/เนื้อหาไว้
             end
         end
     end
