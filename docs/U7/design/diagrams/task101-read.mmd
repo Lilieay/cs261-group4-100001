@@ -1,0 +1,25 @@
+sequenceDiagram
+    actor Student as นักศึกษา
+    participant UI as หน้าอ่าน PDF
+    participant API as API / DTO / Service
+    participant DAO as DAO อ่านของ Task100
+    participant SQL as SQL Server
+    participant Storage as Private PDF storage
+    Student->>UI: เลือกสรุป
+    UI->>API: GET /api/summaries/id + token
+    API->>API: ตรวจ Login
+    API->>DAO: get_by_id(id)
+    DAO->>SQL: SELECT Summary และข้อมูลประกอบ
+    SQL-->>DAO: Summary record
+    DAO-->>API: Summary record
+    API-->>UI: 200 SummaryDTO พร้อม read_path
+    UI->>API: GET read_path + token
+    API->>API: ตรวจ Login อีกครั้ง
+    API->>DAO: get_by_id(id) อีกครั้ง
+    DAO->>SQL: SELECT file reference ปัจจุบัน
+    SQL-->>DAO: file reference
+    DAO-->>API: file reference
+    API->>Storage: เปิดไฟล์จาก private key
+    Storage-->>API: PDF stream
+    API-->>UI: 200 application/pdf
+    UI-->>Student: เปิดอ่าน PDF

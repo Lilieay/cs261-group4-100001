@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor Owner as เจ้าของ
+    participant UI as หน้าสรุปของฉัน
+    participant API as API / DTO / Service
+    participant DAO as DeleteOwnedSummaryDAO
+    participant SQL as SQL Server
+    participant Storage as Private PDF storage
+    Owner->>UI: กดลบสรุป
+    UI-->>Owner: แสดงชื่อรายการและขอยืนยัน
+    alt ยกเลิก
+        Owner->>UI: ยกเลิก
+        UI-->>Owner: ปิดหน้าต่าง ไม่ส่ง DELETE
+    else ยืนยันลบ
+        Owner->>UI: ยืนยัน
+        UI->>API: DELETE /api/summaries/id + token
+        API->>API: ตรวจ Login และรูปแบบคำขอ
+        API->>SQL: เริ่ม transaction
+        API->>DAO: lock และตรวจสรุปกับเจ้าของ
+        DAO->>SQL: SELECT พร้อม write lock
+        SQL-->>DAO: Summary ปัจจุบัน
+        DAO-->>API: ยืนยันว่าเป็นเจ้าของ
+        API->>DAO: delete_owned(id, owner_id)
+        DAO->>SQL: DELETE เฉพาะสรุปนี้
+        SQL-->>DAO: ลบได้หนึ่งรายการ
+        DAO-->>API: ผลลบและ file reference เดิม
+        API->>SQL: COMMIT
+        SQL-->>API: ยืนยันสำเร็จ
+        API-->>UI: 204 ไม่มี body
+        UI-->>Owner: นำรายการออกและโหลดใหม่
+    end
+    Note over API,Storage: หลังลบสำเร็จ API อ่านได้ 404 ส่วนไฟล์จริงรอเก็บกวาดภายหลัง
