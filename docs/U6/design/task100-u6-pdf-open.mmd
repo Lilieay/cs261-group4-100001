@@ -1,0 +1,38 @@
+sequenceDiagram
+    actor Student
+    participant UI as Reading UI
+    participant API as Summary File API
+    participant Auth as Current User Check
+    participant Service as Read Summary File Service
+    participant FileDAO as Summary File DAO
+    participant SQL as SQL Server
+    participant Storage as Private Storage
+
+    Student->>UI: เลือกสรุปและเปิด PDF
+    UI->>API: GET /api/summaries/{summary_id}/file พร้อม Bearer Token
+    API->>Auth: ตรวจ session
+    alt ไม่มี Token หรือ Token ใช้ไม่ได้
+        Auth-->>API: AUTH_REQUIRED
+        API-->>UI: 401 ErrorResponseDTO
+    else Token ใช้ได้
+        Auth-->>Service: AuthenticatedUser
+        Service->>FileDAO: get_by_summary_id(summary_id)
+        FileDAO->>SQL: อ่าน summary และ file metadata
+        SQL-->>FileDAO: metadata หรือไม่พบ
+        alt ไม่พบ summary หรือ file
+            FileDAO-->>Service: None
+            Service-->>API: SUMMARY_NOT_FOUND
+            API-->>UI: 404 ErrorResponseDTO
+        else พบ metadata
+            Service->>Storage: open_private(storage_key)
+            alt Storage อ่านไม่ได้หรือ object หาย
+                Storage-->>Service: Storage read error
+                Service-->>API: STORAGE_UNAVAILABLE
+                API-->>UI: 503 ErrorResponseDTO
+            else อ่านไฟล์ได้
+                Storage-->>Service: PDF stream
+                Service-->>API: PDF bytes และ content type
+                API-->>UI: 200 application/pdf
+            end
+        end
+    end

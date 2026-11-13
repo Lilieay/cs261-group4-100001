@@ -1,0 +1,76 @@
+sequenceDiagram
+    actor Student
+    participant UI as Publish UI
+    participant API as Summary API
+    participant Auth as Current User Check
+    participant Service as Publish Summary Service
+    participant CourseDAO
+    participant Validator as PDF Validator
+    participant Storage as Private Storage
+    participant SummaryDAO
+    participant FileDAO as Summary File DAO
+    participant SQL as SQL Server
+
+    Student->>UI: เลือกวิชา กรอกชื่อ/ข้อมูลเสริม และเลือก PDF
+    UI->>API: POST /api/summaries, multipart/form-data + Bearer Token
+    API->>Auth: ตรวจ session
+    alt ไม่มี Token หรือ Token ใช้ไม่ได้
+        Auth-->>API: AUTH_REQUIRED
+        API-->>UI: 401 ErrorResponseDTO
+    else Token ใช้ได้
+        Auth-->>Service: AuthenticatedUser
+        Service->>CourseDAO: get_course(course_id)
+        CourseDAO->>SQL: ตรวจว่ามีวิชาและเป็นวิชา CS
+        SQL-->>CourseDAO: Course หรือไม่พบ
+        alt วิชาไม่มีหรือไม่ใช่วิชา CS
+            CourseDAO-->>Service: ไม่มี Course
+            Service-->>API: COURSE_NOT_FOUND
+            API-->>UI: 404 ErrorResponseDTO
+        else วิชาใช้ได้
+            Service->>Validator: ตรวจ fields, ขนาด และ parse PDF
+            alt ข้อมูลผิดหรือ PDF ใช้ไม่ได้/เกิน 15 MiB
+                Validator-->>Service: PDF_INVALID, PDF_UNREADABLE หรือ PDF_TOO_LARGE
+                Service-->>API: Validation error
+                API-->>UI: 422 หรือ 413 ErrorResponseDTO
+            else PDF ผ่าน validation
+                Service->>Storage: put_private(storage_key, file)
+                alt Storage เขียนไม่ได้
+                    Storage-->>Service: STORAGE_UNAVAILABLE
+                    Service-->>API: ไม่สร้าง SQL row
+                    API-->>UI: 503 ErrorResponseDTO
+                else เก็บไฟล์สำเร็จ
+                    Service->>SQL: BEGIN transaction
+                    Service->>SummaryDAO: create(course_id, session_user, title, description)
+                    SummaryDAO->>SQL: INSERT summaries
+                    Service->>FileDAO: create(summary_id, storage_key, file metadata)
+                    FileDAO->>SQL: INSERT summary_files
+                    alt SQL commit สำเร็จ
+                        Service->>SQL: COMMIT
+                        Service-->>API: SummaryDTO พร้อม read_path
+                        API-->>UI: 201 SummaryDTO
+                    else SQL ล้มเหลวแน่นอน
+                        Service->>SQL: ROLLBACK
+                        Service->>Storage: delete_private(storage_key)
+                        alt ลบไฟล์ชดเชยสำเร็จ
+                            Service-->>API: บันทึกไม่สำเร็จ
+                            API-->>UI: 503 ErrorResponseDTO
+                        else ลบไฟล์ชดเชยไม่สำเร็จ
+                            Service->>Service: บันทึก cleanup work สำหรับ retry
+                            Service-->>API: STORAGE_UNAVAILABLE
+                            API-->>UI: 503 ErrorResponseDTO
+                        end
+                    else ผล commit ไม่แน่ชัด
+                        Service->>SQL: ค้น record ด้วย storage_key
+                        alt พบ record ที่ commit แล้ว
+                            Service-->>API: ถือว่าบันทึกสำเร็จ
+                            API-->>UI: 201 SummaryDTO
+                        else ตรวจ SQL ไม่ได้หรือไม่พบแน่ชัด
+                            Service->>Storage: เก็บ private object และส่ง reconciliation
+                            Service-->>API: ผลยังไม่ยืนยัน
+                            API-->>UI: 503 หรือ 502 ตามเหตุ
+                        end
+                    end
+                end
+            end
+        end
+    end
