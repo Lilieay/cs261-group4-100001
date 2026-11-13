@@ -34,6 +34,9 @@ services:
       TU_API_KEY: "${TU_API_KEY:-}"
       TU_API_TIMEOUT: "${TU_API_TIMEOUT:-5}"
       AUTH_SESSION_TTL_SECONDS: "${AUTH_SESSION_TTL_SECONDS:-28800}"
+      PDF_STORAGE_ROOT: "${PDF_STORAGE_ROOT:-/app/data/pdfs}"
+    volumes:
+      - "pdf_storage:${PDF_STORAGE_ROOT:-/app/data/pdfs}"
     ports:
       - "127.0.0.1:${BACKEND_HOST_PORT:-8000}:8000"
     depends_on:
@@ -58,3 +61,4 @@ services:
 
 volumes:
   sqlserver_data:
+  pdf_storage:
