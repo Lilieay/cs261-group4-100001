@@ -1,8 +1,12 @@
 # Task104: U10 — แบบ DAO และลำดับการดู/เปิด/นำรายวิชาออก
 
-**สถานะ:** Draft สำหรับ review — ใช้ Task94 API Contract รุ่น 0.2 เป็น baseline; Task94 ยังรอทีม review และ Task99 ยังรอ PO ยืนยัน
+**สถานะ:** พร้อมส่ง review แบบมีเงื่อนไข — ห้ามเริ่ม implementation จน Task94 และ Task99 ผ่าน DoD
+
 **วันที่จัดทำ:** 4 พฤศจิกายน 2569
-**รุ่นเอกสาร:** 0.1
+
+**วันที่แก้ไขล่าสุด:** 13 พฤศจิกายน 2569
+
+**รุ่นเอกสาร:** 0.2
 
 ## 1. ขอบเขตและสมมติฐาน
 
@@ -11,6 +15,16 @@
 Task99 ฉบับปัจจุบันยังมีคำถามที่ PO ต้องตัดสิน เพราะระบบเดิมเก็บ `SavedGuide` ด้วย `guide_id` ขณะที่ Task94 และ Task104 ระบุรายการรายวิชาด้วย `course_id` แบบนี้จึงออกแบบสำหรับ `SavedCourse` ที่ Task103 จัดเตรียม โดยถือว่า contract นี้เป็นข้อเสนอที่ยังต้อง review ไม่ได้อ้างว่า PO อนุมัติแล้ว
 
 **สมมติฐานที่ Task103/Task94 ต้องตรวจร่วมกัน:** `SavedCourse` เชื่อม `user_id` กับ `course_id` ด้วย composite key; ใช้ `users.id` และ `courses.id` เดิม; ไม่รับ `user_id` จาก request; DAO ลบเฉพาะคู่ผู้ใช้ปัจจุบันกับรายวิชาที่ระบุ ถ้า Task103 ใช้ชื่อ field หรือ constraint ต่างกัน ให้แก้แบบนี้ก่อน implementation โดยไม่สร้างตาราง Course/User หรือ ER ซ้ำ
+
+### Dependency gate ก่อนเริ่ม implementation
+
+| งานก่อนหน้า | หลักฐานที่ตรวจ | สถานะ ณ 13 พฤศจิกายน 2569 | ผลต่อ Task104 |
+|---|---|---|---|
+| Task94 — API Contract กลาง U6–U10 | Branch `origin/docs/task94-api-contract`, commit `de3e669` | รุ่น 0.2 พร้อมส่งตรวจ แต่เอกสารระบุว่ายังรอ Frontend/Backend/PO review | ใช้เป็น baseline ในการออกแบบเท่านั้น ห้ามล็อก endpoint/DTO จนผ่าน DoD |
+| Task99 — รายละเอียดและ Test Cases U10 | Branch `origin/feat/u10-task99-requirements`, commit `cc5b928` | TC ร่างครบ แต่ยังรอ PO ตัดสิน Course bookmark เทียบกับ Guide bookmark | แบบนี้เลือก Course bookmark ตาม Task94/Task104 แบบมีเงื่อนไข |
+| Task103 — SavedCourse data design | ยังไม่พบ artefact ใน `sprint2` หรือ remote branches ที่ตรวจ | ยังยืนยัน schema, constraint และ FK policy ไม่ได้ | ต้องเทียบชื่อ table/field/key กับ Task103 ก่อน merge/implement |
+
+การทำเอกสารแบบมีเงื่อนไขนี้ไม่ถือว่าเริ่ม implementation และไม่ถือว่า Task104 ผ่าน DoD จน dependency gate และ review checklist ในหัวข้อ 7 ถูกปิดครบ
 
 ## 2. ข้อมูลและ ER เดิมที่นำมาใช้
 
@@ -48,6 +62,8 @@ erDiagram
 
 DAO ไม่ commit transaction เอง ให้ Service ถือ session/transaction เดียวตามรูปแบบ dependencies ปัจจุบัน กรณี remove ซ้ำ Service commit no-op ได้และตอบ `{course_id, saved: false}` ตาม contract
 
+DAO รับ `user_id` จาก Service เท่านั้น Router ต้องสร้างค่านี้จาก authenticated principal และไม่ส่ง `user_id` จาก body/query ลง Service การขอเข้าถึงรายการของผู้ใช้อื่นจึงไม่มี route ที่ถูกต้องให้เรียก; ถ้าส่ง owner field/query ที่ contract ไม่รับ ให้ตอบ `422 INVALID_PARAMETERS` ก่อนเรียก DAO ไม่ใช้ `403` เพื่อเปิดเผยว่าผู้อื่นมีรายการใดอยู่
+
 ### SQL เชิงแนวคิด
 
 รายการ:
@@ -80,6 +96,8 @@ WHERE user_id = :current_user_id
 | เปิดรายวิชา | UI ใช้ `CourseRefDTO.id` เรียก `GET /api/courses/{course_id}` ผ่าน proxy เดิม; ได้ Course DTO จาก API เดิม | ID ไม่ใช่จำนวนบวก: `422 INVALID_PARAMETERS`; วิชาไม่มีหรือไม่ใช่ CS: `404 COURSE_NOT_FOUND`; token ไม่ผ่าน: `401`; storage error ของ API เดิมเป็น `500 INTERNAL_ERROR` ตาม `CourseApiRoute` ปัจจุบัน |
 | นำออก | ลบเฉพาะ association ของ current user แล้วตอบ `200 {"course_id": 1, "saved": false}`; เรียกซ้ำได้ผลเดิม | ID ผิด `422`; Course ไม่มี/ไม่ใช่ CS `404 COURSE_NOT_FOUND`; DB error `503 STORAGE_UNAVAILABLE` และ association ต้องยังอยู่ |
 
+กติกาที่ใช้ร่วมกัน: body/query ที่ endpoint ไม่รับ รวมถึง `user_id` ตอบ `422 INVALID_PARAMETERS`; route ไม่มีตอบ `404 ROUTE_NOT_FOUND`; method ผิดตอบ `405 METHOD_NOT_ALLOWED` พร้อม `Allow`; response error ใช้ envelope กลางจาก Task94 ไม่ใช้ `200` พร้อมข้อความ error
+
 รายการ Course ที่บันทึกต้องแยกจาก `/api/saved-guides` ซึ่งบันทึก Guide คนละชนิด ถ้าระบบมี saved-course reference ที่ชี้ไป Course ที่ถูกลบ ให้ปฏิบัติตาม FK/ลำดับ cleanup ที่ Task103 กำหนด; GET list ต้องไม่คืนรายการที่เปิดต่อไม่ได้
 
 ## 5. Sequence Diagrams
@@ -92,7 +110,8 @@ WHERE user_id = :current_user_id
 sequenceDiagram
     actor Student as นักศึกษา
     participant UI as Saved courses UI
-    participant API as Router / DTO / Service
+    participant API as SavedCourse Router / DTO
+    participant SVC as SavedCoursesService
     participant DAO as SavedCourseDAO
     participant DB as SQL storage
     Student->>UI: เปิดรายการส่วนตัว
@@ -101,16 +120,18 @@ sequenceDiagram
     alt token ใช้ไม่ได้
         API-->>UI: 401 AUTH_REQUIRED
     else token ผ่าน
-        API->>DAO: list_by_user(current_user.id)
+        API->>SVC: list_for_user(current_user.id)
+        SVC->>DAO: list_by_user(current_user.id)
         DAO->>DB: SELECT join saved_courses/courses by user_id, ordered
         alt อ่านฐานข้อมูลล้มเหลว
             DB-->>DAO: SQL error
-            DAO-->>API: storage exception
+            DAO-->>SVC: storage exception
+            SVC-->>API: STORAGE_UNAVAILABLE
             API-->>UI: 503 STORAGE_UNAVAILABLE
         else อ่านสำเร็จ
             DB-->>DAO: Course rows หรือ []
-            DAO-->>API: list[Course]
-            API->>API: map เป็น SavedCourseListResponse / CourseRefDTO
+            DAO-->>SVC: list[Course]
+            SVC-->>API: SavedCourseListResponse / CourseRefDTO
             API-->>UI: 200 {items: [...]} หรือ {items: []}
         end
     end
@@ -123,7 +144,8 @@ sequenceDiagram
 sequenceDiagram
     actor Student as นักศึกษา
     participant UI as Saved courses UI
-    participant API as Course Router / Service / DTO
+    participant API as Course Router / DTO
+    participant SVC as CourseService (เดิม)
     participant DAO as CourseDAO (เดิม)
     participant DB as SQL storage
     Student->>UI: เลือกรายวิชา course_id
@@ -134,16 +156,23 @@ sequenceDiagram
     else path ID ไม่ถูกต้อง
         API-->>UI: 422 INVALID_PARAMETERS
     else ผ่านการตรวจ
-        API->>DAO: get_cs_by_id(course_id)
+        API->>SVC: get(course_id)
+        SVC->>DAO: get_cs_by_id(course_id)
         DAO->>DB: SELECT Course WHERE id = ? AND course_code LIKE 'CS%'
-        alt ไม่พบ/ไม่ใช่ CS
+        alt อ่าน storage ล้มเหลว
+            DB-->>DAO: SQL error
+            DAO-->>SVC: exception
+            SVC-->>API: unhandled storage error ตาม API เดิม
+            API-->>UI: 500 INTERNAL_ERROR
+        else ไม่พบ/ไม่ใช่ CS
             DB-->>DAO: None
-            DAO-->>API: None
+            DAO-->>SVC: None
+            SVC-->>API: COURSE_NOT_FOUND
             API-->>UI: 404 COURSE_NOT_FOUND
         else พบรายวิชา
             DB-->>DAO: Course row
-            DAO-->>API: Course
-            API->>API: map เป็น CourseDTO เดิม
+            DAO-->>SVC: Course
+            SVC-->>API: CourseDTO เดิม
             API-->>UI: 200 CourseDTO
             UI-->>Student: เปิดหน้ารายละเอียดรายวิชาเดิม
         end
@@ -156,34 +185,42 @@ sequenceDiagram
 sequenceDiagram
     actor Student as นักศึกษา
     participant UI as Saved courses UI
-    participant API as SavedCourse Router / DTO / Service
+    participant API as SavedCourse Router / DTO
+    participant SVC as SavedCoursesService
     participant CourseDAO as CourseDAO (เดิม)
     participant DAO as SavedCourseDAO
     participant DB as SQL storage
     Student->>UI: กดนำออก
     UI->>API: DELETE /api/saved-courses/{course_id} + Bearer
     API->>API: current_user และ Path validation
-    alt token ใช้ไม่ได้ หรือ ID ผิด
-        API-->>UI: 401 AUTH_REQUIRED หรือ 422 INVALID_PARAMETERS
+    alt token ใช้ไม่ได้
+        API-->>UI: 401 AUTH_REQUIRED
+    else ID/body/query ไม่ถูกต้อง
+        API-->>UI: 422 INVALID_PARAMETERS
     else ผ่านการตรวจ
-        API->>CourseDAO: get_cs_by_id(course_id)
+        API->>SVC: remove(current_user.id, course_id)
+        SVC->>CourseDAO: get_cs_by_id(course_id)
         CourseDAO->>DB: ตรวจ Course CS ที่มีอยู่
         alt ไม่พบ/ไม่ใช่ CS
             DB-->>CourseDAO: None
-            CourseDAO-->>API: None
+            CourseDAO-->>SVC: None
+            SVC-->>API: COURSE_NOT_FOUND
             API-->>UI: 404 COURSE_NOT_FOUND
         else พบ Course
-            CourseDAO-->>API: Course
-            API->>DAO: remove(current_user.id, course_id)
+            CourseDAO-->>SVC: Course
+            SVC->>DAO: remove(current_user.id, course_id)
             DAO->>DB: DELETE saved_courses WHERE user_id=? AND course_id=?
             alt ลบหรือ commit ล้มเหลว
                 DB-->>DAO: SQL error
-                DAO-->>API: rollback and storage error
+                DAO-->>SVC: storage exception
+                SVC->>DB: ROLLBACK
+                SVC-->>API: STORAGE_UNAVAILABLE
                 API-->>UI: 503 STORAGE_UNAVAILABLE
             else ลบได้หรือไม่มี association อยู่แล้ว
                 DB-->>DAO: rowcount 1 หรือ 0
-                DAO-->>API: ผลลบ
-                API->>DB: COMMIT
+                DAO-->>SVC: ผลลบ
+                SVC->>DB: COMMIT
+                SVC-->>API: SavedCourseState(saved=false)
                 API-->>UI: 200 {course_id, saved:false}
                 UI-->>Student: เอาออกจากรายการ และคง Course/เนื้อหาเดิม
             end
@@ -213,17 +250,25 @@ sequenceDiagram
 | ตรวจข้อผิดพลาดของ Course API เดิม | ตรวจแล้ว: `CourseApiRoute` แปลง unhandled storage exception เป็น `500 INTERNAL_ERROR`; ไม่อ้างว่าเป็น `503` |
 | ผู้ทบทวนอิสระ / วันที่ / revision ที่ตรวจ | รอ reviewer ของทีมกรอกหลัง review จริง; เอกสารนี้ยังไม่อ้าง independent review |
 
+### ประวัติรุ่นและบันทึก review
+
+| รุ่น | วันที่ | ผู้จัดทำ/ผู้ตรวจ | รายการเปลี่ยนแปลงหรือผลตรวจ |
+|---|---|---|---|
+| 0.1 | 4 พฤศจิกายน 2569 | ผู้จัดทำแบบ | ร่าง DAO, SQL, ER fragment และ 3 sequence flows จาก Task94 v0.2 |
+| 0.2 | 13 พฤศจิกายน 2569 | ผู้จัดทำแบบ; รอ reviewer ทีม | แยก Router/DTO, Service, DAO และ storage ใน diagram; เพิ่ม dependency gate, validation, rollback และ storage error paths; แก้ reference ให้ใช้ได้จาก branch ที่แตกจาก `sprint2` |
+| Review | รอกรอก | ชื่อ reviewer / วันที่ / commit | บันทึกข้อพบ การแก้ไข และผลยอมรับจริงก่อนปิด Task104 |
+
 ### Review checklist สำหรับ PR
 
-- [ ] Task103 model/table และ key ตรงกับสมมติฐานในเอกสาร
-- [ ] Frontend/Backend ยืนยัน endpoint, DTO และ empty/error behavior กับ Task94
-- [ ] PO ยืนยัน scope Course bookmark เทียบกับ Task99
+- [ ] Task94 ผ่าน DoD และ Frontend/Backend ยืนยัน endpoint, DTO และ empty/error behavior
+- [ ] Task99 ผ่าน DoD และ PO ยืนยัน scope Course bookmark เทียบกับ Guide bookmark
+- [ ] Task103 model/table, key, FK และ cleanup policy ตรงกับสมมติฐานในเอกสาร
 - [ ] Reviewer ตรวจ SQL ownership predicate, transaction และกรณีล้มเหลว; เติมชื่อ/วันที่/commit/review link และข้อแก้ไขจริง
 
 ## 8. แหล่งอ้างอิงใน Repository
 
-- [Task94 API Contract (PR #103)](https://github.com/Lilieay/cs261-group4-100001/blob/docs/task94-api-contract/docs/task94-api-contract.md) — baseline ที่ยังรอ review
-- [Task99 U10 Requirements/TC](../requirements/task99-u10-requirements-and-test-cases.md) — draft ที่ PO ยังไม่ยืนยัน
+- [Task94 API Contract v0.2](https://github.com/Lilieay/CS261-Group4-Project/blob/docs/task94-api-contract/docs/task94-api-contract.md) — baseline จาก branch ที่ยังรอ review
+- [Task99 U10 Requirements/TC](https://github.com/Lilieay/CS261-Group4-Project/blob/feat/u10-task99-requirements/docs/U10/requirements/task99-u10-requirements-and-test-cases.md) — draft จาก prerequisite branch ที่ยังรอ PO ยืนยัน
 - [Course Entity/DAO](../../U2/design/task22-course-entity.md), [User Entity/DAO](../../U1/design/task6-db-er-entity-dao.md), [Guide/Course ER](../../U3/design/task36-db-er-entity-dao.md)
 - Current implementation reference: `backend/app/models/saved_guide.py`, `backend/app/dao/saved_guide_dao.py`, `backend/app/routers/courses.py`, `backend/app/dao/course_dao.py`, `backend/app/services/courses.py`
-- Target implementation reference: `SavedCourse` จาก Task103 (ยังไม่พบใน branch `U10` ที่ตรวจ)
+- Target implementation reference: `SavedCourse` จาก Task103 (ยังไม่พบใน `sprint2` หรือ remote branches ที่ตรวจ ณ 13 พฤศจิกายน 2569)

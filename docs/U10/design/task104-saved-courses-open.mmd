@@ -1,30 +1,36 @@
 sequenceDiagram
     actor Student as นักศึกษา
     participant UI as Saved courses UI
-    participant API as Course Router / Service / DTO เดิม
+    participant API as Course Router / DTO เดิม
+    participant SVC as CourseService เดิม
     participant DAO as CourseDAO เดิม
     participant DB as SQL storage
     Student->>UI: เลือกรายวิชา course_id
     UI->>API: GET /api/courses/{course_id} + Bearer
     API->>API: ตรวจ token และ Path
-    alt auth fail / ID ไม่ถูกต้อง
-        API-->>UI: 401 AUTH_REQUIRED / 422 INVALID_PARAMETERS
+    alt token ใช้ไม่ได้
+        API-->>UI: 401 AUTH_REQUIRED
+    else ID ไม่ถูกต้อง
+        API-->>UI: 422 INVALID_PARAMETERS
     else ผ่าน validation
-        API->>DAO: get_cs_by_id(course_id)
+        API->>SVC: get(course_id)
+        SVC->>DAO: get_cs_by_id(course_id)
         DAO->>DB: SELECT Course WHERE id=? AND code CS%
         alt ไม่มี Course CS
             DB-->>DAO: None
-            DAO-->>API: None
+            DAO-->>SVC: None
+            SVC-->>API: COURSE_NOT_FOUND
             API-->>UI: 404 COURSE_NOT_FOUND
         else พบ
             DB-->>DAO: Course row
-            DAO-->>API: Course
-            API->>API: map CourseDTO เดิม
+            DAO-->>SVC: Course
+            SVC-->>API: CourseDTO เดิม
             API-->>UI: 200 CourseDTO
             UI-->>Student: เปิดหน้ารายละเอียดรายวิชาเดิม
         else storage error
             DB-->>DAO: SQL error
-            DAO-->>API: unhandled storage exception
+            DAO-->>SVC: storage exception
+            SVC-->>API: unhandled storage exception
             API-->>UI: 500 INTERNAL_ERROR ตาม CourseApiRoute ปัจจุบัน
         end
     end
