@@ -1,30 +1,11 @@
 sequenceDiagram
   participant UI
-  participant API as API / DTO
-  participant S as ReviewService
-  participant D as ReviewDAO
+  participant API as API / Service
+  participant DAO as ReviewDAO
   participant DB as SQL Server
-  UI->>API: GET guide or summary reviews + Bearer
-  alt No valid session or invalid parameters
-    API-->>UI: 401 or 422
-  else Valid request
-    API->>S: list target reviews
-    S->>D: list_for_target(type, id)
-    D->>DB: Read target and reviews in one query
-    alt Target missing
-      DB-->>D: No target row
-      D-->>S: Target missing
-      S-->>API: GUIDE_NOT_FOUND or SUMMARY_NOT_FOUND
-      API-->>UI: 404
-    else SQL unavailable
-      DB-->>D: Read failed
-      D-->>S: SQL error
-      S-->>API: STORAGE_UNAVAILABLE
-      API-->>UI: 503
-    else Target exists
-      DB-->>D: Target and review rows
-      D-->>S: Existing target and ordered reviews
-      S-->>API: ReviewListResponse
-      API-->>UI: 200 with items, possibly empty
-    end
-  end
+  UI->>API: ขอรายการรีวิวของผลงาน
+  API->>DAO: เช็กล็อกอินแล้วขอรายการ
+  DAO->>DB: อ่านผลงานและรีวิว เรียงจากใหม่ไปเก่า
+  DB-->>DAO: คืนรายการรีวิว
+  DAO-->>API: ส่งรายการกลับ
+  API-->>UI: 200 แสดงรีวิวหรือรายการว่าง

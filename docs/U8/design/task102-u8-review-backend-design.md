@@ -106,7 +106,9 @@ POST และ PUT รับ JSON เฉพาะ `rating` กับ `comment` �
 
 ใช้ error envelope ของ Task94 ส่ง JSON ผิดรูปแบบตอบ 400 `MALFORMED_REQUEST` และชนิด request ผิดตอบ 415 `UNSUPPORTED_MEDIA_TYPE` เมื่อ SQL ล้มเหลวก่อน commit และยืนยัน rollback ได้ ให้ตอบ 503 `STORAGE_UNAVAILABLE` โดยคงข้อมูลเดิม ถ้าการเชื่อมต่อหลุดจนไม่ทราบผล commit ให้ตอบ 503 เมื่อยังส่ง response ได้ และให้ UI โหลดรายการล่าสุดก่อนแจ้งผลหรือให้ผู้ใช้ลองใหม่ โดยเฉพาะ POST ที่ห้าม retry อัตโนมัติ
 
-### แผนภาพลำดับ
+### ### แผนภาพลำดับ
+
+ทั้งสี่ภาพใช้กับแนวข้อสอบและสรุป PDF เหมือนกัน ภาพแสดงทางเดินตอนทำสำเร็จ ผลตอบกลับเมื่อข้อมูลผิดหรือ SQL ล้มเหลวดูได้จากตารางด้านบน
 
 #### แสดงรายการ
 
@@ -115,35 +117,18 @@ POST และ PUT รับ JSON เฉพาะ `rating` กับ `comment` �
 ```mermaid
 sequenceDiagram
   participant UI
-  participant API as API / DTO
-  participant S as ReviewService
-  participant D as ReviewDAO
+  participant API as API / Service
+  participant DAO as ReviewDAO
   participant DB as SQL Server
-  UI->>API: GET guide or summary reviews + Bearer
-  alt No valid session or invalid parameters
-    API-->>UI: 401 or 422
-  else Valid request
-    API->>S: list target reviews
-    S->>D: list_for_target(type, id)
-    D->>DB: Read target and reviews in one query
-    alt Target missing
-      DB-->>D: No target row
-      D-->>S: Target missing
-      S-->>API: GUIDE_NOT_FOUND or SUMMARY_NOT_FOUND
-      API-->>UI: 404
-    else SQL unavailable
-      DB-->>D: Read failed
-      D-->>S: SQL error
-      S-->>API: STORAGE_UNAVAILABLE
-      API-->>UI: 503
-    else Target exists
-      DB-->>D: Target and review rows
-      D-->>S: Existing target and ordered reviews
-      S-->>API: ReviewListResponse
-      API-->>UI: 200 with items, possibly empty
-    end
-  end
+  UI->>API: ขอรายการรีวิวของผลงาน
+  API->>DAO: เช็กล็อกอินแล้วขอรายการ
+  DAO->>DB: อ่านผลงานและรีวิว เรียงจากใหม่ไปเก่า
+  DB-->>DAO: คืนรายการรีวิว
+  DAO-->>API: ส่งรายการกลับ
+  API-->>UI: 200 แสดงรีวิวหรือรายการว่าง
 ```
+
+ผลงานไม่มีหรือถูกลบได้ 404 ตามชนิด ส่วนผลงานที่ยังอยู่แต่ไม่มีรีวิวได้ 200 พร้อม `items: []`
 
 #### เพิ่มรีวิว
 
@@ -152,56 +137,19 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant UI
-  participant API as API / DTO
-  participant S as ReviewService
-  participant D as ReviewDAO
+  participant API as API / Service
+  participant DAO as ReviewDAO
   participant DB as SQL Server
-  UI->>API: POST guide or summary reviews + Bearer
-  alt No valid session or invalid JSON fields
-    API-->>UI: 401 or 422
-  else Valid request
-    API->>S: Create review with session author
-    S->>D: get_target_for_create(type, id)
-    D->>DB: Lock and read target owner in transaction
-    DB-->>D: Owner, no target or SQL error
-    D-->>S: Lookup result
-    alt Target missing or own target
-      S->>DB: Rollback
-      S-->>API: Target not found or SELF_REVIEW_FORBIDDEN
-      API-->>UI: 404 or 403
-    else SQL lookup fails
-      S->>DB: Rollback when possible
-      S-->>API: STORAGE_UNAVAILABLE
-      API-->>UI: 503
-    else Another user owns target
-      S->>D: Insert review and flush
-      D->>DB: INSERT with filtered unique index
-      alt Duplicate review
-        DB-->>D: Unique index violation
-        D-->>S: Duplicate
-        S->>DB: Rollback
-        S-->>API: REVIEW_ALREADY_EXISTS
-        API-->>UI: 409
-      else SQL write fails and rollback is confirmed
-        S->>DB: Rollback
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503
-      else Insert and commit succeed
-        DB-->>D: Inserted review
-        D-->>S: Review record
-        S->>S: Build ReviewDTO
-        S->>DB: Commit
-        S-->>API: ReviewDTO
-        API-->>UI: 201
-      else Connection lost and commit outcome unknown
-        DB--xS: No commit acknowledgment
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503 when response is still possible
-        UI->>API: Reload review list to check result
-      end
-    end
-  end
+  UI->>API: ส่งคะแนนและข้อความ
+  API->>DAO: เช็กล็อกอินและข้อมูล แล้วส่งคำขอเพิ่มรีวิว
+  DAO->>DB: อ่านเจ้าของพร้อมล็อกผลงาน แล้ว INSERT เมื่อ Service อนุญาต
+  DB-->>DAO: คืนรีวิวที่เพิ่ม
+  DAO-->>API: ส่งรีวิวกลับ
+  API->>DB: Commit
+  API-->>UI: 201 แสดงรีวิวใหม่
 ```
+
+ถ้าเป็นผลงานตัวเองตอบ 403 ถ้ารีวิวซ้ำตอบ 409 และให้แก้รายการเดิม
 
 #### แก้ไขรีวิว
 
@@ -210,54 +158,19 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant UI
-  participant API as API / DTO
-  participant S as ReviewService
-  participant D as ReviewDAO
+  participant API as API / Service
+  participant DAO as ReviewDAO
   participant DB as SQL Server
-  UI->>API: PUT review by ID + Bearer
-  alt No valid session or invalid request
-    API-->>UI: 401 or 422
-  else Valid request
-    API->>S: Update using session author
-    S->>D: get_review_for_write(review_id)
-    D->>DB: Lock review row in transaction
-    DB-->>D: Review row, no row or SQL error
-    D-->>S: Lookup result
-    alt Review missing or belongs to another user
-      S->>DB: Rollback
-      S-->>API: REVIEW_NOT_FOUND or REVIEW_FORBIDDEN
-      API-->>UI: 404 or 403
-    else SQL lookup fails
-      S->>DB: Rollback when possible
-      S-->>API: STORAGE_UNAVAILABLE
-      API-->>UI: 503
-    else Own review
-      S->>D: update_owned(review_id, author_id)
-      D->>DB: UPDATE rating, comment and updated_at by ID and author
-      alt No matching row
-        S->>DB: Rollback
-        S-->>API: REVIEW_NOT_FOUND
-        API-->>UI: 404
-      else SQL write fails and rollback is confirmed
-        S->>DB: Rollback
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503
-      else Write and commit succeed
-        DB-->>D: Updated review
-        D-->>S: Review record
-        S->>S: Build ReviewDTO
-        S->>DB: Commit
-        S-->>API: ReviewDTO
-        API-->>UI: 200
-      else Connection lost and commit outcome unknown
-        DB--xS: No commit acknowledgment
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503 when response is still possible
-        UI->>API: Reload review list to check result
-      end
-    end
-  end
+  UI->>API: ส่งคะแนนและข้อความใหม่
+  API->>DAO: เช็กล็อกอินและข้อมูล แล้วส่งคำขอแก้รีวิว
+  DAO->>DB: อ่านผู้เขียนพร้อมล็อกรีวิว แล้ว UPDATE เมื่อ Service อนุญาต
+  DB-->>DAO: คืนรีวิวที่แก้
+  DAO-->>API: ส่งรีวิวกลับ
+  API->>DB: Commit
+  API-->>UI: 200 แสดงรีวิวที่แก้แล้ว
 ```
+
+ถ้าเป็นรีวิวของคนอื่นตอบ 403 ถ้ารีวิวหายตอบ 404 แก้สำเร็จต้องได้ ID เดิม
 
 #### ลบรีวิว
 
@@ -266,56 +179,21 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant UI
-  participant API as API / DTO
-  participant S as ReviewService
-  participant D as ReviewDAO
+  participant API as API / Service
+  participant DAO as ReviewDAO
   participant DB as SQL Server
-  UI->>API: DELETE review by ID + Bearer
-  alt No valid session or invalid request
-    API-->>UI: 401 or 422
-  else Valid request
-    API->>S: Delete using session author
-    S->>D: get_review_for_write(review_id)
-    D->>DB: Lock review row in transaction
-    DB-->>D: Review row, no row or SQL error
-    D-->>S: Lookup result
-    alt Review missing or belongs to another user
-      S->>DB: Rollback
-      S-->>API: REVIEW_NOT_FOUND or REVIEW_FORBIDDEN
-      API-->>UI: 404 or 403
-    else SQL lookup fails
-      S->>DB: Rollback when possible
-      S-->>API: STORAGE_UNAVAILABLE
-      API-->>UI: 503
-    else Own review
-      S->>D: delete_owned(review_id, author_id)
-      D->>DB: DELETE matching review by ID and author
-      alt No matching row
-        S->>DB: Rollback
-        S-->>API: REVIEW_NOT_FOUND
-        API-->>UI: 404
-      else SQL write fails and rollback is confirmed
-        S->>DB: Rollback
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503
-      else Write and commit succeed
-        DB-->>D: One row deleted
-        D-->>S: Deleted
-        S->>DB: Commit
-        S-->>API: No response body
-        API-->>UI: 204
-      else Connection lost and commit outcome unknown
-        DB--xS: No commit acknowledgment
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503 when response is still possible
-        UI->>API: Reload review list to check result
-      end
-    end
-  end
+  UI->>API: ส่งคำขอลบรีวิว
+  API->>DAO: เช็กล็อกอิน แล้วส่งคำขอลบ
+  DAO->>DB: อ่านผู้เขียนพร้อมล็อกรีวิว แล้ว DELETE เมื่อ Service อนุญาต
+  DB-->>DAO: ยืนยันว่าลบหนึ่งรายการ
+  DAO-->>API: ส่งผลกลับ
+  API->>DB: Commit
+  API-->>UI: 204 เอารีวิวออกจากรายการ
 ```
 
+ถ้าเป็นรีวิวของคนอื่นตอบ 403 ถ้ารีวิวหายตอบ 404 ลบสำเร็จแล้วรีวิวคนอื่นยังอยู่
 
-## แผนทดสอบ
+แผนทดสอบ
 
 ใช้ Guide 101 และ Summary 101 เป็นคนละผลงาน มีเจ้าของ P ผู้รีวิว R และผู้ใช้อื่น X ใช้คะแนนกับข้อความตาม fixture ของ Task94 และรันกรณีที่เกี่ยวข้องแยกทั้งสองชนิด
 

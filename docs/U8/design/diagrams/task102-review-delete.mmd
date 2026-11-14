@@ -1,48 +1,12 @@
 sequenceDiagram
   participant UI
-  participant API as API / DTO
-  participant S as ReviewService
-  participant D as ReviewDAO
+  participant API as API / Service
+  participant DAO as ReviewDAO
   participant DB as SQL Server
-  UI->>API: DELETE review by ID + Bearer
-  alt No valid session or invalid request
-    API-->>UI: 401 or 422
-  else Valid request
-    API->>S: Delete using session author
-    S->>D: get_review_for_write(review_id)
-    D->>DB: Lock review row in transaction
-    DB-->>D: Review row, no row or SQL error
-    D-->>S: Lookup result
-    alt Review missing or belongs to another user
-      S->>DB: Rollback
-      S-->>API: REVIEW_NOT_FOUND or REVIEW_FORBIDDEN
-      API-->>UI: 404 or 403
-    else SQL lookup fails
-      S->>DB: Rollback when possible
-      S-->>API: STORAGE_UNAVAILABLE
-      API-->>UI: 503
-    else Own review
-      S->>D: delete_owned(review_id, author_id)
-      D->>DB: DELETE matching review by ID and author
-      alt No matching row
-        S->>DB: Rollback
-        S-->>API: REVIEW_NOT_FOUND
-        API-->>UI: 404
-      else SQL write fails and rollback is confirmed
-        S->>DB: Rollback
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503
-      else Write and commit succeed
-        DB-->>D: One row deleted
-        D-->>S: Deleted
-        S->>DB: Commit
-        S-->>API: No response body
-        API-->>UI: 204
-      else Connection lost and commit outcome unknown
-        DB--xS: No commit acknowledgment
-        S-->>API: STORAGE_UNAVAILABLE
-        API-->>UI: 503 when response is still possible
-        UI->>API: Reload review list to check result
-      end
-    end
-  end
+  UI->>API: ส่งคำขอลบรีวิว
+  API->>DAO: เช็กล็อกอิน แล้วส่งคำขอลบ
+  DAO->>DB: อ่านผู้เขียนพร้อมล็อกรีวิว แล้ว DELETE เมื่อ Service อนุญาต
+  DB-->>DAO: ยืนยันว่าลบหนึ่งรายการ
+  DAO-->>API: ส่งผลกลับ
+  API->>DB: Commit
+  API-->>UI: 204 เอารีวิวออกจากรายการ
