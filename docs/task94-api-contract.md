@@ -2,11 +2,11 @@
 
 ออกแบบ API กลางสำหรับ U6 ถึง U10
 
-รุ่น 0.2   |   วันที่ 31 ตุลาคม 2569   |   Sprint 2
+รุ่น 0.3   |   วันที่ 14 พฤศจิกายน 2569   |   Sprint 2
 
-เอกสารนี้กำหนด API สำหรับเผยแพร่และจัดการสรุป PDF รีวิวผลงาน และบันทึกรายวิชา เพื่อให้ Frontend และ Backend ใช้เส้นทาง ข้อมูล และข้อผิดพลาดตรงกัน ใช้เป็นแบบตั้งต้นและทบทวนร่วมกันก่อนยืนยัน DoD ของ Task94
+เอกสารนี้กำหนด API สำหรับเผยแพร่และจัดการสรุป PDF รีวิวผลงาน และบันทึกผลงานไว้เปิดทีหลัง เพื่อให้ Frontend และ Backend ใช้เส้นทาง ข้อมูล และข้อผิดพลาดตรงกัน
 
-ฉบับนี้กำหนด API และกติกาตั้งต้นของ U6 ถึง U10 พร้อมชุดข้อมูลตัวอย่างร่วม สถานะพร้อมส่งตรวจ ยังไม่ได้ implement API และรอ review ของ Frontend Backend และ PO ตามหมายเหตุใน docs/task94-review.md
+รุ่นนี้ปรับเพดาน PDF ของ U6 และรูปแบบแก้ไขสรุปของ U7 ตามข้อสรุปล่าสุด ส่วน U9/U10 ตกลงให้บันทึกแนวข้อสอบหรือสรุป PDF ทีละชิ้น แต่ route และ DTO ยังรอทีมยืนยัน ตัวอย่าง saved-courses ในเอกสารอยู่เพื่ออ้างอิงร่างเดิม ดูประเด็นที่รอใน docs/task94-review.md
 
 ## ขอบเขต API
 
@@ -15,16 +15,16 @@
 | U6 | เผยแพร่ รายการ หน้าอ่าน และไฟล์ PDF | /api/summaries<br>/api/courses/{course_id}/summaries |
 | U7 | รายการของฉัน แก้ไข และลบสรุป | /api/my-summaries<br>/api/summaries/{summary_id} |
 | U8 | ดู เพิ่ม แก้ไข และลบรีวิว | /api/guides/{guide_id}/reviews<br>/api/summaries/{summary_id}/reviews<br>/api/reviews/{review_id} |
-| U9 U10 | บันทึก ดูสถานะ ดูรายการ และนำวิชาออก | /api/saved-courses<br>/api/saved-courses/{course_id} |
+| U9 U10 | บันทึก จัดกลุ่ม เปิด และนำผลงานรายชิ้นออก | route และ DTO รอยืนยัน ดูร่างเดิมในส่วน 7 |
 
 ## กติกาที่กำหนดในฉบับนี้
 
 | เรื่อง | ข้อกำหนดและเหตุผล |
 | --- | --- |
-| PDF | หนึ่งไฟล์ต่อสรุป สูงสุด 10 MiB หรือ 10,485,760 bytes ตรวจชนิดและการเปิดอ่านจริง ขนาดพอสำหรับสรุปและควบคุมภาระ upload |
-| ข้อมูลสรุป | บังคับวิชา ชื่อ และ PDF ข้อมูลเสริมใช้ description เพียงช่องเดียว ลดฟิลด์ที่ Story ไม่ได้บังคับ |
+| PDF | หนึ่งไฟล์ต่อสรุป สูงสุด 15 MB หรือ 15,000,000 ไบต์ ตรวจชนิดและการเปิดอ่านจริง ขนาดพอสำหรับสรุปและควบคุมภาระ upload |
+| ข้อมูลสรุป | ตอนเผยแพร่ต้องส่งวิชา ชื่อ และ PDF ส่วนตอนแก้ไขส่ง PDF ใหม่เฉพาะเมื่อต้องการแทนไฟล์เดิม ข้อมูลเสริมใช้ description |
 | รีวิว | หนึ่งคนหนึ่งรีวิวต่อผลงาน ห้ามรีวิวผลงานตัวเอง ใช้กติกา U8 TC07 และ TC08 ที่เสนอไว้ |
-| วิชาที่บันทึก | บันทึก course_id ไม่ใช่ guide_id และบันทึกวิชาที่ไม่มีเนื้อหาได้ |
+| รายการที่บันทึก | บันทึกแนวข้อสอบหรือสรุป PDF ทีละชิ้น แล้วจัดกลุ่มตามรายวิชา รูปแบบ API รอยืนยัน |
 | ขอบเขตฉบับนี้ | มี contract และชุดข้อมูลตัวอย่างร่วมใน docs/task94-fixtures ยังรอ review จาก Frontend Backend และ PO |
 
 ## 1 กติกากลางของ API
@@ -43,7 +43,7 @@
 | --- | --- |
 | ID | course_id summary_id guide_id review_id และ user.id เป็นจำนวนเต็ม 1 ถึง 2,147,483,647 JSON ต้องส่งเป็น number ไม่รับ string float หรือ boolean ส่วน path ใช้เลขฐานสิบจำนวนเต็มบวก |
 | Namespace | ID ของแนวข้อสอบและสรุปเป็นคนละชุด งานสองชนิดอาจมีเลข id เท่ากันได้ ต้องอ้างชนิดผลงานจาก route หรือ target_type เสมอ |
-| JSON | ใช้ application/json; UTF-8 ยกเว้น upload และรับไฟล์ ห้ามส่งฟิลด์ที่ไม่ได้ประกาศ ฟิลด์ read-only ก็ห้ามส่งกลับมาเพื่อเปลี่ยนค่า |
+| JSON | ใช้ application/json; UTF-8 ยกเว้น multipart สำหรับเผยแพร่หรือแก้ไขสรุป และการรับไฟล์ ห้ามส่งฟิลด์ที่ไม่ได้ประกาศ ฟิลด์ read-only ก็ห้ามส่งกลับมาเพื่อเปลี่ยนค่า |
 | ข้อความ | ตัด whitespace หัวท้ายก่อนตรวจความยาว นับ Unicode code points เก็บและแสดงเป็น plain text ไม่ตีความ HTML |
 | วันที่ | created_at และ updated_at เป็น RFC 3339 แบบ UTC เช่น 2026-10-27T03:00:00Z Backend เป็นผู้กำหนด |
 | รายการ | ยังไม่แบ่งหน้าและไม่รับ filter หรือ query parameter ส่งทั้งหมดตามลำดับที่ระบุ items เป็น [] เมื่อไม่มีข้อมูลเท่านั้น |
@@ -82,14 +82,16 @@ POST /api/summaries ใช้ multipart/form-data ช่องข้อมูล
 | description | form text | ไม่บังคับ หลัง trim ไม่เกิน 2,000 ตัวอักษร ไม่ส่งหรือช่องว่างล้วนจัดเก็บเป็น null |
 | file | binary file | บังคับหนึ่งไฟล์ เงื่อนไข PDF ตามส่วน U6 |
 
-### คำขอแก้ไข SummaryUpdateRequest
+### คำขอแก้ไข SummaryUpdateForm
 
 | ฟิลด์ | ชนิด | ข้อกำหนด |
 | --- | --- | --- |
-| title | string | บังคับ หลัง trim ยาว 1 ถึง 200 ตัวอักษร |
-| description | string หรือ null | ไม่บังคับ ยาวไม่เกิน 2,000 ตัวอักษร ค่า null ไม่ส่ง หรือช่องว่างล้วนหมายถึงล้างข้อมูลเสริม |
+| course_id | form text | บังคับ ใช้เงื่อนไขเดียวกับการเผยแพร่ |
+| title | form text | บังคับ หลัง trim ยาว 1 ถึง 200 ตัวอักษร |
+| description | form text | ไม่บังคับ หลัง trim ไม่เกิน 2,000 ตัวอักษร ไม่ส่งหรือช่องว่างล้วนหมายถึงล้างค่าเดิม |
+| file | binary file | ไม่บังคับ ถ้าส่งให้ส่ง PDF หนึ่งไฟล์ตามเงื่อนไข U6 |
 
-PUT แทนที่ชุดข้อมูลที่แก้ไขได้ทั้งชุด จึงต้องส่ง title ทุกครั้ง ห้ามส่ง course_id file owner id created_at หรือ updated_at ไม่เปิดให้เปลี่ยนวิชา เจ้าของ หรือแทนที่ PDF ใน U7
+PUT ใช้ multipart/form-data ต้องส่ง course_id และ title ทุกครั้ง ฟิลด์แต่ละช่องส่งได้ครั้งเดียว ห้ามส่งช่องนอกตาราง เช่น owner, id, created_at และ updated_at ถ้าไม่ส่ง file ให้ใช้ PDF เดิม
 
 ### ผลลัพธ์ SummaryDTO
 
@@ -120,7 +122,7 @@ SummaryListResponse = {items: SummaryDTO[]} และ CourseSummaryListResponse 
 
 ### เงื่อนไขไฟล์ที่รับ
 
-รับไฟล์นามสกุล .pdf โดยไม่สนตัวพิมพ์ใหญ่เล็ก file part ต้องเป็น application/pdf ขนาดไฟล์จริงมากกว่า 0 และไม่เกิน 10,485,760 bytes รวมไม่เกินหนึ่งไฟล์ ขนาดนี้นับเฉพาะเนื้อไฟล์ ไม่รวม multipart overhead
+รับไฟล์นามสกุล .pdf โดยไม่สนตัวพิมพ์ใหญ่เล็ก file part ต้องเป็น application/pdf ขนาดไฟล์จริงมากกว่า 0 และไม่เกิน 15,000,000 ไบต์ รวมไม่เกินหนึ่งไฟล์ ขนาดนี้นับเฉพาะเนื้อไฟล์ ไม่รวม multipart overhead
 
 Backend ตรวจ signature และ parse PDF จริงจนอ่านโครงสร้างเอกสารและจำนวนหน้าได้ ต้องมีอย่างน้อยหนึ่งหน้า ไม่รับไฟล์เสีย PDF ที่เข้ารหัสหรือมี password และไฟล์ชนิดอื่นที่เพียงเปลี่ยนนามสกุลเป็น .pdf การตรวจ MIME หรือนามสกุลอย่างเดียวไม่เพียงพอ
 
@@ -153,7 +155,7 @@ Frontend ใช้ fetch พร้อม Authorization แล้วตรวจ 
 | Method และ path | คำขอ | ผลสำเร็จ |
 | --- | --- | --- |
 | GET /api/my-summaries | ไม่มี body | 200 SummaryListResponse |
-| PUT /api/summaries/{summary_id} | SummaryUpdateRequest<br>application/json | 200 SummaryDTO |
+| PUT /api/summaries/{summary_id} | SummaryUpdateForm<br>multipart/form-data | 200 SummaryDTO |
 | DELETE /api/summaries/{summary_id} | ไม่มี body | 204 ไม่มี response body |
 
 GET /api/my-summaries กรองเจ้าของจาก session เท่านั้น ใช้ลำดับรายการเดียวกับ U6 เมื่อยังไม่เคยเผยแพร่ตอบ {"items": []} การเปิดรายละเอียดและไฟล์ใช้ GET ของ U6 ไม่สร้าง endpoint อ่านไฟล์สำหรับเจ้าของแยกอีกชุด
@@ -162,19 +164,25 @@ PUT และ DELETE ต้องเป็นเจ้าของสรุป �
 
 ### การแก้ไขข้อมูล
 
-บันทึกได้เฉพาะ title และ description หลังสำเร็จทุก API ที่อ่านสรุปต้องคืนค่าล่าสุดโดยใช้ id และ PDF เดิม created_at คงเดิม และ updated_at สะท้อนการแก้ไข หากส่งค่าเดิมทั้งชุดสามารถคง updated_at เดิมได้ การแก้ไขพร้อมกันใช้ค่าที่บันทึกสำเร็จล่าสุด ไม่มี version token ในฉบับนี้
+แก้ชื่อ ข้อความประกอบ และวิชาได้ รวมถึงแทน PDF เมื่อส่งไฟล์ใหม่ หากเปลี่ยนวิชาให้รายการไปอยู่ในวิชาใหม่หลังบันทึกสำเร็จ ID เจ้าของ created_at และ read_path คงเดิม ส่วน updated_at สะท้อนการแก้ไข การแก้พร้อมกันใช้ค่าที่บันทึกสำเร็จล่าสุด ไม่มี version token ในฉบับนี้
 
 ```http
 PUT /api/summaries/101
 Authorization: Bearer <access_token>
-Content-Type: application/json
-{
-  "title": "สรุป CS261 ก่อนสอบปลายภาค",
-  "description": null
-}
+Content-Type: multipart/form-data; boundary=edit-summary
+
+--edit-summary
+Content-Disposition: form-data; name="course_id"
+
+2
+--edit-summary
+Content-Disposition: form-data; name="title"
+
+สรุปฉบับแก้ไข
+--edit-summary--
 ```
 
-ตัวอย่างนี้ล้าง description พร้อมเปลี่ยนชื่อ ถ้าไม่ต้องการล้างต้องส่ง description ปัจจุบันกลับมาด้วย ชื่อว่างหรือ whitespace ล้วนตอบ 422 INVALID_PARAMETERS โดย fields ระบุ title และไม่เปลี่ยนข้อมูลเดิม
+ตัวอย่างนี้ย้ายสรุปไปวิชา 2 ล้าง description และใช้ PDF เดิม ถ้าจะเก็บข้อความเดิมให้ส่ง description ปัจจุบัน ถ้าจะแทน PDF ให้แนบ file part ชื่อ file ใช้ FormData ให้ Browser ใส่ boundary เอง วิชาที่ไม่พบหรืออยู่นอก CS ตอบ 404 COURSE_NOT_FOUND ถ้า validation หรือการแทน PDF ล้มเหลวก่อน commit ให้คงข้อมูลและไฟล์เดิม
 
 ### การลบและการยกเลิก
 
@@ -271,7 +279,9 @@ Content-Type: application/json
 
 เพิ่ม แก้ไข หรือลบที่ล้มเหลวก่อนสำเร็จตอบ 503 STORAGE_UNAVAILABLE ต้องไม่แจ้งสำเร็จหรือเปลี่ยนรีวิวอื่น DELETE ซ้ำได้ 404 REVIEW_NOT_FOUND เมื่อ connection หลุดให้โหลดรายการใหม่เพื่อตรวจผล ก่อนเสนอให้ส่ง POST ใหม่
 
-## 7 U9 และ U10 รายวิชาที่บันทึก
+## 7 U9 และ U10 รายวิชาที่บันทึก ฉบับอ้างอิงเดิม
+
+ทีมเลือกบันทึกแนวข้อสอบและสรุป PDF รายชิ้นแล้ว ส่วนนี้เก็บไว้ให้เทียบกับรุ่น 0.2 จนกว่า Frontend และ Backend ตกลง route และ DTO ใหม่ตาม Task99 และ Task104
 
 รายการนี้เก็บรายวิชาที่สนใจของบัญชีปัจจุบัน แยกจาก /api/saved-guides เดิมโดยสิ้นเชิง บันทึกวิชา CS ที่มีอยู่ได้แม้ยังไม่มีแนวข้อสอบหรือสรุป ห้ามสร้างวิชาใหม่จากคำขอบันทึก
 
@@ -384,8 +394,8 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 | 404 | ROUTE_NOT_FOUND | ไม่มีเส้นทาง API ที่เรียก |
 | 405 | METHOD_NOT_ALLOWED | method ไม่รองรับบน route นี้ พร้อม Allow header |
 | 409 | REVIEW_ALREADY_EXISTS | บัญชีนี้มีรีวิวในผลงานชนิดและ id เดิมแล้ว |
-| 413 | PDF_TOO_LARGE | เนื้อไฟล์ PDF มากกว่า 10,485,760 bytes |
-| 413 | REQUEST_TOO_LARGE | JSON body เกิน 32 KiB หรือ multipart ทั้งคำขอเกิน 11 MiB |
+| 413 | PDF_TOO_LARGE | เนื้อไฟล์ PDF มากกว่า 15,000,000 ไบต์ |
+| 413 | REQUEST_TOO_LARGE | JSON body เกิน 32 KiB หรือ multipart ทั้งคำขอเกิน 16 MB |
 | 415 | UNSUPPORTED_MEDIA_TYPE | Content-Type ของทั้งคำขอไม่ตรงกับ endpoint |
 | 422 | INVALID_PARAMETERS | ฟิลด์บังคับหาย ชนิดหรือค่าไม่ถูกต้อง ฟิลด์เกิน query เกิน หรือ body ที่ route ไม่รับ |
 | 422 | PDF_INVALID | ไฟล์ว่าง นามสกุลหรือ MIME ไม่ใช่ PDF หรือเนื้อหาเป็นไฟล์ชนิดอื่น |
@@ -394,13 +404,13 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 | 502 | UPSTREAM_UNAVAILABLE | Frontend proxy ติดต่อ Backend ไม่ได้ connection หลุด หรือ timeout |
 | 503 | STORAGE_UNAVAILABLE | อ่านหรือเขียนฐานข้อมูลหรือที่เก็บไฟล์ไม่ได้ |
 
-32 KiB = 32,768 bytes และ 11 MiB = 11,534,336 bytes ขีดจำกัดคำขอรวมรองรับ multipart overhead ของ PDF 10 MiB แต่ไม่เพิ่มขีดจำกัดเนื้อไฟล์ เมื่อเกินเพดานคำขอรวมตอบ REQUEST_TOO_LARGE ได้ก่อนตรวจไฟล์
+32 KiB = 32,768 bytes และ 16 MB = 16,000,000 ไบต์ ขีดจำกัดคำขอรวมรองรับ multipart overhead ของ PDF 15 MB แต่ไม่เพิ่มขีดจำกัดเนื้อไฟล์ เมื่อเกินเพดานคำขอรวมตอบ REQUEST_TOO_LARGE ได้ก่อนตรวจไฟล์
 
 ความผิดพลาดที่ Backend ยืนยันว่าล้มเหลวก่อนสำเร็จต้องไม่เปลี่ยนข้อมูลที่เผยแพร่แล้ว ส่วน 502 หรือเครือข่ายขาดหายเป็นผลที่ยังยืนยันไม่ได้ Client ต้องอ่านสถานะล่าสุด ไม่สรุปว่าบันทึกสำเร็จหรือไม่สำเร็จจากการขาด response อย่างเดียว
 
 ## 10 การเชื่อม API กับ Test case
 
-ตารางนี้เป็นการจับคู่ขอบเขตกับ Story และ TC ใน JSON ที่ให้มา ไม่ใช่รายงานผลทดสอบ กรณี UI ยังต้องตรวจในงาน UI และ integration ภายหลัง
+ตารางนี้จับคู่ API กับ TC กรณี UI ยังต้องตรวจในงาน UI และ Integration ส่วนแถว U9/U10 ที่อ้าง saved-courses ใช้เทียบร่างเดิมระหว่างรอรูปแบบ API ใหม่
 
 | TC | API หรือกติกาที่รองรับ |
 | --- | --- |
@@ -411,9 +421,10 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 | U6 TC06 | ทุก GET รวม file ต้องมี Bearer token ที่ใช้ได้ |
 | U6 TC07 TC08 | ไม่มี published record ค้างเมื่อเผยแพร่ล้มเหลว รายการกรองวิชาตรงและมี empty state |
 | U7 TC01 TC02 | GET my-summaries กรองบัญชีและรองรับ items: [] เปิดไฟล์ด้วย U6 |
-| U7 TC03 TC04 | PUT เปลี่ยนเฉพาะ metadata คงไฟล์เดิม ตรวจชื่อก่อนบันทึก |
+| U7 TC03 TC04 | PUT แบบ multipart แก้ข้อมูล ย้ายวิชาและเปลี่ยน PDF ได้ ไม่ส่งไฟล์ให้คง PDF เดิม |
 | U7 TC05 TC06 | DELETE ปิดการอ่านทุกทางหลังลบ ยกเลิกใน UI แล้วไม่ส่ง DELETE |
 | U7 TC07 TC08 | 401 403 404 และ 503 ไม่สร้างรายการที่ลบแล้วกลับมา |
+| U7 TC09 | แทน PDF ล้มเหลวก่อน commit ต้องคงข้อมูลและเปิด PDF เดิมได้ |
 | U8 TC01 TC02 TC03 | POST rating 1 ถึง 5 comment ไม่บังคับ ตรวจคะแนนเต็มอย่างเข้มงวด |
 | U8 TC04 TC05 | PUT คง id เดิม DELETE ลบเฉพาะรีวิวของตน |
 | U8 TC06 TC07 | 401 และ ownership check ห้ามสวม author และห้ามรีวิวงานตัวเอง |
@@ -423,6 +434,7 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 | U10 TC01 TC02 TC03 | GET เฉพาะบัญชี พร้อมรหัสและชื่อวิชา เปิดด้วย API รายวิชาเดิม รองรับรายการว่าง |
 | U10 TC04 TC05 | DELETE แบบ idempotent ไม่ลบวิชา เนื้อหา หรือรายการของผู้อื่น |
 | U10 TC06 | ข้อผิดพลาดแยกจากรายการว่างและผลนำออกสำเร็จ |
+| U10 TC07 | นำ bookmark ออกซ้ำแล้วผลงานกับ bookmark ของคนอื่นยังอยู่ รอ route และ DTO ใหม่ก่อนเพิ่ม fixture |
 
 ### กรณีร่วมที่ต้องตรวจตอน implement
 
@@ -436,7 +448,7 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 
 ใช้ Login และ Bearer session เดิมจาก backend/app/dependencies.py และ backend/app/routers/auth.py ใช้ Course.id และขอบเขต course_code ขึ้นต้น CS ตาม CourseDAO เดิม ใช้ Guide.id เป็นเป้าหมายรีวิวชนิด guide โดยไม่แก้ DTO ของแนวข้อสอบเดิม
 
-API สรุป รีวิว และ saved-courses ในเอกสารเป็นเส้นทางที่จะเพิ่ม ไม่ใช่เส้นทางที่ยืนยันว่ารันได้แล้ว /api/saved-guides เดิมเก็บแนวข้อสอบ จึงไม่ใช้แทนรายวิชาที่บันทึกของ U9 และ U10
+API สรุปและรีวิวเป็นเส้นทางตามแบบที่ต้องตรวจในงาน implementation ส่วน /api/saved-guides เดิมรองรับแนวข้อสอบ API สำหรับบันทึกผลงานทั้งสองชนิดยังรอทีมตกลง
 
 ### สิ่งที่ต้องเพิ่มในงาน implementation
 
@@ -472,7 +484,7 @@ docs/U5/design/task65-my-guides-api-spec.md
 
 ## 12 ชุดข้อมูลตัวอย่างร่วม
 
-ชุดข้อมูล docs/task94-fixtures/examples.json มีตัวอย่าง 78 กรณี ครอบคลุม API ใหม่ 17 endpoint และ TC ของ U6 ถึง U10 ทั้ง 36 ข้อ ใช้สำหรับสร้าง mock หรือเตรียม API tests โดยไม่เพิ่ม endpoint จำลองความล้มเหลวในระบบจริง
+ชุดข้อมูล docs/task94-fixtures/examples.json มีตัวอย่าง 81 กรณี ครอบคลุม API ใหม่ 17 endpoint และ TC ของ U6 ถึง U10 37 ข้อ โดย fixture U9/U10 ยังอิงร่างเดิม ใช้สำหรับสร้าง mock หรือเตรียม API tests โดยไม่เพิ่ม endpoint จำลองความล้มเหลวในระบบจริง
 
 ### ข้อมูลตั้งต้นและการแยกแต่ละกรณี
 
@@ -482,9 +494,9 @@ steps ระบุ method path actor request และ response ที่คา�
 
 ### ไฟล์ PDF สำหรับทดสอบ
 
-สร้างไฟล์ด้วย python scripts/task94_fixtures.py build-pdfs --output-dir <temporary-folder> ได้ไฟล์ปกติ ไฟล์ว่าง ไฟล์ปลอมเป็น PDF ไฟล์เสีย PDF ไม่มีหน้า และ PDF ขนาดเท่ากับหรือเกิน 10 MiB อย่างละหนึ่งไฟล์ ไม่เก็บไฟล์ขนาดใหญ่ใน Git
+สร้างไฟล์ด้วย python scripts/task94_fixtures.py build-pdfs --output-dir <temporary-folder> ได้ไฟล์ปกติ ไฟล์ว่าง ไฟล์ปลอมเป็น PDF ไฟล์เสีย PDF ไม่มีหน้า และ PDF ขนาดเท่ากับหรือเกิน 15 MB อย่างละหนึ่งไฟล์ ไม่เก็บไฟล์ขนาดใหญ่ใน Git
 
-ไฟล์ at-limit.pdf มีขนาด 10,485,760 bytes และ over-limit.pdf มีขนาด 10,485,761 bytes ตัวอย่าง JSON ใช้ชื่อไฟล์ตรงกับ generator ข้อมูล file_content_type และชื่อไฟล์อยู่ใน request เพื่อประกอบ multipart จริง
+ไฟล์ at-limit.pdf มีขนาด 15,000,000 ไบต์ และ over-limit.pdf มีขนาด 15,000,001 ไบต์ ตัวอย่าง JSON ใช้ชื่อไฟล์ตรงกับ generator ข้อมูล file_content_type และชื่อไฟล์อยู่ใน request เพื่อประกอบ multipart จริง
 
 ### การตรวจความสอดคล้อง
 
@@ -494,7 +506,7 @@ steps ระบุ method path actor request และ response ที่คา�
 
 ## 13 หมายเหตุการส่งตรวจ Task94
 
-สถานะเอกสารรุ่น 0.2 พร้อมให้ทีมตรวจ ส่วนที่ทำเสร็จคือ API contract ข้อตกลง PDF ตัวอย่างข้อมูลร่วม และ TC mapping ยังไม่บันทึกว่ามีผู้ตรวจอนุมัติหรือผ่าน DoD ทั้ง Task แล้ว
+สถานะเอกสารรุ่น 0.3 พร้อมให้ทีมตรวจ ส่วนที่ทำเสร็จคือ API contract ข้อตกลง PDF ตัวอย่างข้อมูลร่วม และ TC mapping ยังไม่บันทึกว่ามีผู้ตรวจอนุมัติหรือผ่าน DoD ทั้ง Task แล้ว
 
 ### รายการที่รอคนตรวจ
 

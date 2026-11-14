@@ -1,8 +1,10 @@
 # ชุดข้อมูลร่วมของ Task94
 
-รุ่น 0.2 วันที่ 31 ตุลาคม 2569 ใช้กับ [API contract ของ U6 ถึง U10](../task94-api-contract.md)
+รุ่น 0.3 วันที่ 14 พฤศจิกายน 2569 ใช้กับ [API contract ของ U6 ถึง U10](../task94-api-contract.md)
 
-[examples.json](examples.json) เก็บข้อมูลตั้งต้นและตัวอย่างรับส่งสำหรับ Frontend mocks และ Backend API tests ครอบคลุม TC ของ U6 ถึง U10 ทั้ง 36 ข้อ ข้อมูลเป็นบัญชีและผลงานสมมติ ไม่มีรหัสผ่านหรือ token จริง และไม่ใช่ผลทดสอบระบบที่พัฒนาแล้ว
+[examples.json](examples.json) เก็บข้อมูลตั้งต้นและตัวอย่างรับส่งสำหรับ Frontend mocks และ Backend API tests ครอบคลุม TC ของ U6 ถึง U10 37 ข้อ ข้อมูลเป็นบัญชีและผลงานสมมติ ไม่มีรหัสผ่านหรือ token จริง และไม่ใช่ผลทดสอบระบบที่พัฒนาแล้ว
+
+ตัวอย่าง saved-courses ของ U9/U10 ยังอิงรุ่น 0.2 ให้ใช้เป็นข้อมูลเทียบเท่านั้น ระหว่างรอ route และ DTO สำหรับ bookmark รายชิ้น กลุ่มนี้ยังไม่นับ U10-TC07 เป็น fixture ของ API ใหม่
 
 ## รูปแบบข้อมูล
 
@@ -53,10 +55,10 @@ python scripts/task94_fixtures.py build-pdfs --output-dir "$env:TEMP/task94-pdf-
 | `disguised.pdf` | เนื้อหาเป็น PNG signature แต่ตั้งนามสกุล PDF คาดหวัง 422 PDF_INVALID |
 | `unreadable.pdf` | มี PDF signature แต่โครงสร้างขาด คาดหวัง 422 PDF_UNREADABLE |
 | `no-pages.pdf` | โครงสร้าง PDF ที่มี 0 หน้า คาดหวัง 422 PDF_UNREADABLE |
-| `at-limit.pdf` | PDF เปิดอ่านได้ ขนาด 10,485,760 bytes ผ่านเงื่อนไขขนาด |
-| `over-limit.pdf` | PDF เปิดอ่านได้ ขนาด 10,485,761 bytes คาดหวัง 413 PDF_TOO_LARGE |
+| `at-limit.pdf` | PDF เปิดอ่านได้ ขนาด 15,000,000 ไบต์ ผ่านเงื่อนไขขนาด |
+| `over-limit.pdf` | PDF เปิดอ่านได้ ขนาด 15,000,001 ไบต์ คาดหวัง 413 PDF_TOO_LARGE |
 
-ไม่เก็บ PDF ขนาด 10 MiB ใน Git ไฟล์สร้างซ้ำได้จาก generator ให้แนบแต่ละไฟล์เป็น file part ที่มี `application/pdf` ตามตัวอย่าง กรณีตรวจชื่อไฟล์หรือ MIME ให้เปลี่ยนเฉพาะชื่อหรือ MIME ใน test โดยใช้ bytes เดิม
+ไม่เก็บ PDF ขนาด 15 MB ใน Git ไฟล์สร้างซ้ำได้จาก generator ให้แนบแต่ละไฟล์เป็น file part ที่มี `application/pdf` ตามตัวอย่าง กรณีตรวจชื่อไฟล์หรือ MIME ให้เปลี่ยนเฉพาะชื่อหรือ MIME ใน test โดยใช้ bytes เดิม
 
 ## ตรวจชุดข้อมูลก่อนใช้
 

@@ -1,5 +1,5 @@
 {
-  "version": "0.2",
+  "version": "0.3",
   "status": "design_examples_not_live_test_results",
   "reset_before_each_case": true,
   "auth_note": "Resolve owner/reader/other to real test sessions after seeding. anonymous omits Authorization. expired uses an invalid session. No passwords or real tokens are stored.",
@@ -1150,6 +1150,80 @@
       "invariant": "No published summary or readable file is left behind."
     },
     {
+      "id": "u6-file-at-limit.pdf",
+      "test_cases": [
+        "U6-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_create",
+          "method": "POST",
+          "path": "/api/summaries",
+          "actor": "owner",
+          "response": {
+            "status": 201,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 103,
+              "course": {
+                "id": 1,
+                "course_code": "CS261",
+                "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+              },
+              "title": "สรุป CS261 ก่อนสอบ",
+              "description": null,
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "at-limit.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 15000000,
+                "read_path": "/api/summaries/103/file"
+              },
+              "created_at": "2026-10-31T04:00:00Z",
+              "updated_at": "2026-10-31T04:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
+              "title": "สรุป CS261 ก่อนสอบ"
+            },
+            "file": "at-limit.pdf",
+            "file_content_type": "application/pdf"
+          }
+        }
+      ],
+      "invariant": "A valid PDF exactly 15,000,000 bytes is accepted."
+    },
+    {
       "id": "u6-file-over-limit.pdf",
       "test_cases": [
         "U6-TC04"
@@ -1190,7 +1264,7 @@
             "body": {
               "error": {
                 "code": "PDF_TOO_LARGE",
-                "message": "ไฟล์ PDF เกิน 10 MiB",
+                "message": "ไฟล์ PDF เกิน 15,000,000 ไบต์",
                 "fields": [
                   {
                     "field": "file",
@@ -1960,8 +2034,9 @@
             }
           },
           "request": {
-            "content_type": "application/json",
-            "body": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
               "title": "สรุป CS261 ฉบับแก้ไข",
               "description": "อ่านก่อนสอบ"
             }
@@ -2004,6 +2079,132 @@
         }
       ],
       "invariant": "ID, owner, course, file and created_at remain unchanged."
+    },
+    {
+      "id": "u7-move-and-replace",
+      "test_cases": [
+        "U7-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 101,
+              "course": {
+                "id": 2,
+                "course_code": "CS104",
+                "course_name": "INTRODUCTION TO PROGRAMMING"
+              },
+              "title": "สรุป CS261 ฉบับแก้ไข",
+              "description": "อ่านก่อนสอบ",
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "at-limit.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 15000000,
+                "read_path": "/api/summaries/101/file"
+              },
+              "created_at": "2026-10-31T02:00:00Z",
+              "updated_at": "2026-10-31T05:00:00Z"
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "2",
+              "title": "สรุป CS261 ฉบับแก้ไข",
+              "description": "อ่านก่อนสอบ"
+            },
+            "file": "at-limit.pdf",
+            "file_content_type": "application/pdf"
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/101",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 101,
+              "course": {
+                "id": 2,
+                "course_code": "CS104",
+                "course_name": "INTRODUCTION TO PROGRAMMING"
+              },
+              "title": "สรุป CS261 ฉบับแก้ไข",
+              "description": "อ่านก่อนสอบ",
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "at-limit.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 15000000,
+                "read_path": "/api/summaries/101/file"
+              },
+              "created_at": "2026-10-31T02:00:00Z",
+              "updated_at": "2026-10-31T05:00:00Z"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_file",
+          "method": "GET",
+          "path": "/api/summaries/101/file",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "content_type": "application/pdf",
+            "file": "at-limit.pdf",
+            "headers": {
+              "Cache-Control": "no-store",
+              "Content-Disposition": "inline; filename=\"summary-101.pdf\"",
+              "X-Content-Type-Options": "nosniff"
+            }
+          }
+        }
+      ],
+      "invariant": "The summary moves to CS104 and now opens the replacement PDF. ID, owner, created_at and read_path remain unchanged."
     },
     {
       "id": "u7-invalid-title-21",
@@ -2057,8 +2258,9 @@
             }
           },
           "request": {
-            "content_type": "application/json",
-            "body": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
               "title": ""
             }
           }
@@ -2118,8 +2320,9 @@
             }
           },
           "request": {
-            "content_type": "application/json",
-            "body": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
               "title": "   "
             }
           }
@@ -2285,8 +2488,9 @@
             }
           },
           "request": {
-            "content_type": "application/json",
-            "body": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
               "title": "changed"
             }
           }
@@ -2362,8 +2566,9 @@
             }
           },
           "request": {
-            "content_type": "application/json",
-            "body": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
               "title": "changed"
             }
           }
@@ -2439,8 +2644,9 @@
             }
           },
           "request": {
-            "content_type": "application/json",
-            "body": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
               "title": "changed"
             }
           }
@@ -2515,8 +2721,9 @@
             }
           },
           "request": {
-            "content_type": "application/json",
-            "body": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "1",
               "title": "changed"
             }
           }
@@ -2527,6 +2734,121 @@
         "phase": "before_commit"
       },
       "invariant": "Metadata and file remain unchanged."
+    },
+    {
+      "id": "u7-replacement-fails",
+      "test_cases": [
+        "U7-TC09"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104",
+          "non_cs"
+        ],
+        "guides": [
+          "guide_cs261"
+        ],
+        "summaries": [
+          "summary_owner",
+          "summary_reader"
+        ],
+        "reviews": [],
+        "saved_courses": []
+      },
+      "steps": [
+        {
+          "endpoint": "summary_update",
+          "method": "PUT",
+          "path": "/api/summaries/101",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "STORAGE_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
+                "fields": []
+              }
+            }
+          },
+          "request": {
+            "content_type": "multipart/form-data",
+            "form": {
+              "course_id": "2",
+              "title": "สรุป CS261 ฉบับแก้ไข",
+              "description": "อ่านก่อนสอบ"
+            },
+            "file": "at-limit.pdf",
+            "file_content_type": "application/pdf"
+          }
+        },
+        {
+          "endpoint": "summary_read",
+          "method": "GET",
+          "path": "/api/summaries/101",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "id": 101,
+              "course": {
+                "id": 1,
+                "course_code": "CS261",
+                "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+              },
+              "title": "สรุป CS261 ก่อนสอบ",
+              "description": null,
+              "owner": {
+                "id": 11,
+                "display_name": "นักศึกษา A"
+              },
+              "file": {
+                "original_name": "valid-summary.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 603,
+                "read_path": "/api/summaries/101/file"
+              },
+              "created_at": "2026-10-31T02:00:00Z",
+              "updated_at": "2026-10-31T02:00:00Z"
+            }
+          }
+        },
+        {
+          "endpoint": "summary_file",
+          "method": "GET",
+          "path": "/api/summaries/101/file",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "content_type": "application/pdf",
+            "file": "valid-summary.pdf",
+            "headers": {
+              "Cache-Control": "no-store",
+              "Content-Disposition": "inline; filename=\"summary-101.pdf\"",
+              "X-Content-Type-Options": "nosniff"
+            }
+          }
+        }
+      ],
+      "invariant": "If replacement fails before commit, the original course, title and PDF are still available.",
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      }
     },
     {
       "id": "u7-fails-summary_delete",
@@ -5809,5 +6131,6 @@
       ],
       "invariant": "Both requests return saved true. Exactly one relation exists."
     }
-  ]
+  ],
+  "saved_courses_note": "Legacy v0.2 examples. Do not use to implement U9/U10 saved items until their routes and DTOs are agreed."
 }

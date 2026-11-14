@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "docs/task94-fixtures/examples.json"
-PDF_LIMIT = 10 * 1024 * 1024
+PDF_LIMIT = 15_000_000
 
 
 def pdf_bytes(pages=1, padding=0):
@@ -69,8 +69,9 @@ def check_fixtures():
     cases = examples["cases"]
     ids = [case["id"] for case in cases]
     assert len(ids) == len(set(ids)), "Duplicate case IDs"
+    # U9/U10 still use the v0.2 fixtures until the saved-item API is agreed.
     expected_tcs = {f"U{story}-TC{n:02d}" for story, count in
-                    [(6, 8), (7, 8), (8, 9), (9, 5), (10, 6)] for n in range(1, count + 1)}
+                    [(6, 8), (7, 9), (8, 9), (9, 5), (10, 6)] for n in range(1, count + 1)}
     covered = set()
     endpoints = examples["endpoints"]
     used_endpoints = set()
@@ -90,6 +91,10 @@ def check_fixtures():
             assert re.fullmatch(pattern, step["path"].split("?")[0]), case["id"]
             actor = step["actor"]
             assert actor in examples["data"]["users"] or actor in ["anonymous", "expired"], case["id"]
+            if step["endpoint"] == "summary_update":
+                request = step["request"]
+                assert request["content_type"] == "multipart/form-data", case["id"]
+                assert {"course_id", "title"} <= set(request["form"]), case["id"]
             response = step["response"]
             status = response["status"]
             assert status in endpoint["statuses"], (case["id"], status)
@@ -101,12 +106,14 @@ def check_fixtures():
                 assert error["code"] in contract, (case["id"], error["code"])
                 assert isinstance(error["fields"], list), case["id"]
             elif response.get("content_type") == "application/pdf":
-                assert response["file"] == "valid-summary.pdf", case["id"]
+                assert response["file"] in {"valid-summary.pdf", "at-limit.pdf"}, case["id"]
             elif endpoint["response"] == "SummaryDTO":
                 body = response["body"]
                 assert set(body) == {"id", "course", "title", "description", "owner", "file", "created_at", "updated_at"}, case["id"]
                 assert body["file"]["read_path"] == f'/api/summaries/{body["id"]}/file', case["id"]
-                assert body["file"]["size_bytes"] == len(pdf_bytes()), case["id"]
+                file_sizes = {"valid-summary.pdf": len(pdf_bytes()), "at-limit.pdf": PDF_LIMIT}
+                file = body["file"]
+                assert file["size_bytes"] == file_sizes[file["original_name"]], case["id"]
             elif endpoint["response"] == "ReviewDTO":
                 body = response["body"]
                 assert set(body) == {"id", "target_type", "target_id", "rating", "comment", "author", "created_at", "updated_at"}, case["id"]
