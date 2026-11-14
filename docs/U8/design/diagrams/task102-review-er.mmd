@@ -1,0 +1,25 @@
+erDiagram
+  USERS ||--o{ REVIEWS : writes
+  GUIDES o|--o{ REVIEWS : has
+  SUMMARIES o|--o{ REVIEWS : has
+  USERS {
+    int id PK
+  }
+  GUIDES {
+    int id PK
+    int publisher_id FK
+  }
+  SUMMARIES {
+    int id PK
+    int owner_id FK
+  }
+  REVIEWS {
+    int id PK
+    int author_id FK
+    int guide_id FK "nullable, exactly one target FK"
+    int summary_id FK "nullable, exactly one target FK"
+    tinyint rating
+    nvarchar comment "nullable"
+    datetime2 created_at
+    datetime2 updated_at
+  }

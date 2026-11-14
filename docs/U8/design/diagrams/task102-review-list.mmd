@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant UI
+  participant API as API / Service
+  participant DAO as ReviewDAO
+  participant DB as SQL Server
+  UI->>API: ขอรายการรีวิวของผลงาน
+  API->>DAO: เช็กล็อกอินแล้วขอรายการ
+  DAO->>DB: อ่านผลงานและรีวิว เรียงจากใหม่ไปเก่า
+  DB-->>DAO: คืนรายการรีวิว
+  DAO-->>API: ส่งรายการกลับ
+  API-->>UI: 200 แสดงรีวิวหรือรายการว่าง

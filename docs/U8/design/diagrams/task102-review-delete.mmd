@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant UI
+  participant API as API / Service
+  participant DAO as ReviewDAO
+  participant DB as SQL Server
+  UI->>API: ส่งคำขอลบรีวิว
+  API->>DAO: เช็กล็อกอิน แล้วส่งคำขอลบ
+  DAO->>DB: อ่านผู้เขียนพร้อมล็อกรีวิว แล้ว DELETE เมื่อ Service อนุญาต
+  DB-->>DAO: ยืนยันว่าลบหนึ่งรายการ
+  DAO-->>API: ส่งผลกลับ
+  API->>DB: Commit
+  API-->>UI: 204 เอารีวิวออกจากรายการ
