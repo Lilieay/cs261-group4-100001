@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.db import SessionLocal
 from app.routers.auth import router as auth_router
 from app.routers.courses import router as courses_router
@@ -8,10 +9,13 @@ from app.routers.my_guide_deletions import router as my_guide_deletions_router
 from app.routers.my_guide_updates import router as my_guide_updates_router
 from app.routers.my_guides import router as my_guides_router
 from app.routers.saved_guides import router as saved_guides_router
+from app.routers.reviews import router as reviews_router
+from app.routers.reviews import reviews_http_exception_handler
 from app.services.auth import AuthService
 from app.services.tu_api import verify_tu_account
 
 app = FastAPI()
+app.add_exception_handler(StarletteHTTPException, reviews_http_exception_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5000", "http://localhost:5000"],
@@ -27,6 +31,7 @@ app.include_router(my_guide_deletions_router)
 app.include_router(my_guide_updates_router)
 app.include_router(my_guides_router)
 app.include_router(saved_guides_router)
+app.include_router(reviews_router)
 
 
 @app.get("/")
