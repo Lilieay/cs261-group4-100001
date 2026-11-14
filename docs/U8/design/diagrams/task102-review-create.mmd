@@ -1,0 +1,51 @@
+sequenceDiagram
+  participant UI
+  participant API as API / DTO
+  participant S as ReviewService
+  participant D as ReviewDAO
+  participant DB as SQL Server
+  UI->>API: POST guide or summary reviews + Bearer
+  alt No valid session or invalid JSON fields
+    API-->>UI: 401 or 422
+  else Valid request
+    API->>S: Create review with session author
+    S->>D: get_target_for_create(type, id)
+    D->>DB: Lock and read target owner in transaction
+    DB-->>D: Owner, no target or SQL error
+    D-->>S: Lookup result
+    alt Target missing or own target
+      S->>DB: Rollback
+      S-->>API: Target not found or SELF_REVIEW_FORBIDDEN
+      API-->>UI: 404 or 403
+    else SQL lookup fails
+      S->>DB: Rollback when possible
+      S-->>API: STORAGE_UNAVAILABLE
+      API-->>UI: 503
+    else Another user owns target
+      S->>D: Insert review and flush
+      D->>DB: INSERT with filtered unique index
+      alt Duplicate review
+        DB-->>D: Unique index violation
+        D-->>S: Duplicate
+        S->>DB: Rollback
+        S-->>API: REVIEW_ALREADY_EXISTS
+        API-->>UI: 409
+      else SQL write fails and rollback is confirmed
+        S->>DB: Rollback
+        S-->>API: STORAGE_UNAVAILABLE
+        API-->>UI: 503
+      else Insert and commit succeed
+        DB-->>D: Inserted review
+        D-->>S: Review record
+        S->>S: Build ReviewDTO
+        S->>DB: Commit
+        S-->>API: ReviewDTO
+        API-->>UI: 201
+      else Connection lost and commit outcome unknown
+        DB--xS: No commit acknowledgment
+        S-->>API: STORAGE_UNAVAILABLE
+        API-->>UI: 503 when response is still possible
+        UI->>API: Reload review list to check result
+      end
+    end
+  end
