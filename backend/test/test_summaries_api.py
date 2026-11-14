@@ -169,7 +169,6 @@ class SummaryApiTests(unittest.TestCase):
             "course_id": str(self.cs_course_id),
             "title": "สรุป Task110",
             "description": "เนื้อหาทดสอบ",
-            "owner_id": "999999",
         }
         data.update(overrides)
         return self.client.post(
@@ -184,6 +183,7 @@ class SummaryApiTests(unittest.TestCase):
         created = self.publish(headers)
 
         self.assertEqual(created.status_code, 201, created.text)
+        self.assertEqual(created.headers["cache-control"], "no-store")
         body = created.json()
         self.assertEqual(body["title"], "สรุป Task110")
         self.assertEqual(body["created_at"], body["updated_at"])
@@ -197,10 +197,12 @@ class SummaryApiTests(unittest.TestCase):
             f"/api/courses/{self.cs_course_id}/summaries", headers=headers
         )
         self.assertEqual(listed.status_code, 200, listed.text)
+        self.assertEqual(listed.headers["cache-control"], "no-store")
         self.assertEqual([item["id"] for item in listed.json()["items"]], [summary_id])
 
         detail = self.client.get(f"/api/summaries/{summary_id}", headers=headers)
         self.assertEqual(detail.status_code, 200, detail.text)
+        self.assertEqual(detail.headers["cache-control"], "no-store")
         self.assertEqual(detail.json()["id"], summary_id)
 
         opened = self.client.get(
@@ -208,7 +210,7 @@ class SummaryApiTests(unittest.TestCase):
         )
         self.assertEqual(opened.status_code, 200, opened.text)
         self.assertEqual(opened.headers["content-type"], "application/pdf")
-        self.assertEqual(opened.headers["cache-control"], "private, no-store")
+        self.assertEqual(opened.headers["cache-control"], "no-store")
         self.assertTrue(opened.content.startswith(b"%PDF-"))
         self.assertNotIn("storage_key", created.text)
 
@@ -218,6 +220,7 @@ class SummaryApiTests(unittest.TestCase):
             headers=self.headers_for("u6_empty"),
         )
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.headers["cache-control"], "no-store")
         self.assertEqual(response.json(), {"course_id": self.empty_course_id, "items": []})
 
     def test_all_routes_require_a_valid_login(self):
@@ -235,6 +238,7 @@ class SummaryApiTests(unittest.TestCase):
             with self.subTest(status=response.status_code):
                 self.assertEqual(response.status_code, 401, response.text)
                 self.assertEqual(response.json()["error"]["code"], "AUTH_REQUIRED")
+                self.assertEqual(response.headers["cache-control"], "no-store")
 
     def test_rejects_invalid_fields_files_and_course_scope(self):
         headers = self.headers_for("u6_invalid")
@@ -266,16 +270,18 @@ class SummaryApiTests(unittest.TestCase):
             with self.subTest(code=code, status=status_code):
                 self.assertEqual(response.status_code, status_code, response.text)
                 self.assertEqual(response.json()["error"]["code"], code)
+                self.assertEqual(response.headers["cache-control"], "no-store")
 
         for course_id in (999999, self.non_cs_course_id):
             response = self.publish(headers, course_id=str(course_id))
             self.assertEqual(response.status_code, 404, response.text)
             self.assertEqual(response.json()["error"]["code"], "COURSE_NOT_FOUND")
+            self.assertEqual(response.headers["cache-control"], "no-store")
 
         with self.session_factory() as session:
             self.assertEqual(session.scalar(select(func.count(Summary.id))), 0)
 
-    def test_rejects_missing_fields_and_spoofed_owner_is_ignored(self):
+    def test_rejects_missing_fields_and_spoofed_owner(self):
         headers = self.headers_for("u6_form")
         missing = self.client.post(
             "/api/summaries",
@@ -285,10 +291,135 @@ class SummaryApiTests(unittest.TestCase):
         )
         self.assertEqual(missing.status_code, 422, missing.text)
         self.assertEqual(missing.json()["error"]["code"], "INVALID_PARAMETERS")
+        self.assertEqual(missing.headers["cache-control"], "no-store")
 
         response = self.publish(headers, owner_id="999999")
-        self.assertEqual(response.status_code, 201, response.text)
-        self.assertEqual(response.json()["owner"]["id"], self.user_id)
+        self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual(response.json()["error"]["code"], "INVALID_PARAMETERS")
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        with self.session_factory() as session:
+            self.assertEqual(session.scalar(select(func.count(Summary.id))), 0)
+
+    def test_rejects_duplicate_and_unknown_multipart_parts_without_creating_summary(self):
+        headers = self.headers_for("u6_multipart_parts")
+        pdf = make_pdf()
+
+        def post_parts(parts):
+            boundary = "Task110MultipartBoundary"
+            chunks = []
+            for name, value, filename, content_type in parts:
+                chunks.extend(
+                    [
+                        f"--{boundary}\r\n".encode(),
+                        f'Content-Disposition: form-data; name="{name}"'.encode(),
+                    ]
+                )
+                if filename is not None:
+                    chunks[-1] += f'; filename="{filename}"'.encode()
+                chunks.append(b"\r\n")
+                if content_type is not None:
+                    chunks.extend(
+                        [f"Content-Type: {content_type}\r\n".encode(), b"\r\n"]
+                    )
+                else:
+                    chunks.append(b"\r\n")
+                chunks.extend([value if isinstance(value, bytes) else value.encode(), b"\r\n"])
+            chunks.append(f"--{boundary}--\r\n".encode())
+            return self.client.post(
+                "/api/summaries",
+                content=b"".join(chunks),
+                headers={
+                    **headers,
+                    "Content-Type": f"multipart/form-data; boundary={boundary}",
+                },
+            )
+
+        cases = [
+            post_parts(
+                [
+                    ("course_id", str(self.cs_course_id), None, None),
+                    ("course_id", str(self.cs_course_id), None, None),
+                    ("title", "duplicate course", None, None),
+                    ("file", pdf, "summary.pdf", "application/pdf"),
+                ]
+            ),
+            post_parts(
+                [
+                    ("course_id", str(self.cs_course_id), None, None),
+                    ("title", "first", None, None),
+                    ("title", "second", None, None),
+                    ("file", pdf, "summary.pdf", "application/pdf"),
+                ]
+            ),
+            post_parts(
+                [
+                    ("course_id", str(self.cs_course_id), None, None),
+                    ("title", "duplicate file", None, None),
+                    ("file", pdf, "one.pdf", "application/pdf"),
+                    ("file", pdf, "two.pdf", "application/pdf"),
+                ]
+            ),
+            post_parts(
+                [
+                    ("course_id", str(self.cs_course_id), None, None),
+                    ("title", "extra field", None, None),
+                    ("owner_id", str(self.user_id), None, None),
+                    ("file", pdf, "summary.pdf", "application/pdf"),
+                ]
+            ),
+        ]
+
+        for response in cases:
+            with self.subTest(status=response.status_code):
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertEqual(response.json()["error"]["code"], "INVALID_PARAMETERS")
+                self.assertEqual(response.headers["cache-control"], "no-store")
+
+        with self.session_factory() as session:
+            self.assertEqual(session.scalar(select(func.count(Summary.id))), 0)
+        self.assertEqual(self.storage.files, {})
+
+    def test_pdf_size_boundary_on_publish_api(self):
+        headers = self.headers_for("u6_pdf_boundary")
+
+        def padded_pdf(size: int) -> bytes:
+            base = make_pdf()
+            before_eof, eof = base.rsplit(b"%%EOF", 1)
+            return before_eof + b" " * (size - len(base)) + b"%%EOF" + eof
+
+        accepted = self.client.post(
+            "/api/summaries",
+            data={"course_id": str(self.cs_course_id), "title": "exact limit"},
+            files={
+                "file": (
+                    "exact.pdf",
+                    padded_pdf(15_000_000),
+                    "application/pdf",
+                )
+            },
+            headers=headers,
+        )
+        self.assertEqual(accepted.status_code, 201, accepted.text)
+        self.assertEqual(accepted.json()["file"]["size_bytes"], 15_000_000)
+        self.assertEqual(accepted.headers["cache-control"], "no-store")
+
+        rejected = self.client.post(
+            "/api/summaries",
+            data={"course_id": str(self.cs_course_id), "title": "over limit"},
+            files={
+                "file": (
+                    "over.pdf",
+                    padded_pdf(15_000_001),
+                    "application/pdf",
+                )
+            },
+            headers=headers,
+        )
+        self.assertEqual(rejected.status_code, 413, rejected.text)
+        self.assertEqual(rejected.json()["error"]["code"], "PDF_TOO_LARGE")
+        self.assertEqual(rejected.headers["cache-control"], "no-store")
+        with self.session_factory() as session:
+            self.assertEqual(session.scalar(select(func.count(Summary.id))), 1)
 
     def test_storage_failure_does_not_create_summary_rows(self):
         headers = self.headers_for("u6_storage_failure")
@@ -298,6 +429,7 @@ class SummaryApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 503, response.text)
         self.assertEqual(response.json()["error"]["code"], "STORAGE_UNAVAILABLE")
+        self.assertEqual(response.headers["cache-control"], "no-store")
         with self.session_factory() as session:
             self.assertEqual(session.scalar(select(func.count(Summary.id))), 0)
 
@@ -368,6 +500,7 @@ class SummaryApiTests(unittest.TestCase):
             response = self.client.get(path, headers=headers)
             self.assertEqual(response.status_code, 404, response.text)
             self.assertEqual(response.json()["error"]["code"], "SUMMARY_NOT_FOUND")
+            self.assertEqual(response.headers["cache-control"], "no-store")
 
     def test_missing_private_object_returns_storage_unavailable(self):
         headers = self.headers_for("u6_missing_object")

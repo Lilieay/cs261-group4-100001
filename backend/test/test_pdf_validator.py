@@ -49,13 +49,26 @@ def test_rejects_pdf_over_size_limit_before_parsing():
     assert error.value.code == "PDF_TOO_LARGE"
 
 
-def test_accepts_pdf_at_exact_15_mib_boundary():
+def test_accepts_pdf_at_exact_15_million_byte_boundary():
     base = valid_pdf()
     before_eof, eof = base.rsplit(b"%%EOF", 1)
     content = before_eof + b" " * (PDF_MAX_BYTES - len(base)) + b"%%EOF" + eof
 
     assert len(content) == PDF_MAX_BYTES
     assert PdfValidator().validate("boundary.pdf", "application/pdf", content)
+
+
+def test_rejects_pdf_one_byte_over_15_million_byte_boundary():
+    base = valid_pdf()
+    before_eof, eof = base.rsplit(b"%%EOF", 1)
+    content = before_eof + b" " * (PDF_MAX_BYTES + 1 - len(base)) + b"%%EOF" + eof
+
+    assert len(content) == 15_000_001
+    with pytest.raises(PdfValidationError) as error:
+        PdfValidator().validate("over-limit.pdf", "application/pdf", content)
+
+    assert error.value.status_code == 413
+    assert error.value.code == "PDF_TOO_LARGE"
 
 
 def test_rejects_encrypted_pdf():

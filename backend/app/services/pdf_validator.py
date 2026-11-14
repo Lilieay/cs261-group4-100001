@@ -20,7 +20,9 @@ class PdfValidator:
     ) -> str:
         if len(content) > PDF_MAX_BYTES:
             raise PdfValidationError(
-                "PDF_TOO_LARGE", "ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MiB", 413
+                "PDF_TOO_LARGE",
+                "ไฟล์ PDF ต้องมีขนาดไม่เกิน 15,000,000 ไบต์",
+                413,
             )
         if not content:
             raise PdfValidationError("PDF_INVALID", "ไฟล์ PDF ว่างเปล่า")

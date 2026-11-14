@@ -13,6 +13,7 @@ from app.routers.my_guides import router as my_guides_router
 from app.routers.saved_guides import router as saved_guides_router
 from app.routers.summaries import router as summaries_router
 from app.middleware.pdf_upload_limit import PdfUploadSizeLimitMiddleware
+from app.middleware.summary_no_store import SummaryNoStoreMiddleware
 from app.services.auth import AuthService
 from app.services.summary_storage import LocalPdfStorage
 from app.services.tu_api import verify_tu_account
@@ -47,6 +48,7 @@ app.add_middleware(
     PdfUploadSizeLimitMiddleware,
     max_bytes=PDF_REQUEST_MAX_BYTES,
 )
+app.add_middleware(SummaryNoStoreMiddleware)
 
 
 @app.get("/")

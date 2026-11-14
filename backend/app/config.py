@@ -33,5 +33,5 @@ PDF_STORAGE_ROOT = Path(
         str(Path(__file__).resolve().parents[1] / "data" / "pdfs"),
     )
 ).expanduser()
-PDF_MAX_BYTES = 15 * 1024 * 1024
+PDF_MAX_BYTES = 15_000_000
 PDF_REQUEST_MAX_BYTES = 16 * 1024 * 1024

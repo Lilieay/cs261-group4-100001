@@ -21,7 +21,7 @@
 | `GET` | `/api/summaries/{summary_id}` | คืนรายละเอียดสรุปและ `read_path` |
 | `GET` | `/api/summaries/{summary_id}/file` | stream `application/pdf` หลังตรวจ Login |
 
-ตรวจไฟล์จริงด้วย `pypdf`: ต้องเป็น PDF ที่ parse ได้ มีอย่างน้อยหนึ่งหน้า ไม่เข้ารหัส, ชื่อไฟล์ลงท้าย `.pdf`, MIME เป็น `application/pdf`, ขนาดไม่เกิน 15 MiB. จำกัด request multipart รวม 16 MiB. Storage key สุ่มโดย Backend และไม่อยู่ใน DTO หรือ URL.
+ตรวจไฟล์จริงด้วย `pypdf`: ต้องเป็น PDF ที่ parse ได้ มีอย่างน้อยหนึ่งหน้า ไม่เข้ารหัส, ชื่อไฟล์ลงท้าย `.pdf`, MIME เป็น `application/pdf`, ขนาดไม่เกิน 15,000,000 ไบต์ตาม Task95; ขนาด 15,000,001 ไบต์คืน `413 PDF_TOO_LARGE`. จำกัด request multipart รวม 16 MiB. Publish ปฏิเสธ multipart part ที่ไม่อยู่ในสเปกหรือส่งซ้ำด้วย `422 INVALID_PARAMETERS`. Response ของ U6 ทุกกรณีรวม error ใช้ `Cache-Control: no-store`. Handler อ่าน multipart แบบ async แล้วย้าย PDF parsing, storage และ SQL ไป worker thread. Storage key สุ่มโดย Backend และไม่อยู่ใน DTO หรือ URL.
 
 ## Database and storage setup
 
@@ -73,8 +73,8 @@ Integration fixture สร้างผู้ใช้ `task110_integration_owner
 |---|---|---|---|---|
 | U6-BE-UNIT-01 | PDF เปิดได้, ชื่อมี path | รับไฟล์และตัด path จากชื่อ | ผ่าน | PASS — `test_pdf_validator.py` |
 | U6-BE-UNIT-02 | ไฟล์ว่าง, เนื้อหาไม่ใช่ PDF, นามสกุล/MIME ไม่ตรง | ปฏิเสธด้วย validation error | ผ่านทุก subcase | PASS — `test_pdf_validator.py` |
-| U6-BE-UNIT-03 | PDF ขนาด 15 MiB + 1 byte | `413 PDF_TOO_LARGE` | ผ่าน | PASS — `test_pdf_validator.py` |
-| U6-BE-UNIT-04 | PDF ขนาดเท่ากับ 15 MiB | รับได้ | ผ่าน | PASS — `test_pdf_validator.py` |
+| U6-BE-UNIT-03 | PDF ขนาด 15,000,001 ไบต์ | `413 PDF_TOO_LARGE` | ผ่าน | PASS — `test_pdf_validator.py` |
+| U6-BE-UNIT-04 | PDF ขนาดเท่ากับ 15,000,000 ไบต์ | รับได้ | ผ่าน | PASS — `test_pdf_validator.py` |
 | U6-BE-UNIT-05 | PDF เข้ารหัส | `422 PDF_UNREADABLE` | ผ่าน | PASS — `test_pdf_validator.py` |
 | U6-BE-UNIT-06 | put/open/delete, key traversal, cleanup retry | เก็บ private, กัน path traversal, cleanup ได้ | ผ่าน | PASS — `test_summary_storage.py` |
 | U6-BE-UNIT-07 | reconciliation มี key ที่ SQL อ้างถึงและ orphan | เก็บไฟล์ที่มี row; ลบ orphan เมื่อ SQL ตรวจได้ | ผ่าน | PASS — `test_summary_reconciliation.py` |
@@ -84,13 +84,16 @@ Integration fixture สร้างผู้ใช้ `task110_integration_owner
 | U6-BE-API-02 | ไม่มี Token กับ publish/list/detail/file | `401 AUTH_REQUIRED` ทุกเส้นทาง | ผ่าน | PASS — `test_summaries_api.py` |
 | U6-BE-API-03 | course ไม่มี/ไม่ใช่วิชา CS | `404 COURSE_NOT_FOUND`, ไม่มี summary row | ผ่าน | PASS — API SQLite; storage mock |
 | U6-BE-API-04 | title ว่าง/เกิน, PDF ปลอม, นามสกุลผิด, field ขาด | `422` validation error; ไม่มีรายการผิด | ผ่าน | PASS — API SQLite; storage mock |
-| U6-BE-API-05 | ส่ง `owner_id` เป็นของผู้อื่น | ใช้ owner จาก Login | ผ่าน | PASS — response owner ตรงกับผู้ใช้ที่ยืนยันตัวตน |
+| U6-BE-API-05 | ส่ง multipart part `owner_id` นอกสเปก | `422 INVALID_PARAMETERS`; ไม่สร้าง summary | ผ่าน | PASS — API SQLite; storage mock |
 | U6-BE-API-06 | storage put ล้มเหลว | `503 STORAGE_UNAVAILABLE`; ไม่มี summary row | ผ่าน | PASS — storage mock |
 | U6-BE-API-07 | SQL insert ล้มเหลวหลังเก็บไฟล์ | rollback, ชดเชยลบไฟล์, `503` | ผ่าน | PASS — SQL write mock; storage mock |
 | U6-BE-API-08 | SQL ล้มเหลวและลบไฟล์ชดเชยไม่ได้ | queue cleanup; object ยังคง private; `503` | ผ่าน | PASS — SQL/storage mock |
 | U6-BE-API-09 | ผล commit และการตรวจ SQL ไม่แน่ชัด | เก็บไฟล์ไว้, queue reconciliation, `503` | ผ่าน | PASS — SQL/storage mock |
 | U6-BE-API-10 | summary/detail/file ไม่พบ | `404 SUMMARY_NOT_FOUND` | ผ่าน | PASS — API SQLite; storage mock |
 | U6-BE-API-11 | request รวมเกิน 16 MiB | `413 REQUEST_TOO_LARGE` | ผ่าน | PASS — middleware API test |
+| U6-BE-API-14 | multipart มี part นอกสเปก หรือส่ง `course_id`, `title` หรือ `file` ซ้ำ | `422 INVALID_PARAMETERS`; ไม่มี summary และไม่มีไฟล์ใหม่ | ผ่าน | PASS — API SQLite; storage mock |
+| U6-BE-API-15 | response สำเร็จและ error ของ list/detail/file/publish รวมถึง 413 จาก middleware | ทุก response มี `Cache-Control: no-store` | ผ่าน | PASS — API/middleware tests |
+| U6-BE-API-16 | PDF ถูกต้องขนาด 15,000,000 และ 15,000,001 ไบต์ | ขนาดแรก `201`; ขนาดหลัง `413 PDF_TOO_LARGE`; ไม่มี row จากคำขอที่เกิน | ผ่าน | PASS — API SQLite; storage mock |
 | U6-BE-API-12 | DB มี file metadata แต่ private object หาย | `503 STORAGE_UNAVAILABLE`, ไม่ส่ง PDF bytes | ผ่าน | PASS — API SQLite; storage mock |
 | U6-BE-API-13 | unexpected error ระหว่าง SQL write | rollback, ลบไฟล์ที่เขียนแล้ว, `500 INTERNAL_ERROR` | ผ่าน | PASS — API SQLite; SQL/storage behavior mocked |
 | U6-BE-UNIT-08 | chunked request ไม่มี `Content-Length` และ body เกิน configured cap | `413 REQUEST_TOO_LARGE` ก่อนส่งให้ route | ผ่าน | PASS — middleware ASGI test |
@@ -101,10 +104,12 @@ Integration fixture สร้างผู้ใช้ `task110_integration_owner
 
 ```text
 python -m pytest -q test
-169 passed, 3 skipped, 1 warning, 73 subtests passed
+172 passed, 3 skipped, 1 warning, 77 subtests passed
 ```
 
-สามกรณีที่ skip รวม SQL Server-specific tests เดิมและ U6 integration test. เครื่องที่รันไม่มี Docker CLI หรือ SQL Server connection จึงยังไม่มีผลทดสอบ SQL Server + filesystem จริง. API tests ผ่านโดยใช้ SQLite และ mock file storage; ไม่ใช้ผลดังกล่าวแทน Integration.
+Warning หนึ่งรายการเป็น Starlette แจ้งว่า TestClient ที่ใช้ `httpx` จะเลิกสนับสนุนรูปแบบนี้ในอนาคต ไม่ใช่ test failure. สามรายการที่ skip เป็น SQL Server-specific tests และ U6 integration test; environment นี้ยังไม่มีการยืนยัน SQL Server + filesystem จริง.
+
+API tests ใช้ SQLite และ mock file storage; ผลนี้ไม่ใช้แทนการ Integration กับ SQL Server และ filesystem จริง.
 
 ## Review status
 
