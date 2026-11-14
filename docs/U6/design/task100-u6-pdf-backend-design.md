@@ -13,7 +13,7 @@
 | Requirement / test baseline | Task95 U6 Requirements and Test Cases v0.1 |
 | Review evidence | รอกรอกชื่อผู้ทบทวน วันที่ มติ และลิงก์หลัง review จริง |
 
-> **ขอบเขตขนาดไฟล์:** ใช้เกณฑ์ Task95 ที่ merge แล้ว: PDF สูงสุด 15,000,000 bytes พอดี; 15,000,001 bytes ต้องได้ `413 PDF_TOO_LARGE`. เสนอ multipart request body รวมไม่เกิน 16 MiB (16,777,216 bytes) เพื่อเผื่อ overhead. Task94 v0.1 snapshot ที่อ้างไว้ก่อนหน้านี้ระบุ 10 MiB/11 MiB; Task100 ใช้เพดาน PDF ตาม Task95 และต้องให้ implementation/Contract ที่ใช้กับ Story นี้สอดคล้องกัน
+> **ขอบเขตขนาดไฟล์:** ใช้เกณฑ์ Task95 ที่ merge แล้ว: PDF สูงสุด 15,000,000 bytes พอดี; 15,000,001 bytes ต้องได้ `413 PDF_TOO_LARGE`. ใช้ multipart request body รวมไม่เกิน 16,000,000 bytes ตาม Task94 รุ่น 0.4 เพื่อเผื่อ overhead. Task94 v0.1 snapshot ที่อ้างไว้ก่อนหน้านี้ระบุ 10 MiB/11 MiB; Task100 ใช้เพดาน PDF ตาม Task95 และต้องให้ implementation/Contract ที่ใช้กับ Story นี้สอดคล้องกัน
 
 ## 1. Scope and API contract
 
@@ -135,12 +135,12 @@ Service เป็นเจ้าของ SQLAlchemy Session และควบ�
 | ฟิลด์บังคับไม่ครบ, title ว่าง/เกิน 200 code points หรือ description เกิน 2,000 code points | `422` validation response ตาม schema ใน Task94; ยืนยัน code ที่แน่นอนตอน Contract Review |
 | Client ส่ง `owner_id` ของผู้อื่น | ห้ามใช้ค่าจาก request; ใช้ owner จาก authenticated session ตาม Contract |
 | PDF เกิน 15,000,000 bytes | `413 PDF_TOO_LARGE` |
-| Multipart request เกิน 16 MiB ที่เสนอ | `413 REQUEST_TOO_LARGE` |
+| Multipart request เกิน 16,000,000 bytes | `413 REQUEST_TOO_LARGE` |
 | SQL หรือ storage ใช้งานไม่ได้ | `503 STORAGE_UNAVAILABLE`; ห้ามแจ้งสำเร็จหรือเปลี่ยน error เป็นรายการว่าง |
 | Frontend proxy ติดต่อ Backend ไม่ได้/timeout | `502 UPSTREAM_UNAVAILABLE`; ห้าม retry POST อัตโนมัติ |
 | Metadata มีแต่ object อ่านไม่ได้ | `503 STORAGE_UNAVAILABLE`; ห้ามคืน internal path หรือส่ง bytes ที่ไม่สมบูรณ์เป็น PDF |
 
-เพดาน PDF ของแบบนี้เป็น 15,000,000 bytes ตาม Task95 ที่ merge แล้ว; request body รวมยังเสนอไว้ไม่เกิน 16 MiB.
+เพดาน PDF ของแบบนี้เป็น 15,000,000 bytes ตาม Task95 ที่ merge แล้ว; request body รวมไม่เกิน 16,000,000 bytes ตาม Task94 รุ่น 0.4.
 
 ## 6. Sequence diagrams
 
@@ -163,7 +163,7 @@ Service เป็นเจ้าของ SQLAlchemy Session และควบ�
 | API | GET file valid/missing summary/storage unavailable | `200 application/pdf` with headers, `404`, or `503 application/json` |
 | Integration | publish using SQL Server and private storage, reload list and read file | record persists and correct PDF opens after reload |
 | Integration | storage fails before SQL; SQL fails after file put | no exposed partial summary; cleanup succeeds or evidence is recorded |
-| Integration | multipart upload boundary with overhead below 16 MiB | valid 15,000,000-byte PDF is accepted; valid 15,000,001-byte PDF returns `413 PDF_TOO_LARGE`; total request over 16 MiB returns `413 REQUEST_TOO_LARGE` |
+| Integration | multipart upload boundary with overhead below 16,000,000 bytes | valid 15,000,000-byte PDF is accepted; valid 15,000,001-byte PDF returns `413 PDF_TOO_LARGE`; total request over 16,000,000 bytes returns `413 REQUEST_TOO_LARGE` |
 | Integration | timeout after commit | UI checks list before offering retry; no automatic retry/duplicate |
 | Integration — crash/restart | write a valid PDF object, stop Backend before SQL insert/commit, then restart with the same storage root | startup scan finds and deletes the unreferenced object even without a marker; an object with committed SQL metadata is retained and its PDF still opens after restart |
 | Integration — SQL unavailable at startup | leave private objects in place and make SQL Server unavailable during startup scan | no object is deleted and Backend stays not Ready; next startup retries the scan |
