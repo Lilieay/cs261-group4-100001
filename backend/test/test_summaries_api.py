@@ -210,9 +210,42 @@ class SummaryApiTests(unittest.TestCase):
         )
         self.assertEqual(opened.status_code, 200, opened.text)
         self.assertEqual(opened.headers["content-type"], "application/pdf")
+        self.assertEqual(
+            opened.headers["content-disposition"], f'inline; filename="summary-{summary_id}.pdf"'
+        )
         self.assertEqual(opened.headers["cache-control"], "no-store")
         self.assertTrue(opened.content.startswith(b"%PDF-"))
         self.assertNotIn("storage_key", created.text)
+
+    def test_publish_rejects_wrong_media_type_or_missing_multipart_boundary(self):
+        headers = self.headers_for()
+        responses = [
+            (self.client.post("/api/summaries", headers=headers, json={}), 415, "UNSUPPORTED_MEDIA_TYPE"),
+            (
+                self.client.post(
+                    "/api/summaries",
+                    headers={**headers, "Content-Type": "multipart/form-data"},
+                    content=b"missing boundary",
+                ),
+                400,
+                "MALFORMED_REQUEST",
+            ),
+        ]
+        for response, status, code in responses:
+            self.assertEqual(response.status_code, status, response.text)
+            self.assertEqual(response.json()["error"]["code"], code)
+
+    def test_summary_ids_require_decimal_digits_in_sql_int_range(self):
+        headers = self.headers_for()
+        for value in ("+1", "1_0", "๑", "2147483648"):
+            with self.subTest(value=value):
+                published = self.publish(headers, course_id=value)
+                opened = self.client.get(f"/api/summaries/{value}/file", headers=headers)
+                for response, field in ((published, "course_id"), (opened, "summary_id")):
+                    self.assertEqual(response.status_code, 422, response.text)
+                    error = response.json()["error"]
+                    self.assertEqual(error["code"], "INVALID_PARAMETERS")
+                    self.assertEqual(error["fields"][0]["field"], field)
 
     def test_list_returns_empty_items_for_course_without_summaries(self):
         response = self.client.get(

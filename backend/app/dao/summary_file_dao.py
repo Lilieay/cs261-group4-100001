@@ -40,6 +40,9 @@ class SummaryFileDAO:
         )
         return self.session.scalars(statement).unique().one_or_none()
 
+    def list_storage_keys(self) -> set[str]:
+        return set(self.session.scalars(select(SummaryFile.storage_key)))
+
     def get_by_storage_key(self, storage_key: str) -> SummaryFile | None:
         statement = (
             select(SummaryFile)

@@ -21,7 +21,7 @@
 | `GET` | `/api/summaries/{summary_id}` | คืนรายละเอียดสรุปและ `read_path` |
 | `GET` | `/api/summaries/{summary_id}/file` | stream `application/pdf` หลังตรวจ Login |
 
-ตรวจไฟล์จริงด้วย `pypdf`: ต้องเป็น PDF ที่ parse ได้ มีอย่างน้อยหนึ่งหน้า ไม่เข้ารหัส, ชื่อไฟล์ลงท้าย `.pdf`, MIME เป็น `application/pdf`, ขนาดไม่เกิน 15,000,000 ไบต์ตาม Task95; ขนาด 15,000,001 ไบต์คืน `413 PDF_TOO_LARGE`. จำกัด request multipart รวม 16 MiB. Publish ปฏิเสธ multipart part ที่ไม่อยู่ในสเปกหรือส่งซ้ำด้วย `422 INVALID_PARAMETERS`. Response ของ U6 ทุกกรณีรวม error ใช้ `Cache-Control: no-store`. Handler อ่าน multipart แบบ async แล้วย้าย PDF parsing, storage และ SQL ไป worker thread. Storage key สุ่มโดย Backend และไม่อยู่ใน DTO หรือ URL.
+ตรวจไฟล์จริงด้วย `pypdf`: ต้องเป็น PDF ที่ parse ได้ มีอย่างน้อยหนึ่งหน้า ไม่เข้ารหัส, ชื่อไฟล์ลงท้าย `.pdf`, MIME เป็น `application/pdf`, ขนาดไม่เกิน 15,000,000 ไบต์ตาม Task95; ขนาด 15,000,001 ไบต์คืน `413 PDF_TOO_LARGE`. จำกัด request multipart รวม 16,000,000 ไบต์. Publish ปฏิเสธ multipart part ที่ไม่อยู่ในสเปกหรือส่งซ้ำด้วย `422 INVALID_PARAMETERS`. Response ของ U6 ทุกกรณีรวม error ใช้ `Cache-Control: no-store`. Handler อ่าน multipart แบบ async แล้วย้าย PDF parsing, storage และ SQL ไป worker thread. Storage key สุ่มโดย Backend และไม่อยู่ใน DTO หรือ URL.
 
 ## Database and storage setup
 
@@ -32,6 +32,8 @@
 - `backend/data/pdfs/` อยู่ใน `.gitignore`. โฟลเดอร์นี้ไม่ถูก mount เป็น static/public route.
 - เมื่อ file storage สำเร็จแต่ SQL ล้มเหลวแน่นอน: rollback, ลบ object; ถ้าลบไม่ได้ ให้เขียน cleanup marker แล้ว retry ตอน initialize.
 - เมื่อผล SQL commit ไม่แน่ชัด: เก็บไฟล์เป็น private และเขียน reconciliation marker. ตอน `app.init_db` ตรวจ storage key กับ SQL ก่อนตัดสินใจเก็บหรือลบไฟล์.
+
+Compose แบบ backend ตัวเดียวสแกนไฟล์ PDF ก่อนเปิดรับคำขอ เทียบกับ storage key ใน SQL แล้วลบเฉพาะไฟล์ที่ไม่มีรายการอ้างถึง รวมไฟล์ที่ไม่มี marker ถ้าอ่าน SQL ไม่ได้ ระบบเก็บไฟล์ไว้และหยุดเริ่มระบบรอบนั้น ตั้ง `PDF_SCAN_ORPHANS_ON_STARTUP=0` หากหลาย backend ใช้ storage ร่วมกัน หรือกำลังย้ายฐานข้อมูลแยกจาก volume
 
 ## Local setup and test commands
 
@@ -90,7 +92,7 @@ Integration fixture สร้างผู้ใช้ `task110_integration_owner
 | U6-BE-API-08 | SQL ล้มเหลวและลบไฟล์ชดเชยไม่ได้ | queue cleanup; object ยังคง private; `503` | ผ่าน | PASS — SQL/storage mock |
 | U6-BE-API-09 | ผล commit และการตรวจ SQL ไม่แน่ชัด | เก็บไฟล์ไว้, queue reconciliation, `503` | ผ่าน | PASS — SQL/storage mock |
 | U6-BE-API-10 | summary/detail/file ไม่พบ | `404 SUMMARY_NOT_FOUND` | ผ่าน | PASS — API SQLite; storage mock |
-| U6-BE-API-11 | request รวมเกิน 16 MiB | `413 REQUEST_TOO_LARGE` | ผ่าน | PASS — middleware API test |
+| U6-BE-API-11 | request รวมเกิน 16,000,000 ไบต์ | `413 REQUEST_TOO_LARGE` | ผ่าน | PASS — middleware API test |
 | U6-BE-API-14 | multipart มี part นอกสเปก หรือส่ง `course_id`, `title` หรือ `file` ซ้ำ | `422 INVALID_PARAMETERS`; ไม่มี summary และไม่มีไฟล์ใหม่ | ผ่าน | PASS — API SQLite; storage mock |
 | U6-BE-API-15 | response สำเร็จและ error ของ list/detail/file/publish รวมถึง 413 จาก middleware | ทุก response มี `Cache-Control: no-store` | ผ่าน | PASS — API/middleware tests |
 | U6-BE-API-16 | PDF ถูกต้องขนาด 15,000,000 และ 15,000,001 ไบต์ | ขนาดแรก `201`; ขนาดหลัง `413 PDF_TOO_LARGE`; ไม่มี row จากคำขอที่เกิน | ผ่าน | PASS — API SQLite; storage mock |
@@ -99,6 +101,8 @@ Integration fixture สร้างผู้ใช้ `task110_integration_owner
 | U6-BE-UNIT-08 | chunked request ไม่มี `Content-Length` และ body เกิน configured cap | `413 REQUEST_TOO_LARGE` ก่อนส่งให้ route | ผ่าน | PASS — middleware ASGI test |
 
 ### Actual test run
+
+หลังปรับตาม Task94 v0.4 รัน backend tests ผ่าน 176 รายการ ข้าม 3 รายการที่ต้องใช้ SQL Server การตรวจไฟล์ค้างใช้ SQLite กับไฟล์จริงในโฟลเดอร์ทดสอบ รวมทั้งกรณีไฟล์ไม่มี marker และกรณีอ่านฐานข้อมูลไม่ได้ ส่วนการรันผ่าน Compose กับ SQL Server จริงยังรอตรวจ
 
 รันจาก `backend/` ด้วย `DB_CONNECTION_STRING` dummy สำหรับ import เท่านั้น; test ใช้ SQLite/mocks ตามที่ระบุ:
 

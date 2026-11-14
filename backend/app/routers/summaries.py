@@ -1,8 +1,9 @@
 from collections.abc import Iterator
 from typing import Annotated
-from urllib.parse import quote
+import re
 
-from fastapi import APIRouter, Depends, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
@@ -20,6 +21,19 @@ router = APIRouter(tags=["U6 PDF Summaries"], route_class=SummaryApiRoute)
 SummaryServiceDependency = Annotated[SummaryService, Depends(get_summary_service)]
 
 
+def _parse_id(value: str, source: str, field: str) -> int:
+    digits = value.lstrip("0")
+    if 0 < len(digits) <= 10 and re.fullmatch(r"[0-9]+", digits):
+        identifier = int(digits)
+        if identifier <= 2_147_483_647:
+            return identifier
+    raise RequestValidationError([{
+        "loc": (source, field),
+        "msg": "ต้องเป็นจำนวนเต็มบวกไม่เกิน 2,147,483,647",
+        "type": "value_error",
+    }])
+
+
 @router.post("/api/summaries", response_model=SummaryDTO, status_code=201)
 async def publish_summary(
     request: Request,
@@ -28,6 +42,10 @@ async def publish_summary(
         tuple[str, AuthenticatedUser], Depends(current_user)
     ],
 ) -> SummaryDTO:
+    media_type = request.headers.get("content-type", "").partition(";")[0]
+    if media_type.strip().lower() != "multipart/form-data":
+        raise HTTPException(415)
+
     async with request.form() as form:
         allowed = {"course_id", "title", "description", "file"}
         items = form.multi_items()
@@ -59,16 +77,7 @@ async def publish_summary(
             raise PdfValidationError(
                 "INVALID_PARAMETERS", "ชนิดข้อมูลของ multipart part ไม่ถูกต้อง"
             )
-        try:
-            course_id = int(raw_course_id)
-        except ValueError as error:
-            raise PdfValidationError(
-                "INVALID_PARAMETERS", "course_id ต้องเป็นจำนวนเต็มบวก"
-            ) from error
-        if course_id <= 0:
-            raise PdfValidationError(
-                "INVALID_PARAMETERS", "course_id ต้องเป็นจำนวนเต็มบวก"
-            )
+        course_id = _parse_id(raw_course_id, "body", "course_id")
 
         content = await file.read(PDF_MAX_BYTES + 1)
         return await run_in_threadpool(
@@ -88,40 +97,38 @@ async def publish_summary(
     response_model=CourseSummaryListResponse,
 )
 def list_course_summaries(
-    course_id: Annotated[int, Path(gt=0)],
+    course_id: Annotated[str, Path()],
     service: SummaryServiceDependency,
     _user_context: Annotated[
         tuple[str, AuthenticatedUser], Depends(current_user)
     ],
 ) -> CourseSummaryListResponse:
-    return service.list_by_course(course_id)
+    return service.list_by_course(_parse_id(course_id, "path", "course_id"))
 
 
 @router.get("/api/summaries/{summary_id}", response_model=SummaryDTO)
 def read_summary(
-    summary_id: Annotated[int, Path(gt=0)],
+    summary_id: Annotated[str, Path()],
     service: SummaryServiceDependency,
     _user_context: Annotated[
         tuple[str, AuthenticatedUser], Depends(current_user)
     ],
 ) -> SummaryDTO:
-    return service.get_summary(summary_id)
+    return service.get_summary(_parse_id(summary_id, "path", "summary_id"))
 
 
 @router.get("/api/summaries/{summary_id}/file")
 def open_summary_file(
-    summary_id: Annotated[int, Path(gt=0)],
+    summary_id: Annotated[str, Path()],
     service: SummaryServiceDependency,
     _user_context: Annotated[
         tuple[str, AuthenticatedUser], Depends(current_user)
     ],
 ) -> StreamingResponse:
-    summary_file, handle = service.open_pdf(summary_id)
-    encoded_name = quote(summary_file.original_name, safe="")
+    identifier = _parse_id(summary_id, "path", "summary_id")
+    summary_file, handle = service.open_pdf(identifier)
     headers = {
-        "Content-Disposition": (
-            f'inline; filename="summary.pdf"; filename*=UTF-8\'\'{encoded_name}'
-        ),
+        "Content-Disposition": f'inline; filename="summary-{identifier}.pdf"',
         "Content-Length": str(summary_file.size_bytes),
         "X-Content-Type-Options": "nosniff",
         "Cache-Control": "no-store",

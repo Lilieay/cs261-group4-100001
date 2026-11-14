@@ -1,5 +1,6 @@
 """Create the application database, ORM tables, and demo seed data."""
 
+import os
 import re
 import time
 
@@ -19,7 +20,10 @@ from scripts.seed_data.course_seed_service import CourseSeedService
 from scripts.seed_data.guide_seed_service import GuideSeedService
 from app.config import PDF_STORAGE_ROOT
 from app.services.summary_storage import LocalPdfStorage
-from app.services.summary_reconciliation import reconcile_uncertain_uploads
+from app.services.summary_reconciliation import (
+    reconcile_orphaned_objects,
+    reconcile_uncertain_uploads,
+)
 
 
 DATABASE_NAME_PATTERN = re.compile(r"(?:^|;)DATABASE=([^;]+)", re.IGNORECASE)
@@ -66,6 +70,8 @@ def main() -> None:
     Base.metadata.create_all(bind=engine)
     PDF_STORAGE_ROOT.mkdir(parents=True, exist_ok=True)
     pdf_storage = LocalPdfStorage(PDF_STORAGE_ROOT)
+    if os.getenv("PDF_SCAN_ORPHANS_ON_STARTUP") == "1":
+        reconcile_orphaned_objects(pdf_storage, SessionLocal)
     pdf_storage.retry_pending_cleanup()
     reconcile_uncertain_uploads(pdf_storage, SessionLocal)
     with SessionLocal.begin() as session:

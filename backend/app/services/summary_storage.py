@@ -72,6 +72,15 @@ class LocalPdfStorage:
         except OSError as error:
             raise OSError("Private PDF storage delete failed") from error
 
+    def list_private_objects(self) -> set[str]:
+        if not self.root.exists():
+            return set()
+        return {
+            path.name
+            for path in self.root.iterdir()
+            if _STORAGE_KEY.fullmatch(path.name) and not path.is_symlink() and path.is_file()
+        }
+
     def queue_cleanup(self, key: str) -> None:
         self._path_for(key)
         self.cleanup_root.mkdir(parents=True, exist_ok=True)

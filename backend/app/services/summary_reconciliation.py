@@ -11,6 +11,28 @@ from app.services.summary_storage import LocalPdfStorage
 logger = logging.getLogger(__name__)
 
 
+def reconcile_orphaned_objects(
+    storage: LocalPdfStorage,
+    session_factory: Callable[[], Session],
+) -> int:
+    """Scan private storage before a single backend starts accepting uploads."""
+    objects = storage.list_private_objects()
+    if not objects:
+        return 0
+
+    with session_factory() as session:
+        live_keys = SummaryFileDAO(session).list_storage_keys()
+
+    removed = 0
+    for key in objects - live_keys:
+        try:
+            storage.delete_private(key)
+            removed += 1
+        except OSError:
+            logger.exception("Could not remove orphaned private PDF %s", key)
+    return removed
+
+
 def reconcile_uncertain_uploads(
     storage: LocalPdfStorage,
     session_factory: Callable[[], Session],

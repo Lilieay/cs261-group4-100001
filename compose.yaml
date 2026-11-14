@@ -35,6 +35,7 @@ services:
       TU_API_TIMEOUT: "${TU_API_TIMEOUT:-5}"
       AUTH_SESSION_TTL_SECONDS: "${AUTH_SESSION_TTL_SECONDS:-28800}"
       PDF_STORAGE_ROOT: "${PDF_STORAGE_ROOT:-/app/data/pdfs}"
+      PDF_SCAN_ORPHANS_ON_STARTUP: "${PDF_SCAN_ORPHANS_ON_STARTUP:-1}"
     volumes:
       - "pdf_storage:${PDF_STORAGE_ROOT:-/app/data/pdfs}"
     ports:

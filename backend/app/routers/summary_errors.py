@@ -31,7 +31,10 @@ class SummaryApiRoute(APIRoute):
             except SummaryNotFound:
                 return error_response(404, "SUMMARY_NOT_FOUND", "ไม่พบสรุป")
             except PdfValidationError as error:
-                return error_response(error.status_code, error.code, error.message)
+                fields = None
+                if error.code in {"PDF_INVALID", "PDF_UNREADABLE", "PDF_TOO_LARGE"}:
+                    fields = [ErrorFieldDTO(field="file", message=error.message)]
+                return error_response(error.status_code, error.code, error.message, fields)
             except SummaryStorageUnavailable:
                 return error_response(
                     503,
@@ -77,6 +80,10 @@ def error_response(
 
 
 def _http_error(error: StarletteHTTPException) -> JSONResponse:
+    if error.status_code == 400:
+        return error_response(400, "MALFORMED_REQUEST", "รูปแบบคำขอไม่ถูกต้อง")
+    if error.status_code == 415:
+        return error_response(415, "UNSUPPORTED_MEDIA_TYPE", "ชนิดข้อมูลของคำขอไม่ถูกต้อง")
     if error.status_code == 401:
         return error_response(
             401,
