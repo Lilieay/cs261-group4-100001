@@ -1,0 +1,37 @@
+sequenceDiagram
+    actor Student as นักศึกษา
+    participant UI as Saved items UI
+    participant API as SavedItems Router / DTO
+    participant SVC as SavedItemsService
+    participant GDAO as SavedGuideDAO
+    participant SDAO as SavedSummaryDAO
+    participant DB as SQL storage
+    Student->>UI: กดนำออกที่ผลงานหนึ่งชิ้น
+    UI->>API: DELETE /api/saved-items/{item_type}/{item_id} + Bearer
+    API->>API: ตรวจ token type path body query
+    alt token ใช้ไม่ได้
+        API-->>UI: 401 AUTH_REQUIRED
+    else type หรือ ID ไม่ถูกต้อง
+        API-->>UI: 422 INVALID_PARAMETERS
+    else ผ่าน validation
+        API->>SVC: remove(current_user.id,item_type,item_id)
+        alt item_type เป็น guide
+            SVC->>GDAO: remove(current_user.id,item_id)
+            GDAO->>DB: DELETE saved_guides WHERE user_id=? AND guide_id=?
+        else item_type เป็น summary
+            SVC->>SDAO: remove(current_user.id,item_id)
+            SDAO->>DB: DELETE saved_summaries WHERE user_id=? AND summary_id=?
+        end
+        alt delete หรือ commit ล้มเหลว
+            DB-->>SVC: SQL exception
+            SVC->>DB: ROLLBACK
+            SVC-->>API: SAVED_ITEMS_UNAVAILABLE
+            API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE
+        else ลบได้หรือไม่มี bookmark อยู่แล้ว
+            DB-->>SVC: rowcount 1 หรือ 0
+            SVC->>DB: COMMIT
+            SVC-->>API: SavedItemState saved false
+            API-->>UI: 200 item_type item_id saved false
+            UI-->>Student: นำออกเฉพาะรายการนี้
+        end
+    end
