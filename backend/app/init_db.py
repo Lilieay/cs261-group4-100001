@@ -13,9 +13,13 @@ from app.models.user import User
 from app.models.course import Course
 from app.models.guide import Guide
 from app.models.saved_guide import SavedGuide
+from app.models.summary import Summary, SummaryFile
 from app.models.course_seed_ownership import CourseSeedOwnership
 from scripts.seed_data.course_seed_service import CourseSeedService
 from scripts.seed_data.guide_seed_service import GuideSeedService
+from app.config import PDF_STORAGE_ROOT
+from app.services.summary_storage import LocalPdfStorage
+from app.services.summary_reconciliation import reconcile_uncertain_uploads
 
 
 DATABASE_NAME_PATTERN = re.compile(r"(?:^|;)DATABASE=([^;]+)", re.IGNORECASE)
@@ -60,6 +64,10 @@ def _ensure_database() -> None:
 def main() -> None:
     _ensure_database()
     Base.metadata.create_all(bind=engine)
+    PDF_STORAGE_ROOT.mkdir(parents=True, exist_ok=True)
+    pdf_storage = LocalPdfStorage(PDF_STORAGE_ROOT)
+    pdf_storage.retry_pending_cleanup()
+    reconcile_uncertain_uploads(pdf_storage, SessionLocal)
     with SessionLocal.begin() as session:
         courses = CourseSeedService(session, "demo").seed()
         GuideSeedService(session, "test").seed()
