@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor Student as นักศึกษา
+    participant UI as Saved items UI
+    participant GuideAPI as Guide API เดิม
+    participant SummaryAPI as Summary API จาก Task100
+    participant Storage as SQL / private PDF storage
+    Student->>UI: เลือก SavedItemDTO item_type และ item_id
+    alt item_type เป็น guide
+        UI->>GuideAPI: GET /api/guides/{item_id} + Bearer
+        GuideAPI->>Storage: อ่าน Guide ตาม item_id
+        alt target หายหรืออ่านล้มเหลว
+            GuideAPI-->>UI: 404 GUIDE_NOT_FOUND หรือ storage error
+        else สำเร็จ
+            GuideAPI-->>UI: 200 GuideDetailResponseDTO
+            UI-->>Student: เปิดแนวข้อสอบชิ้นที่เลือก
+        end
+    else item_type เป็น summary
+        UI->>SummaryAPI: GET /api/summaries/{item_id} + Bearer
+        SummaryAPI->>Storage: อ่าน Summary ตาม item_id
+        alt target หายหรืออ่านล้มเหลว
+            SummaryAPI-->>UI: 404 SUMMARY_NOT_FOUND หรือ storage error
+        else metadata สำเร็จ
+            SummaryAPI-->>UI: 200 SummaryDTO พร้อม file.read_path
+            UI->>SummaryAPI: GET file.read_path + Bearer
+            SummaryAPI->>Storage: open private PDF จาก key ใน DB
+            SummaryAPI-->>UI: 200 application/pdf
+            UI-->>Student: เปิด PDF ชิ้นที่เลือก
+        end
+    else type จาก response ไม่ถูกต้อง
+        UI-->>Student: แจ้งข้อมูลรายการผิดและโหลดใหม่
+    end
