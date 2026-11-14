@@ -69,9 +69,16 @@ def check_fixtures():
     cases = examples["cases"]
     ids = [case["id"] for case in cases]
     assert len(ids) == len(set(ids)), "Duplicate case IDs"
-    # U9/U10 still use the v0.2 fixtures until the saved-item API is agreed.
     expected_tcs = {f"U{story}-TC{n:02d}" for story, count in
-                    [(6, 8), (7, 9), (8, 9), (9, 5), (10, 6)] for n in range(1, count + 1)}
+                    [(6, 8), (7, 9), (8, 9), (9, 5), (10, 7)] for n in range(1, count + 1)}
+    targets = {
+        "guide": {row["id"]: row for row in examples["data"]["guides"].values()},
+        "summary": {row["id"]: row for row in examples["data"]["summaries"].values()},
+    }
+    users = {row["id"] for row in examples["data"]["users"].values()}
+    for bookmark in examples["data"]["saved_items"].values():
+        assert bookmark["user_id"] in users, bookmark
+        assert bookmark["item_id"] in targets[bookmark["item_type"]], bookmark
     covered = set()
     endpoints = examples["endpoints"]
     used_endpoints = set()
@@ -118,16 +125,45 @@ def check_fixtures():
                 body = response["body"]
                 assert set(body) == {"id", "target_type", "target_id", "rating", "comment", "author", "created_at", "updated_at"}, case["id"]
                 assert type(body["rating"]) is int and 1 <= body["rating"] <= 5, case["id"]
-            elif endpoint["response"] == "SavedCourseState":
-                assert set(response["body"]) == {"course_id", "saved"}, case["id"]
-                assert type(response["body"]["saved"]) is bool, case["id"]
+            elif endpoint["response"] == "SavedItemState":
+                body = response["body"]
+                assert set(body) == {"item_type", "item_id", "saved"}, case["id"]
+                assert body["item_type"] in targets, case["id"]
+                assert type(body["item_id"]) is int and 1 <= body["item_id"] <= 2_147_483_647, case["id"]
+                assert type(body["saved"]) is bool, case["id"]
+                assert step["path"] == endpoint["path"].format(**body), case["id"]
+                if step["method"] != "GET":
+                    assert body["saved"] == (step["method"] == "PUT"), case["id"]
+            elif endpoint["response"] == "SavedItemListResponse":
+                body = response["body"]
+                assert set(body) == {"items"}, case["id"]
+                items = body["items"]
+                identities = {(item["item_type"], item["item_id"]) for item in items}
+                assert len(identities) == len(items), case["id"]
+                expected_order = sorted(
+                    items,
+                    key=lambda item: (item["course"]["course_code"], item["item_type"], -item["item_id"]),
+                )
+                assert items == expected_order, case["id"]
+                for item in items:
+                    assert set(item) == {"item_type", "item_id", "course", "title", "open_path"}, case["id"]
+                    kind, item_id = item["item_type"], item["item_id"]
+                    target = targets[kind][item_id]
+                    collection = {"guide": "guides", "summary": "summaries"}[kind]
+                    assert item["open_path"] == f"/api/{collection}/{item_id}", case["id"]
+                    assert item["title"] == target["title"], case["id"]
+                    course_id = target["course_id"] if kind == "guide" else target["course"]["id"]
+                    assert item["course"]["id"] == course_id, case["id"]
     assert covered == expected_tcs, ("TC coverage mismatch", expected_tcs - covered, covered - expected_tcs)
     assert used_endpoints == set(endpoints), ("Unused endpoint examples", set(endpoints) - used_endpoints)
-    open_course = next(case for case in cases if case["id"] == "u10-open-course")
-    user = examples["data"]["users"][open_course["ui_actor"]]["id"]
-    selected = [examples["data"]["saved_courses"][name]
-                for name in open_course["setup"]["saved_courses"]]
-    assert {row["course_id"] for row in selected if row["user_id"] == user} == {1, 2}, "U10-TC02 needs both courses saved by the same user"
+    open_item = next(case for case in cases if case["id"] == "u10-open-item")
+    items = open_item["steps"][0]["response"]["body"]["items"]
+    assert len({item["course"]["id"] for item in items}) == 1, "U10-TC02 needs a single course group"
+    assert any(
+        guide["item_id"] == summary["item_id"]
+        for guide in items if guide["item_type"] == "guide"
+        for summary in items if summary["item_type"] == "summary"
+    ), "U10-TC02 needs two target types with the same ID"
     for endpoint in endpoints.values():
         assert endpoint["path"] in contract, endpoint["path"]
     with tempfile.TemporaryDirectory(prefix="task94-pdf-check-") as tmp:

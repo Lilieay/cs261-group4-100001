@@ -2,11 +2,11 @@
 
 ออกแบบ API กลางสำหรับ U6 ถึง U10
 
-รุ่น 0.3   |   วันที่ 14 พฤศจิกายน 2569   |   Sprint 2
+รุ่น 0.4   |   วันที่ 14 พฤศจิกายน 2569   |   Sprint 2
 
 เอกสารนี้กำหนด API สำหรับเผยแพร่และจัดการสรุป PDF รีวิวผลงาน และบันทึกผลงานไว้เปิดทีหลัง เพื่อให้ Frontend และ Backend ใช้เส้นทาง ข้อมูล และข้อผิดพลาดตรงกัน
 
-รุ่นนี้ปรับเพดาน PDF ของ U6 และรูปแบบแก้ไขสรุปของ U7 ตามข้อสรุปล่าสุด ส่วน U9/U10 ตกลงให้บันทึกแนวข้อสอบหรือสรุป PDF ทีละชิ้น แต่ route และ DTO ยังรอทีมยืนยัน ตัวอย่าง saved-courses ในเอกสารอยู่เพื่ออ้างอิงร่างเดิม ดูประเด็นที่รอใน docs/task94-review.md
+รุ่นนี้รวมเพดาน PDF ของ U6, multipart สำหรับแก้สรุป U7 และ API สำหรับบันทึกแนวข้อสอบหรือสรุป PDF ทีละชิ้นของ U9/U10 ดูผลตรวจและประเด็น review ใน docs/task94-review.md
 
 ## ขอบเขต API
 
@@ -15,7 +15,7 @@
 | U6 | เผยแพร่ รายการ หน้าอ่าน และไฟล์ PDF | /api/summaries<br>/api/courses/{course_id}/summaries |
 | U7 | รายการของฉัน แก้ไข และลบสรุป | /api/my-summaries<br>/api/summaries/{summary_id} |
 | U8 | ดู เพิ่ม แก้ไข และลบรีวิว | /api/guides/{guide_id}/reviews<br>/api/summaries/{summary_id}/reviews<br>/api/reviews/{review_id} |
-| U9 U10 | บันทึก จัดกลุ่ม เปิด และนำผลงานรายชิ้นออก | route และ DTO รอยืนยัน ดูร่างเดิมในส่วน 7 |
+| U9 U10 | บันทึก จัดกลุ่ม เปิด และนำผลงานรายชิ้นออก | /api/saved-items<br>/api/saved-items/{item_type}/{item_id} |
 
 ## กติกาที่กำหนดในฉบับนี้
 
@@ -24,7 +24,7 @@
 | PDF | หนึ่งไฟล์ต่อสรุป สูงสุด 15 MB หรือ 15,000,000 ไบต์ ตรวจชนิดและการเปิดอ่านจริง ขนาดพอสำหรับสรุปและควบคุมภาระ upload |
 | ข้อมูลสรุป | ตอนเผยแพร่ต้องส่งวิชา ชื่อ และ PDF ส่วนตอนแก้ไขส่ง PDF ใหม่เฉพาะเมื่อต้องการแทนไฟล์เดิม ข้อมูลเสริมใช้ description |
 | รีวิว | หนึ่งคนหนึ่งรีวิวต่อผลงาน ห้ามรีวิวผลงานตัวเอง ใช้กติกา U8 TC07 และ TC08 ที่เสนอไว้ |
-| รายการที่บันทึก | บันทึกแนวข้อสอบหรือสรุป PDF ทีละชิ้น แล้วจัดกลุ่มตามรายวิชา รูปแบบ API รอยืนยัน |
+| รายการที่บันทึก | บันทึกแนวข้อสอบหรือสรุป PDF ทีละชิ้น แล้วจัดกลุ่มตามรายวิชา |
 | ขอบเขตฉบับนี้ | มี contract และชุดข้อมูลตัวอย่างร่วมใน docs/task94-fixtures ยังรอ review จาก Frontend Backend และ PO |
 
 ## 1 กติกากลางของ API
@@ -47,7 +47,7 @@
 | ข้อความ | ตัด whitespace หัวท้ายก่อนตรวจความยาว นับ Unicode code points เก็บและแสดงเป็น plain text ไม่ตีความ HTML |
 | วันที่ | created_at และ updated_at เป็น RFC 3339 แบบ UTC เช่น 2026-10-27T03:00:00Z Backend เป็นผู้กำหนด |
 | รายการ | ยังไม่แบ่งหน้าและไม่รับ filter หรือ query parameter ส่งทั้งหมดตามลำดับที่ระบุ items เป็น [] เมื่อไม่มีข้อมูลเท่านั้น |
-| GET และ DELETE | ไม่ส่ง request body การบันทึกวิชาด้วย PUT ก็ไม่ส่ง body พารามิเตอร์ query ที่ไม่ได้ระบุถูกปฏิเสธด้วย 422 |
+| GET และ DELETE | ไม่ส่ง request body การบันทึกผลงานด้วย PUT ก็ไม่ส่ง body พารามิเตอร์ query ที่ไม่ได้ระบุถูกปฏิเสธด้วย 422 |
 | Cache | ทุก response ของ API ใหม่ รวมไฟล์และข้อผิดพลาด ใช้ Cache-Control: no-store |
 
 ### รูปแบบข้อผิดพลาด
@@ -279,49 +279,46 @@ Content-Type: application/json
 
 เพิ่ม แก้ไข หรือลบที่ล้มเหลวก่อนสำเร็จตอบ 503 STORAGE_UNAVAILABLE ต้องไม่แจ้งสำเร็จหรือเปลี่ยนรีวิวอื่น DELETE ซ้ำได้ 404 REVIEW_NOT_FOUND เมื่อ connection หลุดให้โหลดรายการใหม่เพื่อตรวจผล ก่อนเสนอให้ส่ง POST ใหม่
 
-## 7 U9 และ U10 รายวิชาที่บันทึก ฉบับอ้างอิงเดิม
+## 7 U9 และ U10 ผลงานที่บันทึก
 
-ทีมเลือกบันทึกแนวข้อสอบและสรุป PDF รายชิ้นแล้ว ส่วนนี้เก็บไว้ให้เทียบกับรุ่น 0.2 จนกว่า Frontend และ Backend ตกลง route และ DTO ใหม่ตาม Task99 และ Task104
-
-รายการนี้เก็บรายวิชาที่สนใจของบัญชีปัจจุบัน แยกจาก /api/saved-guides เดิมโดยสิ้นเชิง บันทึกวิชา CS ที่มีอยู่ได้แม้ยังไม่มีแนวข้อสอบหรือสรุป ห้ามสร้างวิชาใหม่จากคำขอบันทึก
+ผู้ใช้บันทึกแนวข้อสอบหรือสรุป PDF ทีละชิ้น Backend แยกรายการด้วยคู่ item_type และ item_id เช่น guide 101 กับ summary 101 เป็นคนละรายการ course ใช้จัดกลุ่มใน UI
 
 | Method และ path | ผลสำเร็จ | พฤติกรรม |
 | --- | --- | --- |
-| PUT /api/saved-courses/{course_id} | 200 SavedCourseState | เพิ่มวิชาให้บัญชีปัจจุบัน บันทึกซ้ำได้ saved: true และไม่เพิ่มรายการซ้ำ |
-| GET /api/saved-courses/{course_id} | 200 SavedCourseState | อ่านสถานะของวิชานี้ในบัญชีปัจจุบัน |
-| GET /api/saved-courses | 200 SavedCourseListResponse | รายการเฉพาะบัญชีปัจจุบัน เรียง course_code A ถึง Z แล้ว id จากน้อยไปมาก |
-| DELETE /api/saved-courses/{course_id} | 200 SavedCourseState | นำออกจากบัญชีปัจจุบัน นำออกซ้ำได้ saved: false โดยไม่เปลี่ยนข้อมูลอื่น |
+| GET /api/saved-items | 200 SavedItemListResponse | คืนเฉพาะรายการของผู้ใช้ที่ล็อกอิน |
+| PUT /api/saved-items/{item_type}/{item_id} | 200 SavedItemState | บันทึกผลงานและตอบ saved: true เรียกซ้ำได้โดยไม่เพิ่มรายการ |
+| GET /api/saved-items/{item_type}/{item_id} | 200 SavedItemState | เช็กสถานะของผลงานสำหรับบัญชีปัจจุบัน |
+| DELETE /api/saved-items/{item_type}/{item_id} | 200 SavedItemState | นำ bookmark ออกและตอบ saved: false เรียกซ้ำได้ |
 
-ทุกเส้นต้อง Login และไม่รับ body หรือ query ระบุ user_id ใน body หรือ query ไม่ได้ กรณีส่งข้อมูลต้องห้ามตอบ 422 INVALID_PARAMETERS และไม่ดำเนินการให้บัญชีอื่น
+ทุกเส้นทางต้องใช้ Bearer token และไม่รับ body หรือ query ใช้ item_type เป็น guide หรือ summary และ item_id เป็นเลขฐานสิบจำนวนเต็มบวกถึง 2,147,483,647 ถ้า type, ID หรือพารามิเตอร์ผิดตอบ 422 INVALID_PARAMETERS บัญชีมาจาก session เสมอ
 
-### DTO และรายการว่าง
+### DTO และการเปิดผลงาน
 
 | DTO | รูปแบบ |
 | --- | --- |
-| SavedCourseState | {course_id: integer, saved: boolean} |
-| SavedCourseListResponse | {items: CourseRefDTO[]} |
-| CourseRefDTO | {id: integer, course_code: string, course_name: string} |
+| SavedItemState | {item_type: guide หรือ summary, item_id: integer, saved: boolean} |
+| SavedItemListResponse | {items: SavedItemDTO[]} |
+| SavedItemDTO | {item_type, item_id, course: CourseRefDTO, title: string, open_path: string} |
 
 ```json
 {
-  "course_id": 1,
+  "item_type": "guide",
+  "item_id": 42,
   "saved": true
 }
 ```
 
-เมื่อยังไม่บันทึก GET สถานะตอบ {"course_id": 1, "saved": false} รายการว่างตอบ {"items": []} เมื่อนำออกสำเร็จหรือไม่เคยบันทึก DELETE ตอบ {"course_id": 1, "saved": false} ใช้ course_id ตรงกับ CourseRefDTO.id
+รายการเรียงตาม course.course_code จาก A ถึง Z แล้ว item_type จาก A ถึง Z และ item_id จากมากไปน้อย ถ้าไม่มีรายการให้ตอบ {"items": []} UI จัดกลุ่มด้วย course.id และใช้ปุ่มค้นหารายวิชาในหน้าว่าง
 
-### วิชาที่ไม่มีอยู่และความผิดพลาด
+Backend สร้าง open_path จากชนิดและ ID ของผลงาน สำหรับ guide ใช้ /api/guides/{item_id} สำหรับ summary ใช้ /api/summaries/{item_id} แล้วเปิด PDF จาก file.read_path ด้วย Bearer token ตาม U6 ผู้ใช้เปิดหน้าวิชาจากหัวข้อกลุ่มได้ผ่าน /api/courses/{course_id} เดิม ส่วนการกดผลงานต้องเปิดตรงชิ้นที่เลือก
 
-GET สถานะ PUT และ DELETE ตรวจ course_id ว่ามีอยู่และเป็นวิชา CS หากไม่ผ่านตอบ 404 COURSE_NOT_FOUND ถ้าวิชาถูกนำออกจากระบบภายหลัง รายการ GET ไม่แสดง reference ที่เปิดต่อไม่ได้ ส่วนวิธีดูแล record ที่อ้างอิงเป็นรายละเอียด implementation
+### ผลงานหายและการบันทึกไม่สำเร็จ
 
-คำขอ PUT พร้อมกันต้องได้รายการบันทึกเดียว ทั้งสองคำขอสามารถตอบ 200 saved: true ได้ DELETE ไม่ลบตัวรายวิชา เนื้อหาภายใน หรือรายการของบัญชีอื่น
+GET สถานะและ PUT ตอบ 404 GUIDE_NOT_FOUND หรือ SUMMARY_NOT_FOUND ตามชนิดเมื่อผลงานหาย ถ้าผลงานอยู่แต่ยังไม่บันทึก GET สถานะตอบ 200 saved: false รายการ GET ข้าม bookmark ที่อ้างผลงานที่ลบแล้ว หากกดเปิดรายการเก่าแล้วได้ 404 ให้โหลดรายการใหม่
 
-โหลด บันทึก หรือนำออกล้มเหลวก่อนสำเร็จตอบ 503 STORAGE_UNAVAILABLE ไม่ตอบ items: [] หรือ saved: false เพื่อกลบข้อผิดพลาด การบันทึกที่ล้มเหลวต้องไม่เพิ่มรายการ การนำออกที่ล้มเหลวต้องคงรายการเดิม
+PUT พร้อมกันสำหรับบัญชีและผลงานเดียวกันต้องเหลือ bookmark เดียว ทั้งสองคำขอตอบ 200 saved: true ได้ DELETE ลบเฉพาะ bookmark ของบัญชีปัจจุบัน ถ้าไม่มี bookmark หรือผลงานถูกลบไปแล้วก็ตอบ 200 saved: false รายวิชา แนวข้อสอบ สรุป PDF และ bookmark ของบัญชีอื่นยังอยู่ตามเดิม
 
-### เปิดหน้ารายวิชา
-
-UI ใช้ id ในรายการไปเปิดหน้ารายวิชาเดิมและเรียก GET /api/courses/{course_id} ผ่าน proxy เดิม ซึ่งส่งต่อ Backend GET /courses/{course_id} รายวิชาที่ไม่มีเนื้อหายังคงเปิดรายละเอียดได้ ไม่ต้องสร้าง API สำหรับการคลิกเปิดเพิ่ม
+ถ้าอ่านหรือบันทึกไม่ได้ให้ตอบ 503 SAVED_ITEMS_UNAVAILABLE ถ้ายืนยันว่าล้มเหลวก่อน commit สถานะเดิมต้องคงอยู่ ถ้าไม่ทราบผลหลังส่งคำขอให้โหลดสถานะใหม่ก่อนแจ้งว่าทำสำเร็จหรือลองอีกครั้ง
 
 ## 8 ตัวอย่างข้อมูลสรุปและการรับไฟล์
 
@@ -389,7 +386,7 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 | 403 | SELF_REVIEW_FORBIDDEN | เพิ่มรีวิวผลงานของตนเอง |
 | 404 | COURSE_NOT_FOUND | ไม่มีรายวิชาหรือรายวิชาไม่อยู่ในขอบเขต CS |
 | 404 | SUMMARY_NOT_FOUND | ไม่พบสรุปหรือสรุปถูกลบแล้ว |
-| 404 | GUIDE_NOT_FOUND | ไม่พบแนวข้อสอบสำหรับอ่านหรือเพิ่มรีวิว |
+| 404 | GUIDE_NOT_FOUND | ไม่พบแนวข้อสอบ เช่น เมื่อจะอ่าน เพิ่มรีวิว หรือบันทึก |
 | 404 | REVIEW_NOT_FOUND | ไม่พบรีวิวหรือผลงานเป้าหมายถูกลบแล้ว |
 | 404 | ROUTE_NOT_FOUND | ไม่มีเส้นทาง API ที่เรียก |
 | 405 | METHOD_NOT_ALLOWED | method ไม่รองรับบน route นี้ พร้อม Allow header |
@@ -403,6 +400,7 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 | 500 | INTERNAL_ERROR | ข้อผิดพลาดที่ไม่คาดคิด |
 | 502 | UPSTREAM_UNAVAILABLE | Frontend proxy ติดต่อ Backend ไม่ได้ connection หลุด หรือ timeout |
 | 503 | STORAGE_UNAVAILABLE | อ่านหรือเขียนฐานข้อมูลหรือที่เก็บไฟล์ไม่ได้ |
+| 503 | SAVED_ITEMS_UNAVAILABLE | อ่านหรือเปลี่ยนสถานะ bookmark ไม่ได้ |
 
 32 KiB = 32,768 bytes และ 16 MB = 16,000,000 ไบต์ ขีดจำกัดคำขอรวมรองรับ multipart overhead ของ PDF 15 MB แต่ไม่เพิ่มขีดจำกัดเนื้อไฟล์ เมื่อเกินเพดานคำขอรวมตอบ REQUEST_TOO_LARGE ได้ก่อนตรวจไฟล์
 
@@ -410,7 +408,7 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 
 ## 10 การเชื่อม API กับ Test case
 
-ตารางนี้จับคู่ API กับ TC กรณี UI ยังต้องตรวจในงาน UI และ Integration ส่วนแถว U9/U10 ที่อ้าง saved-courses ใช้เทียบร่างเดิมระหว่างรอรูปแบบ API ใหม่
+ตารางนี้จับคู่ API กับ TC กรณี UI ยังต้องตรวจในงาน UI และ Integration
 
 | TC | API หรือกติกาที่รองรับ |
 | --- | --- |
@@ -429,16 +427,18 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 | U8 TC04 TC05 | PUT คง id เดิม DELETE ลบเฉพาะรีวิวของตน |
 | U8 TC06 TC07 | 401 และ ownership check ห้ามสวม author และห้ามรีวิวงานตัวเอง |
 | U8 TC08 TC09 | 409 เมื่อซ้ำ 404 เมื่อหาย 503 เมื่อล้มเหลว ทดสอบทั้ง guide และ summary |
-| U9 TC01 TC02 TC03 | PUT saved-courses ใช้ course_id บันทึกวิชาไม่มีเนื้อหาได้และไม่ซ้ำ |
-| U9 TC04 TC05 | Login และวิชา CS เท่านั้น ไม่รับบัญชีอื่น ไม่เพิ่มรายการเมื่อบันทึกล้มเหลว |
-| U10 TC01 TC02 TC03 | GET เฉพาะบัญชี พร้อมรหัสและชื่อวิชา เปิดด้วย API รายวิชาเดิม รองรับรายการว่าง |
-| U10 TC04 TC05 | DELETE แบบ idempotent ไม่ลบวิชา เนื้อหา หรือรายการของผู้อื่น |
+| U9 TC01 TC02 TC03 | PUT บันทึก guide และ summary รายชิ้น แยกชนิดแม้ ID เท่ากัน และบันทึกซ้ำได้ |
+| U9 TC04 TC05 | ตรวจ Login, ชนิดและ ID ของผลงาน ไม่ให้ระบุบัญชีอื่น และคงสถานะเดิมเมื่อบันทึกล้มเหลว |
+| U10 TC01 | บันทึกซ้ำแล้วมี bookmark เดียว เช็ก saved จาก GET สถานะ |
+| U10 TC02 TC03 | รายการแยกตามบัญชี เปิดตรงชิ้นจากกลุ่มวิชา และมีทางไปค้นหาเมื่อรายการว่าง |
+| U10 TC04 | แยก list/state ตามบัญชีและนำ bookmark ของคนอื่นออกไม่ได้ |
+| U10 TC05 | ผลงานหายตอบ 404 ส่วน type หรือ ID ผิดตอบ 422 |
 | U10 TC06 | ข้อผิดพลาดแยกจากรายการว่างและผลนำออกสำเร็จ |
-| U10 TC07 | นำ bookmark ออกซ้ำแล้วผลงานกับ bookmark ของคนอื่นยังอยู่ รอ route และ DTO ใหม่ก่อนเพิ่ม fixture |
+| U10 TC07 | นำ bookmark ออกซ้ำได้ saved: false ผลงาน PDF รายวิชา และ bookmark ของคนอื่นยังอยู่ |
 
 ### กรณีร่วมที่ต้องตรวจตอน implement
 
-ทดสอบบัญชี A และ B ด้วย id ที่มีอยู่จริง รวมกรณีปลอม owner หรือ author ขอ PDF โดยตรงด้วย token หมดอายุ เพิ่มรีวิวซ้ำพร้อมกัน และบันทึกวิชาซ้ำพร้อมกัน ต้องไม่อาศัยการซ่อนปุ่มใน UI เป็นการบังคับสิทธิ์
+ทดสอบบัญชี A และ B ด้วย id ที่มีอยู่จริง รวมกรณีปลอม owner หรือ author ขอ PDF โดยตรงด้วย token หมดอายุ เพิ่มรีวิวซ้ำพร้อมกัน และบันทึกผลงานซ้ำพร้อมกัน ต้องไม่อาศัยการซ่อนปุ่มใน UI เป็นการบังคับสิทธิ์
 
 ทดสอบการลบผลงานแล้วอ่านไฟล์หรือรีวิวซ้ำ การคืน error จาก proxy และการแยก JSON error ออกจาก PDF binary ชุดข้อมูลตัวอย่างครอบคลุม TC ใน docs/task94-fixtures แต่การรันทดสอบกับ API จริงเป็นงาน implementation ภายหลัง
 
@@ -448,7 +448,7 @@ GET read_path พร้อม Bearer token เมื่อสำเร็จร�
 
 ใช้ Login และ Bearer session เดิมจาก backend/app/dependencies.py และ backend/app/routers/auth.py ใช้ Course.id และขอบเขต course_code ขึ้นต้น CS ตาม CourseDAO เดิม ใช้ Guide.id เป็นเป้าหมายรีวิวชนิด guide โดยไม่แก้ DTO ของแนวข้อสอบเดิม
 
-API สรุปและรีวิวเป็นเส้นทางตามแบบที่ต้องตรวจในงาน implementation ส่วน /api/saved-guides เดิมรองรับแนวข้อสอบ API สำหรับบันทึกผลงานทั้งสองชนิดยังรอทีมตกลง
+API สรุป รีวิว และ saved-items ต้องตรวจในงาน implementation ส่วน /api/saved-guides เดิมยังรองรับแนวข้อสอบตามเดิม ใช้ bookmark แนวข้อสอบเดิมของบัญชีนี้ในรายการรวมได้โดยไม่สร้างรายการซ้ำ
 
 ### สิ่งที่ต้องเพิ่มในงาน implementation
 
@@ -484,11 +484,11 @@ docs/U5/design/task65-my-guides-api-spec.md
 
 ## 12 ชุดข้อมูลตัวอย่างร่วม
 
-ชุดข้อมูล docs/task94-fixtures/examples.json มีตัวอย่าง 81 กรณี ครอบคลุม API ใหม่ 17 endpoint และ TC ของ U6 ถึง U10 37 ข้อ โดย fixture U9/U10 ยังอิงร่างเดิม ใช้สำหรับสร้าง mock หรือเตรียม API tests โดยไม่เพิ่ม endpoint จำลองความล้มเหลวในระบบจริง
+ชุดข้อมูล docs/task94-fixtures/examples.json มีตัวอย่าง 83 กรณี ครอบคลุม API ใหม่ 17 endpoint และ TC ของ U6 ถึง U10 38 ข้อ ใช้สำหรับสร้าง mock หรือเตรียม API tests โดยไม่เพิ่ม endpoint จำลองความล้มเหลวในระบบจริง
 
 ### ข้อมูลตั้งต้นและการแยกแต่ละกรณี
 
-data กำหนดบัญชี owner reader และ other วิชา CS261 CS104 และวิชานอก CS รวมแนวข้อสอบ สรุป รีวิว และรายวิชาที่บันทึก แต่ละ case ใช้เฉพาะ record ที่ระบุใน setup และเริ่มใหม่ก่อนรัน เพื่อไม่ให้การลบหรือแก้ไขในกรณีก่อนหน้ากระทบกรณีถัดไป
+data กำหนดบัญชี owner reader และ other วิชา CS261 CS104 และวิชานอก CS รวมแนวข้อสอบ สรุป รีวิว และผลงานที่บันทึก แต่ละ case ใช้เฉพาะ record ที่ระบุใน setup และเริ่มใหม่ก่อนรัน เพื่อไม่ให้การลบหรือแก้ไขในกรณีก่อนหน้ากระทบกรณีถัดไป
 
 steps ระบุ method path actor request และ response ที่คาดหวังตามลำดับ ส่วน parallel_steps ระบุคำขอพร้อมกัน เช่นรีวิวซ้ำและบันทึกวิชาซ้ำ โดยลำดับ response ของคำขอพร้อมกันไม่ตายตัว ไม่เก็บรหัสผ่านหรือ token จริง ให้ test harness สร้าง session ของบัญชีที่ระบุเอง
 
@@ -506,7 +506,7 @@ steps ระบุ method path actor request และ response ที่คา�
 
 ## 13 หมายเหตุการส่งตรวจ Task94
 
-สถานะเอกสารรุ่น 0.3 พร้อมให้ทีมตรวจ ส่วนที่ทำเสร็จคือ API contract ข้อตกลง PDF ตัวอย่างข้อมูลร่วม และ TC mapping ยังไม่บันทึกว่ามีผู้ตรวจอนุมัติหรือผ่าน DoD ทั้ง Task แล้ว
+สถานะเอกสารรุ่น 0.4 พร้อมให้ทีมตรวจ ส่วนที่ทำเสร็จคือ API contract ข้อตกลง PDF ตัวอย่างข้อมูลร่วม และ TC mapping ยังไม่บันทึกว่ามีผู้ตรวจอนุมัติหรือผ่าน DoD ทั้ง Task แล้ว
 
 ### รายการที่รอคนตรวจ
 

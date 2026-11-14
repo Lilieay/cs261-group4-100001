@@ -1,5 +1,5 @@
 {
-  "version": "0.3",
+  "version": "0.4",
   "status": "design_examples_not_live_test_results",
   "reset_before_each_case": true,
   "auth_note": "Resolve owner/reader/other to real test sessions after seeding. anonymous omits Authorization. expired uses an invalid session. No passwords or real tokens are stored.",
@@ -43,6 +43,12 @@
         "course_id": 1,
         "owner_id": 22,
         "title": "แนวข้อสอบ CS261"
+      },
+      "guide_same_id_as_summary": {
+        "id": 101,
+        "course_id": 1,
+        "owner_id": 22,
+        "title": "แนวข้อสอบ CS261 กลางภาค"
       }
     },
     "summaries": {
@@ -119,18 +125,26 @@
         "updated_at": "2026-10-31T03:00:00Z"
       }
     },
-    "saved_courses": {
-      "owner_cs261": {
+    "saved_items": {
+      "owner_guide": {
         "user_id": 11,
-        "course_id": 1
+        "item_type": "guide",
+        "item_id": 42
       },
-      "owner_cs104": {
+      "owner_guide_101": {
         "user_id": 11,
-        "course_id": 2
+        "item_type": "guide",
+        "item_id": 101
       },
-      "reader_cs104": {
+      "owner_summary": {
+        "user_id": 11,
+        "item_type": "summary",
+        "item_id": 101
+      },
+      "reader_guide": {
         "user_id": 22,
-        "course_id": 2
+        "item_type": "guide",
+        "item_id": 42
       }
     }
   },
@@ -363,67 +377,54 @@
         503
       ]
     },
-    "course_save": {
+    "saved_item_save": {
       "method": "PUT",
-      "path": "/api/saved-courses/{course_id}",
-      "response": "SavedCourseState",
+      "path": "/api/saved-items/{item_type}/{item_id}",
+      "response": "SavedItemState",
       "statuses": [
         200,
-        400,
         401,
         404,
-        413,
-        415,
         422,
         500,
         502,
         503
       ]
     },
-    "course_state": {
+    "saved_item_state": {
       "method": "GET",
-      "path": "/api/saved-courses/{course_id}",
-      "response": "SavedCourseState",
+      "path": "/api/saved-items/{item_type}/{item_id}",
+      "response": "SavedItemState",
       "statuses": [
         200,
-        400,
         401,
         404,
-        413,
-        415,
         422,
         500,
         502,
         503
       ]
     },
-    "course_saved_list": {
+    "saved_item_list": {
       "method": "GET",
-      "path": "/api/saved-courses",
-      "response": "SavedCourseListResponse",
+      "path": "/api/saved-items",
+      "response": "SavedItemListResponse",
       "statuses": [
         200,
-        400,
         401,
-        413,
-        415,
         422,
         500,
         502,
         503
       ]
     },
-    "course_remove": {
+    "saved_item_remove": {
       "method": "DELETE",
-      "path": "/api/saved-courses/{course_id}",
-      "response": "SavedCourseState",
+      "path": "/api/saved-items/{item_type}/{item_id}",
+      "response": "SavedItemState",
       "statuses": [
         200,
-        400,
         401,
-        404,
-        413,
-        415,
         422,
         500,
         502,
@@ -457,7 +458,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -666,7 +667,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -729,7 +730,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -792,7 +793,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -856,7 +857,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -917,7 +918,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -981,7 +982,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1045,7 +1046,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1109,7 +1110,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1173,7 +1174,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1247,7 +1248,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1311,7 +1312,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1369,7 +1370,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1427,7 +1428,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1491,7 +1492,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1583,7 +1584,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1675,7 +1676,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1738,7 +1739,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1801,7 +1802,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1847,7 +1848,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1950,7 +1951,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -1996,7 +1997,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2104,7 +2105,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2230,7 +2231,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2292,7 +2293,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2354,7 +2355,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2436,7 +2437,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [],
       "ui_expectation": "Cancel the confirmation without sending DELETE. Original summary and PDF remain available."
@@ -2465,7 +2466,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2542,7 +2543,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2621,7 +2622,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2698,7 +2699,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2759,7 +2760,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2874,7 +2875,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -2928,7 +2929,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3022,7 +3023,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3083,7 +3084,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3144,7 +3145,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3202,7 +3203,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3262,7 +3263,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3322,7 +3323,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3382,7 +3383,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3444,7 +3445,7 @@
         "reviews": [
           "review_summary"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3509,7 +3510,7 @@
         "reviews": [
           "review_summary"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3553,7 +3554,7 @@
         "reviews": [
           "review_summary"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3687,7 +3688,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3744,7 +3745,7 @@
         "reviews": [
           "review_summary"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3799,7 +3800,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3900,7 +3901,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -3962,7 +3963,7 @@
         "reviews": [
           "review_summary"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4024,7 +4025,7 @@
         "reviews": [
           "review_summary"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4078,7 +4079,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4172,7 +4173,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4233,7 +4234,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4294,7 +4295,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4352,7 +4353,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4412,7 +4413,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4472,7 +4473,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4532,7 +4533,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4594,7 +4595,7 @@
         "reviews": [
           "review_guide"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4659,7 +4660,7 @@
         "reviews": [
           "review_guide"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4703,7 +4704,7 @@
         "reviews": [
           "review_guide"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4837,7 +4838,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4894,7 +4895,7 @@
         "reviews": [
           "review_guide"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -4949,7 +4950,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -5050,7 +5051,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -5112,7 +5113,7 @@
         "reviews": [
           "review_guide"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -5174,7 +5175,7 @@
         "reviews": [
           "review_guide"
         ],
-        "saved_courses": []
+        "saved_items": []
       },
       "steps": [
         {
@@ -5205,781 +5206,6 @@
       "invariant": "No review changes are committed."
     },
     {
-      "id": "u9-save",
-      "test_cases": [
-        "U9-TC01"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": []
-      },
-      "steps": [
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "course_id": 1,
-              "saved": true
-            }
-          }
-        },
-        {
-          "endpoint": "course_saved_list",
-          "method": "GET",
-          "path": "/api/saved-courses",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "items": [
-                {
-                  "id": 1,
-                  "course_code": "CS261",
-                  "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
-                }
-              ]
-            }
-          }
-        }
-      ],
-      "invariant": "Saved course persists across reload and a new session for the same account."
-    },
-    {
-      "id": "u9-save-empty-course",
-      "test_cases": [
-        "U9-TC02"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": []
-      },
-      "steps": [
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/2",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "course_id": 2,
-              "saved": true
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "u9-save-again",
-      "test_cases": [
-        "U9-TC03"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": []
-      },
-      "steps": [
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "course_id": 1,
-              "saved": true
-            }
-          }
-        },
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "course_id": 1,
-              "saved": true
-            }
-          }
-        }
-      ],
-      "invariant": "Exactly one saved relation exists for user 11 and course 1."
-    },
-    {
-      "id": "u9-save-permissions",
-      "test_cases": [
-        "U9-TC04"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": []
-      },
-      "steps": [
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/1",
-          "actor": "anonymous",
-          "response": {
-            "status": 401,
-            "headers": {
-              "Cache-Control": "no-store",
-              "WWW-Authenticate": "Bearer"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "AUTH_REQUIRED",
-                "message": "กรุณาเข้าสู่ระบบ",
-                "fields": []
-              }
-            }
-          }
-        },
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/1",
-          "actor": "expired",
-          "response": {
-            "status": 401,
-            "headers": {
-              "Cache-Control": "no-store",
-              "WWW-Authenticate": "Bearer"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "AUTH_REQUIRED",
-                "message": "กรุณาเข้าสู่ระบบ",
-                "fields": []
-              }
-            }
-          }
-        },
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/999999",
-          "actor": "owner",
-          "response": {
-            "status": 404,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "COURSE_NOT_FOUND",
-                "message": "ไม่พบรายการ",
-                "fields": []
-              }
-            }
-          }
-        },
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/1?user_id=22",
-          "actor": "owner",
-          "response": {
-            "status": 422,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "INVALID_PARAMETERS",
-                "message": "ข้อมูลไม่ถูกต้อง",
-                "fields": [
-                  {
-                    "field": "user_id",
-                    "message": "กรุณาตรวจข้อมูลช่องนี้"
-                  }
-                ]
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "u9-save-fails",
-      "test_cases": [
-        "U9-TC05"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": []
-      },
-      "steps": [
-        {
-          "endpoint": "course_save",
-          "method": "PUT",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 503,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "STORAGE_UNAVAILABLE",
-                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
-                "fields": []
-              }
-            }
-          }
-        }
-      ],
-      "fault": {
-        "layer": "database",
-        "phase": "before_commit"
-      },
-      "invariant": "No saved relation is created."
-    },
-    {
-      "id": "u10-own-list",
-      "test_cases": [
-        "U10-TC01"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": [
-          "owner_cs261",
-          "reader_cs104"
-        ]
-      },
-      "steps": [
-        {
-          "endpoint": "course_saved_list",
-          "method": "GET",
-          "path": "/api/saved-courses",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "items": [
-                {
-                  "id": 1,
-                  "course_code": "CS261",
-                  "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "endpoint": "course_saved_list",
-          "method": "GET",
-          "path": "/api/saved-courses",
-          "actor": "reader",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "items": [
-                {
-                  "id": 2,
-                  "course_code": "CS104",
-                  "course_name": "INTRODUCTION TO PROGRAMMING"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "u10-open-course",
-      "test_cases": [
-        "U10-TC02"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": [
-          "owner_cs261",
-          "owner_cs104"
-        ]
-      },
-      "steps": [],
-      "ui_actor": "owner",
-      "ui_expectation": "As owner, select CS261 and CS104 separately from the same saved list using CourseRefDTO.id. Open the existing /api/courses/{course_id} proxy. Empty content does not block opening the course."
-    },
-    {
-      "id": "u10-empty-list",
-      "test_cases": [
-        "U10-TC03"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": []
-      },
-      "steps": [
-        {
-          "endpoint": "course_saved_list",
-          "method": "GET",
-          "path": "/api/saved-courses",
-          "actor": "other",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "items": []
-            }
-          }
-        }
-      ],
-      "ui_expectation": "Show an empty state and a course search link."
-    },
-    {
-      "id": "u10-remove",
-      "test_cases": [
-        "U10-TC04"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": [
-          "owner_cs261",
-          "reader_cs104"
-        ]
-      },
-      "steps": [
-        {
-          "endpoint": "course_remove",
-          "method": "DELETE",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "course_id": 1,
-              "saved": false
-            }
-          }
-        },
-        {
-          "endpoint": "course_state",
-          "method": "GET",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "course_id": 1,
-              "saved": false
-            }
-          }
-        }
-      ],
-      "invariant": "Courses, content and reader saved relations remain unchanged."
-    },
-    {
-      "id": "u10-remove-again",
-      "test_cases": [
-        "U10-TC05"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": []
-      },
-      "steps": [
-        {
-          "endpoint": "course_remove",
-          "method": "DELETE",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 200,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "course_id": 1,
-              "saved": false
-            }
-          }
-        },
-        {
-          "endpoint": "course_remove",
-          "method": "DELETE",
-          "path": "/api/saved-courses/1",
-          "actor": "expired",
-          "response": {
-            "status": 401,
-            "headers": {
-              "Cache-Control": "no-store",
-              "WWW-Authenticate": "Bearer"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "AUTH_REQUIRED",
-                "message": "กรุณาเข้าสู่ระบบ",
-                "fields": []
-              }
-            }
-          }
-        },
-        {
-          "endpoint": "course_remove",
-          "method": "DELETE",
-          "path": "/api/saved-courses/1?user_id=22",
-          "actor": "owner",
-          "response": {
-            "status": 422,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "INVALID_PARAMETERS",
-                "message": "ข้อมูลไม่ถูกต้อง",
-                "fields": [
-                  {
-                    "field": "user_id",
-                    "message": "กรุณาตรวจข้อมูลช่องนี้"
-                  }
-                ]
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "u10-fails-course_saved_list",
-      "test_cases": [
-        "U10-TC06"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": [
-          "owner_cs261"
-        ]
-      },
-      "steps": [
-        {
-          "endpoint": "course_saved_list",
-          "method": "GET",
-          "path": "/api/saved-courses",
-          "actor": "owner",
-          "response": {
-            "status": 503,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "STORAGE_UNAVAILABLE",
-                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
-                "fields": []
-              }
-            }
-          }
-        }
-      ],
-      "fault": {
-        "layer": "database",
-        "phase": "read"
-      },
-      "invariant": "A load failure is not an empty list. A failed remove keeps the saved relation."
-    },
-    {
-      "id": "u10-fails-course_remove",
-      "test_cases": [
-        "U10-TC06"
-      ],
-      "setup": {
-        "users": [
-          "owner",
-          "reader",
-          "other"
-        ],
-        "courses": [
-          "cs261",
-          "cs104",
-          "non_cs"
-        ],
-        "guides": [
-          "guide_cs261"
-        ],
-        "summaries": [
-          "summary_owner",
-          "summary_reader"
-        ],
-        "reviews": [],
-        "saved_courses": [
-          "owner_cs261"
-        ]
-      },
-      "steps": [
-        {
-          "endpoint": "course_remove",
-          "method": "DELETE",
-          "path": "/api/saved-courses/1",
-          "actor": "owner",
-          "response": {
-            "status": 503,
-            "headers": {
-              "Cache-Control": "no-store"
-            },
-            "content_type": "application/json",
-            "body": {
-              "error": {
-                "code": "STORAGE_UNAVAILABLE",
-                "message": "ไม่สามารถอ่านหรือบันทึกข้อมูลได้",
-                "fields": []
-              }
-            }
-          }
-        }
-      ],
-      "fault": {
-        "layer": "database",
-        "phase": "before_commit"
-      },
-      "invariant": "A load failure is not an empty list. A failed remove keeps the saved relation."
-    },
-    {
       "id": "u8-concurrent-create",
       "test_cases": [
         "U8-TC08"
@@ -6003,7 +5229,7 @@
           "summary_reader"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "parallel_steps": [
         {
@@ -6068,6 +5294,335 @@
       "invariant": "Responses are an unordered multiset: one 201 and one 409. Exactly one review exists."
     },
     {
+      "id": "u9-save-guide",
+      "test_cases": [
+        "U9-TC01",
+        "U10-TC01"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": []
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "item_type": "guide",
+                  "item_id": 42,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "แนวข้อสอบ CS261",
+                  "open_path": "/api/guides/42"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "invariant": "A duplicate save keeps only one guide bookmark."
+    },
+    {
+      "id": "u9-save-summary",
+      "test_cases": [
+        "U9-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide_101"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/summary/101",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "summary",
+              "item_id": 101,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/summary/101",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "summary",
+              "item_id": 101,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "item_type": "guide",
+                  "item_id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "แนวข้อสอบ CS261 กลางภาค",
+                  "open_path": "/api/guides/101"
+                },
+                {
+                  "item_type": "summary",
+                  "item_id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "open_path": "/api/summaries/101"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "invariant": "Saving a summary does not replace an existing guide bookmark with the same numeric ID."
+    },
+    {
+      "id": "u9-save-again",
+      "test_cases": [
+        "U9-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": []
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/summary/101",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "summary",
+              "item_id": 101,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/summary/101",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "summary",
+              "item_id": 101,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "item_type": "summary",
+                  "item_id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "open_path": "/api/summaries/101"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "invariant": "A duplicate save keeps only one summary bookmark."
+    },
+    {
       "id": "u9-concurrent-save",
       "test_cases": [
         "U9-TC03"
@@ -6080,24 +5635,23 @@
         ],
         "courses": [
           "cs261",
-          "cs104",
-          "non_cs"
+          "cs104"
         ],
         "guides": [
-          "guide_cs261"
+          "guide_cs261",
+          "guide_same_id_as_summary"
         ],
         "summaries": [
-          "summary_owner",
-          "summary_reader"
+          "summary_owner"
         ],
         "reviews": [],
-        "saved_courses": []
+        "saved_items": []
       },
       "parallel_steps": [
         {
-          "endpoint": "course_save",
+          "endpoint": "saved_item_save",
           "method": "PUT",
-          "path": "/api/saved-courses/1",
+          "path": "/api/saved-items/guide/42",
           "actor": "owner",
           "response": {
             "status": 200,
@@ -6106,15 +5660,16 @@
             },
             "content_type": "application/json",
             "body": {
-              "course_id": 1,
+              "item_type": "guide",
+              "item_id": 42,
               "saved": true
             }
           }
         },
         {
-          "endpoint": "course_save",
+          "endpoint": "saved_item_save",
           "method": "PUT",
-          "path": "/api/saved-courses/1",
+          "path": "/api/saved-items/guide/42",
           "actor": "owner",
           "response": {
             "status": 200,
@@ -6123,14 +5678,1075 @@
             },
             "content_type": "application/json",
             "body": {
-              "course_id": 1,
+              "item_type": "guide",
+              "item_id": 42,
               "saved": true
             }
           }
         }
       ],
-      "invariant": "Both requests return saved true. Exactly one relation exists."
+      "invariant": "After both responses only one bookmark exists for this user and item."
+    },
+    {
+      "id": "u9-save-permissions",
+      "test_cases": [
+        "U9-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": []
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/guide/42",
+          "actor": "anonymous",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/guide/42",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/guide/42?user_id=22",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "user_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "invariant": "No bookmark is created for either account."
+    },
+    {
+      "id": "u9-save-fails",
+      "test_cases": [
+        "U9-TC05",
+        "U10-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": []
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/summary/101",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SAVED_ITEMS_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือเปลี่ยนรายการที่บันทึกได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "No bookmark is created."
+    },
+    {
+      "id": "u10-open-item",
+      "test_cases": [
+        "U10-TC02"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide",
+          "owner_guide_101",
+          "owner_summary"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "item_type": "guide",
+                  "item_id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "แนวข้อสอบ CS261 กลางภาค",
+                  "open_path": "/api/guides/101"
+                },
+                {
+                  "item_type": "guide",
+                  "item_id": 42,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "แนวข้อสอบ CS261",
+                  "open_path": "/api/guides/42"
+                },
+                {
+                  "item_type": "summary",
+                  "item_id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "open_path": "/api/summaries/101"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "ui_expectation": "Show all three items under CS261. The course heading opens CS261; Guide 101 opens its guide detail, and Summary 101 opens that PDF via its detail and file.read_path."
+    },
+    {
+      "id": "u10-empty-list",
+      "test_cases": [
+        "U10-TC03"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "other",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": []
+            }
+          }
+        }
+      ],
+      "ui_expectation": "Show the empty state and a link to course search."
+    },
+    {
+      "id": "u10-bookmark-isolation",
+      "test_cases": [
+        "U10-TC04"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "item_type": "guide",
+                  "item_id": 42,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "แนวข้อสอบ CS261",
+                  "open_path": "/api/guides/42"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": []
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/42",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_remove",
+          "method": "DELETE",
+          "path": "/api/saved-items/guide/42",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": true
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "anonymous",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/42",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_remove",
+          "method": "DELETE",
+          "path": "/api/saved-items/guide/42",
+          "actor": "expired",
+          "response": {
+            "status": 401,
+            "headers": {
+              "Cache-Control": "no-store",
+              "WWW-Authenticate": "Bearer"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "AUTH_REQUIRED",
+                "message": "กรุณาเข้าสู่ระบบ",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "invariant": "The reader cannot see or remove the owner's bookmark."
+    },
+    {
+      "id": "u10-missing-target",
+      "test_cases": [
+        "U10-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": []
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/guide/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "GUIDE_NOT_FOUND",
+                "message": "ไม่พบแนวข้อสอบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "GUIDE_NOT_FOUND",
+                "message": "ไม่พบแนวข้อสอบ",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_save",
+          "method": "PUT",
+          "path": "/api/saved-items/summary/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_NOT_FOUND",
+                "message": "ไม่พบสรุป",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/summary/999999",
+          "actor": "owner",
+          "response": {
+            "status": 404,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SUMMARY_NOT_FOUND",
+                "message": "ไม่พบสรุป",
+                "fields": []
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_remove",
+          "method": "DELETE",
+          "path": "/api/saved-items/summary/999999",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "summary",
+              "item_id": 999999,
+              "saved": false
+            }
+          }
+        }
+      ],
+      "invariant": "Missing targets cannot be saved. Removing a bookmark for a removed target still returns saved: false."
+    },
+    {
+      "id": "u10-invalid-target",
+      "test_cases": [
+        "U10-TC05"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": []
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/course/1",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "item_type",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/0",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "item_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/-1",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "item_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/summary/x",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "item_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/summary/2147483648",
+          "actor": "owner",
+          "response": {
+            "status": 422,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "INVALID_PARAMETERS",
+                "message": "ข้อมูลไม่ถูกต้อง",
+                "fields": [
+                  {
+                    "field": "item_id",
+                    "message": "กรุณาตรวจข้อมูลช่องนี้"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "invariant": "Validation does not change any bookmark."
+    },
+    {
+      "id": "u10-fails-saved-item-list",
+      "test_cases": [
+        "U10-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SAVED_ITEMS_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือเปลี่ยนรายการที่บันทึกได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "read"
+      },
+      "invariant": "The API reports the error and preserves the existing bookmark."
+    },
+    {
+      "id": "u10-fails-saved-item-state",
+      "test_cases": [
+        "U10-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SAVED_ITEMS_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือเปลี่ยนรายการที่บันทึกได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "read"
+      },
+      "invariant": "The API reports the error and preserves the existing bookmark."
+    },
+    {
+      "id": "u10-fails-saved-item-remove",
+      "test_cases": [
+        "U10-TC06"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_remove",
+          "method": "DELETE",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 503,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "error": {
+                "code": "SAVED_ITEMS_UNAVAILABLE",
+                "message": "ไม่สามารถอ่านหรือเปลี่ยนรายการที่บันทึกได้",
+                "fields": []
+              }
+            }
+          }
+        }
+      ],
+      "fault": {
+        "layer": "database",
+        "phase": "before_commit"
+      },
+      "invariant": "The API reports the error and preserves the existing bookmark."
+    },
+    {
+      "id": "u10-remove-again",
+      "test_cases": [
+        "U10-TC07"
+      ],
+      "setup": {
+        "users": [
+          "owner",
+          "reader",
+          "other"
+        ],
+        "courses": [
+          "cs261",
+          "cs104"
+        ],
+        "guides": [
+          "guide_cs261",
+          "guide_same_id_as_summary"
+        ],
+        "summaries": [
+          "summary_owner"
+        ],
+        "reviews": [],
+        "saved_items": [
+          "owner_guide",
+          "owner_summary",
+          "reader_guide"
+        ]
+      },
+      "steps": [
+        {
+          "endpoint": "saved_item_remove",
+          "method": "DELETE",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_remove",
+          "method": "DELETE",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_state",
+          "method": "GET",
+          "path": "/api/saved-items/guide/42",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "item_type": "guide",
+              "item_id": 42,
+              "saved": false
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "owner",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "item_type": "summary",
+                  "item_id": 101,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "สรุป CS261 ก่อนสอบ",
+                  "open_path": "/api/summaries/101"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "endpoint": "saved_item_list",
+          "method": "GET",
+          "path": "/api/saved-items",
+          "actor": "reader",
+          "response": {
+            "status": 200,
+            "headers": {
+              "Cache-Control": "no-store"
+            },
+            "content_type": "application/json",
+            "body": {
+              "items": [
+                {
+                  "item_type": "guide",
+                  "item_id": 42,
+                  "course": {
+                    "id": 1,
+                    "course_code": "CS261",
+                    "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+                  },
+                  "title": "แนวข้อสอบ CS261",
+                  "open_path": "/api/guides/42"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "invariant": "The original Guide 42, Summary 101, its PDF and CS261 remain available. Only the owner's Guide 42 bookmark is removed."
     }
-  ],
-  "saved_courses_note": "Legacy v0.2 examples. Do not use to implement U9/U10 saved items until their routes and DTOs are agreed."
+  ]
 }
