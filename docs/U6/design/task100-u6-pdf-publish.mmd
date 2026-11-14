@@ -28,7 +28,7 @@ sequenceDiagram
             API-->>UI: 404 ErrorResponseDTO
         else วิชาใช้ได้
             Service->>Validator: ตรวจ fields, ขนาด และ parse PDF
-            alt ข้อมูลผิดหรือ PDF ใช้ไม่ได้/เกิน 15 MiB
+            alt ข้อมูลผิดหรือ PDF ใช้ไม่ได้/เกิน 15,000,000 bytes
                 Validator-->>Service: PDF_INVALID, PDF_UNREADABLE หรือ PDF_TOO_LARGE
                 Service-->>API: Validation error
                 API-->>UI: 422 หรือ 413 ErrorResponseDTO

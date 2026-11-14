@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    participant Docker as Docker
+    participant Backend as Backend startup
+    participant Lock as Shared lease/lock
+    participant SQL as SQL Server
+    participant Storage as Private storage
+    participant Ready as Readiness/API
+
+    Docker->>Backend: Start container
+    Backend->>Ready: Keep not Ready; do not accept requests
+    Backend->>Lock: Acquire exclusive reconciliation lease
+    alt Lease unavailable (multi-instance coordination)
+        Lock-->>Backend: Denied or unavailable
+        Backend->>Ready: Stay not Ready; delete nothing
+        Note over Backend: Retry on the next startup
+    else Lease acquired
+        Lock-->>Backend: Lease granted
+        Backend->>SQL: Query all summary_files.storage_key
+        alt SQL unavailable or query fails
+            SQL-->>Backend: Error
+            Note over Backend,Storage: Preserve every file; do not enumerate for deletion
+            Backend->>Lock: Release lease
+            Backend->>Ready: Stay not Ready; retry on the next startup
+        else Query succeeds
+            SQL-->>Backend: Complete referenced-key set
+            Backend->>Storage: Enumerate all private object files
+            Storage-->>Backend: Object keys (not marker-dependent)
+            loop Each object key
+                alt Key is referenced by SQL
+                    Backend->>Backend: Keep committed object
+                else Key is absent from successful SQL result
+                    Backend->>Storage: Delete confirmed orphan object
+                    Storage-->>Backend: Delete result
+                    Note over Backend,Storage: On delete error, preserve privately and retry next startup
+                end
+            end
+            Backend->>Lock: Release lease after scan and deletes
+            Backend->>Ready: Mark Ready; accept authenticated requests
+        end
+    end
+
+    Note over Lock,Storage: In multi-instance mode, publish holds a shared coordination lease from before file write through SQL commit or compensation; cleanup needs exclusive lease.
