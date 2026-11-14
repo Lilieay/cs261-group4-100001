@@ -26,12 +26,3 @@ if DB_PASSWORD is not None:
         DB_CONNECTION_STRING.rstrip(";")
         + ";PWD={" + escape_password + "};"
     )
-
-PDF_STORAGE_ROOT = Path(
-    os.getenv(
-        "PDF_STORAGE_ROOT",
-        str(Path(__file__).resolve().parents[1] / "data" / "pdfs"),
-    )
-).expanduser()
-PDF_MAX_BYTES = 15_000_000
-PDF_REQUEST_MAX_BYTES = 16_000_000
