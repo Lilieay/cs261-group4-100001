@@ -1,12 +1,16 @@
 sequenceDiagram
     actor Student as นักศึกษา
     participant UI as Saved items UI
-    participant GuideAPI as Guide API เดิม
+    participant CourseAPI as Course API เดิม
+    participant GuideAPI as Guide API ผ่าน proxy
     participant SummaryAPI as Summary API จาก Task100
     participant Storage as SQL / private PDF storage
-    Student->>UI: เลือก SavedItemDTO item_type และ item_id
-    alt item_type เป็น guide
-        UI->>GuideAPI: GET /api/guides/{item_id} + Bearer
+    Student->>UI: เลือกหัวข้อวิชาหรือผลงาน
+    alt เลือกหัวข้อวิชา
+        UI->>CourseAPI: GET /api/courses/{course_id} + Bearer
+        CourseAPI-->>UI: รายละเอียดวิชา หรือ 404 ถ้าวิชาหาย
+    else item_type เป็น guide
+        UI->>GuideAPI: GET /api/guides/{item_id} + Bearer ผ่าน alias
         GuideAPI->>Storage: อ่าน Guide ตาม item_id
         alt target หายหรืออ่านล้มเหลว
             GuideAPI-->>UI: 404 GUIDE_NOT_FOUND หรือ storage error

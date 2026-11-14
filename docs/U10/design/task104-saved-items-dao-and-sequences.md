@@ -20,8 +20,8 @@ U10 บันทึก **ผลงานทีละชิ้น** แล้ว�
 
 | งานก่อนหน้า | หลักฐานที่ตรวจ | สถานะ ณ 14 พฤศจิกายน 2569 | ผลต่อ Task104 |
 |---|---|---|---|
-| Task94 API Contract กลาง U6–U10 | `origin/docs/task94-api-contract`, commit `de3e669` | Contract เดิมใช้ saved course และต้องแก้เป็น saved item | ต้องยืนยัน route, DTO และ error ใหม่ร่วมกับ Frontend/Backend |
-| Task99 รายละเอียดและ Test Cases U10 | `origin/U10` และ `origin/feat/u10-task99-requirements`, commit `cc5b928` | Review ยืนยันให้บันทึกผลงานรายชิ้นและเปิดชิ้นที่เลือก | ใช้เป็นมติแก้แบบรุ่น 0.3 |
+| Task94 API Contract กลาง U6–U10 | [รุ่น 0.4](https://github.com/Lilieay/cs261-group4-100001/blob/cc7dc14/docs/task94-api-contract.md) | ระบุ saved-items, DTO และ error แล้ว PR #103 ยังรอ review | ใช้เป็น contract อ้างอิงของแบบนี้ |
+| Task99 รายละเอียดและ Test Cases U10 | [PR #102](https://github.com/Lilieay/cs261-group4-100001/pull/102) | Review ยืนยันให้บันทึกผลงานรายชิ้นและเปิดชิ้นที่เลือก | ใช้เป็นมติแก้แบบรุ่น 0.3 |
 | Task100 แบบ Summary และ PDF storage | `origin/docs/task100-u6-pdf-design` | มี identity ของ Summary และเส้นทางอ่าน PDF แต่ยังรอ review | ใช้อ้าง `summary_id` และ API เปิดสรุปแบบมีเงื่อนไข |
 | งาน data model ของ saved item | ยังไม่พบ artefact ที่ยืนยัน `SavedSummary` ใน `sprint2` | มี `SavedGuide` เดิม แต่ยังไม่มี relation สำหรับ Summary | เจ้าของ data model ต้องกำหนด table/constraint จริง ห้าม Task104 สร้าง `SavedCourse` หรือ schema ซ้ำ |
 
@@ -121,12 +121,13 @@ WHERE user_id = :current_user_id AND summary_id = :item_id;
 
 ## 4 API และกติกาข้อผิดพลาด
 
-แบบเสนอสำหรับ Task94 รุ่นถัดไป:
+เส้นทางตาม Task94 รุ่น 0.4
 
 | ขั้นตอน | Endpoint | ผลสำเร็จ | กรณีผิดพลาด |
 |---|---|---|---|
 | ดูรายการ | `GET /api/saved-items` | `200 {"items":[SavedItemDTO...]}`; ไม่มีรายการเป็น `items: []` | Token ใช้ไม่ได้ `401 AUTH_REQUIRED`; DB error `503 SAVED_ITEMS_UNAVAILABLE` |
-| เปิดแนวข้อสอบ | `GET /api/guides/{item_id}` | `200 GuideDetailResponseDTO` ของ ID ที่เลือก | ID ผิด `422`; ไม่มี target `404 GUIDE_NOT_FOUND`; storage error ตาม Guide API |
+| เปิดหัวข้อวิชา | `GET /api/courses/{course_id}` | `200` รายละเอียดวิชาจาก API เดิม | `404 COURSE_NOT_FOUND` เมื่อวิชาหาย |
+| เปิดแนวข้อสอบ | `GET /api/guides/{item_id}` ผ่าน proxy alias ใหม่ | `200 GuideDetailResponseDTO` ของ ID ที่เลือก | ID ผิด `422`; ไม่มี target `404 GUIDE_NOT_FOUND`; storage error ตาม Guide API |
 | เปิดสรุป PDF | `GET /api/summaries/{item_id}` แล้วใช้ `file.read_path` | `200 SummaryDTO` และ `200 application/pdf` | ID ผิด `422`; ไม่มี target `404 SUMMARY_NOT_FOUND`; DB/storage errorตาม Summary API |
 | นำออก | `DELETE /api/saved-items/{item_type}/{item_id}` | `200 {"item_type":"guide","item_id":41,"saved":false}`; เรียกซ้ำได้ผลเดิม | type/ID/body/query ผิด `422 INVALID_PARAMETERS`; DB/commit error `503 SAVED_ITEMS_UNAVAILABLE` |
 
@@ -178,18 +179,24 @@ sequenceDiagram
     end
 ```
 
-### 5.2 เปิดผลงานที่เลือก
+### 5.2 เปิดรายวิชาหรือผลงานที่เลือก
+
+Frontend ใช้ course.id เรียก API รายวิชาเดิมเมื่อกดหัวข้อกลุ่ม ส่วนผลงานใช้ open_path จาก DTO ตาม Task94 สำหรับ Guide ให้เพิ่ม alias แบบเจาะจง GET /api/guides/{item_id} ใน Node proxy ก่อน wildcard เดิม โดย validate ID และส่ง Bearer token ต่อไปที่ Backend GET /guides/{item_id} เส้นทาง /api/guides/guides/{item_id} ที่ UI เดิมใช้ยังคงอยู่
 
 ```mermaid
 sequenceDiagram
     actor Student as นักศึกษา
     participant UI as Saved items UI
-    participant GuideAPI as Guide API เดิม
+    participant CourseAPI as Course API เดิม
+    participant GuideAPI as Guide API ผ่าน proxy
     participant SummaryAPI as Summary API จาก Task100
     participant Storage as SQL / private PDF storage
-    Student->>UI: เลือก SavedItemDTO(item_type,item_id)
-    alt item_type เป็น guide
-        UI->>GuideAPI: GET /api/guides/{item_id} + Bearer
+    Student->>UI: เลือกหัวข้อวิชาหรือผลงาน
+    alt เลือกหัวข้อวิชา
+        UI->>CourseAPI: GET /api/courses/{course_id} + Bearer
+        CourseAPI-->>UI: รายละเอียดวิชา หรือ 404 ถ้าวิชาหาย
+    else item_type เป็น guide
+        UI->>GuideAPI: GET /api/guides/{item_id} + Bearer ผ่าน alias
         GuideAPI->>Storage: อ่าน Guide ตาม item_id
         alt target หายหรืออ่านล้มเหลว
             GuideAPI-->>UI: 404 GUIDE_NOT_FOUND หรือ storage error
@@ -276,7 +283,7 @@ sequenceDiagram
 | ป้องกันลบข้อมูลข้ามผู้ใช้ | DAO DELETE มี `user_id` จาก authenticated principal และ target ID ใน predicate |
 | ป้องกันลบผลงานจริง | DAO ลบเฉพาะ relation `saved_guides` หรือ `saved_summaries` ไม่ DELETE target table |
 | รองรับ Guide และ Summary ID ซ้ำกัน | แยก relation ตามชนิดและ DTO มี `item_type`; ไม่ใช้ polymorphic FK ร่วม |
-| สอดคล้องกับ Task94 | ยังต้องแก้ contract จาก `/api/saved-courses` เป็น saved item และ review ร่วม Frontend/Backend |
+| สอดคล้องกับ Task94 | เทียบ route, DTO และ error กับ Task94 รุ่น 0.4 แล้ว เพิ่ม proxy alias สำหรับเปิด Guide ตาม open_path |
 | สอดคล้องกับ Summary data model | อ้างแบบ Task100; รอยืนยันชื่อ table/FK ของ Summary bookmark จาก data-model task |
 | ผู้ทบทวนอิสระและผลตรวจซ้ำ | รอ reviewer ตรวจรุ่น 0.3 และบันทึกชื่อ วันที่ commit และมติจริง |
 
@@ -295,7 +302,7 @@ sequenceDiagram
 - [x] DAO remove กรองทั้ง current user และ target ที่เลือก
 - [x] Sequence list/open/remove แสดง Guide และ Summary แยกชิ้น
 - [x] ระบุว่าห้ามลบ Guide, Summary, PDF, Course และ bookmark ของผู้อื่น
-- [ ] Task94 ยืนยัน route/DTO/error ของ saved item
+- [ ] Task94 รุ่น 0.4 ผ่าน review ของทีม
 - [ ] Data-model task ยืนยัน `saved_summaries` table, key, FK และ cleanup policy
 - [ ] Reviewer ตรวจรุ่น 0.3 และบันทึกชื่อ วันที่ commit ผลตรวจ
 
