@@ -48,7 +48,7 @@ Service เป็นผู้ commit/rollback สร้าง DTO ก่อน c
 
 ## ติดตั้งตารางโดยรักษาข้อมูลเดิม
 
-ต้องติดตั้งตารางเดิม users, courses, guides และตาราง summaries จาก U6 ก่อน `sprint2` ฐานของ branch นี้ยังไม่มี implementation U6 จึงไม่สามารถเริ่ม flow summary บนฐานข้อมูลเปล่าด้วย Task114 อย่างเดียวได้ ให้รวม schema U6 ตามงาน Integration ก่อน คำสั่ง U8 จะหยุดเมื่อไม่พบตารางหรือคอลัมน์ที่จำเป็น
+ต้องติดตั้งตารางเดิม users, courses, guides และตาราง summaries จาก U6 ก่อน รอบแก้ conflict รวม `sprint2` commit `fd1d031` ซึ่งมี implementation U6 แล้ว ให้รัน initializer ของระบบเดิม/U6 ก่อนคำสั่งติดตั้ง U8 คำสั่ง U8 จะหยุดเมื่อไม่พบตารางหรือคอลัมน์ที่จำเป็น
 
 จากโฟลเดอร์ backend หลังตั้ง `backend/.env` ด้วย DB_CONNECTION_STRING ของสภาพแวดล้อมที่ต้องการ:
 

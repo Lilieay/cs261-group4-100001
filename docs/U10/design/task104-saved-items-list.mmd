@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor Student as นักศึกษา
+    participant UI as Saved items UI
+    participant API as SavedItems Router / DTO
+    participant SVC as SavedItemsService
+    participant GDAO as SavedGuideDAO
+    participant SDAO as SavedSummaryDAO
+    participant DB as SQL storage
+    Student->>UI: เปิดรายการส่วนตัว
+    UI->>API: GET /api/saved-items + Bearer
+    API->>API: current_user ตรวจ token
+    alt token ใช้ไม่ได้
+        API-->>UI: 401 AUTH_REQUIRED
+    else token ผ่าน
+        API->>SVC: list_for_user(current_user.id)
+        SVC->>GDAO: list_by_user(current_user.id)
+        GDAO->>DB: SELECT saved_guides join guides/courses
+        SVC->>SDAO: list_by_user(current_user.id)
+        SDAO->>DB: SELECT saved_summaries join summaries/courses/files
+        alt DAO หรือ storage ล้มเหลว
+            DB-->>SVC: SQL/storage exception
+            SVC-->>API: SAVED_ITEMS_UNAVAILABLE
+            API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE
+        else อ่านสำเร็จ
+            DB-->>SVC: Guide rows และ Summary rows
+            SVC->>SVC: map item_type + item_id และเรียง
+            SVC-->>API: SavedItemListResponse
+            API-->>UI: 200 items
+            UI-->>Student: group ตาม Course และแสดงทุกผลงานแยกชิ้น
+        end
+    end

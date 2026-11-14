@@ -1,0 +1,34 @@
+sequenceDiagram
+    actor Student
+    participant UI as Course Page
+    participant API as Course Summary API
+    participant Auth as Current User Check
+    participant Service as Summary Query Service
+    participant CourseDAO
+    participant SummaryDAO
+    participant SQL as SQL Server
+
+    Student->>UI: เปิดหน้ารายวิชา
+    UI->>API: GET /api/courses/{course_id}/summaries พร้อม Bearer Token
+    API->>Auth: ตรวจ session
+    alt ไม่มี Token หรือ Token ใช้ไม่ได้
+        Auth-->>API: AUTH_REQUIRED
+        API-->>UI: 401 ErrorResponseDTO
+    else Token ใช้ได้
+        Auth-->>Service: AuthenticatedUser
+        Service->>CourseDAO: get_course(course_id)
+        CourseDAO->>SQL: ตรวจว่ามีวิชาและเป็นวิชา CS
+        SQL-->>CourseDAO: Course หรือไม่พบ
+        alt ไม่พบหรือไม่ใช่วิชา CS
+            CourseDAO-->>Service: ไม่มี Course
+            Service-->>API: COURSE_NOT_FOUND
+            API-->>UI: 404 ErrorResponseDTO
+        else วิชาใช้ได้
+            Service->>SummaryDAO: list_by_course(course_id)
+            SummaryDAO->>SQL: SELECT summaries เรียง created_at DESC, id DESC
+            SQL-->>SummaryDAO: รายการหรือ list ว่าง
+            SummaryDAO-->>Service: Summary rows พร้อม metadata
+            Service-->>API: CourseSummaryListResponse
+            API-->>UI: 200 items หรือ items: []
+        end
+    end

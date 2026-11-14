@@ -2,9 +2,9 @@
 
 วันที่ 14 พฤศจิกายน 2569 บน Windows, Python 3.12.14, FastAPI 0.162.7, Pydantic 2.14.3, SQLAlchemy 2.1.8, pytest 9.2.0
 
-ผลล่าสุด `python -m pytest backend/test -q --disable-warnings --maxfail=1`: **232 passed, 2 skipped, 65 subtests passed** ใช้เวลา 5.01 วินาที มี warning 1 รายการจาก dependency ผลนี้รวม Unit/API ของ Task114 และ regression ของ Backend เดิม ไม่ใช่ผล SQL Server หรือ Browser Integration
+ผลล่าสุดหลังรวม `sprint2` commit `fd1d031` และแก้ conflict main.py: `python -m pytest backend/test -q --disable-warnings --maxfail=1` ได้ **270 passed, 3 skipped, 81 subtests passed** ใช้เวลา 7.28 วินาที มี warning 1 รายการจาก dependency ผลนี้รวม Unit/API ของ Task114 และ regression ของ Backend เดิมรวม U6 ไม่ใช่ผล SQL Server หรือ Browser Integration
 
-ชุด Task114 มี 94 tests ใน `backend/test/test_reviews_unit.py` และ `backend/test/test_reviews_api.py` โดยผลรันรวมข้างต้นผ่านทั้งหมด 2 tests ที่ skip อยู่ในชุดเดิมและต้องเปิด flag SQL Server
+ชุด Task114 มี 94 tests ใน `backend/test/test_reviews_unit.py` และ `backend/test/test_reviews_api.py` โดยผลรันรวมข้างต้นผ่านทั้งหมด 3 tests ที่ skip อยู่ในชุดเดิมรวม U6 และต้องเปิด flag SQL Server
 
 ## สิ่งที่ทดสอบและส่วนที่จำลอง
 
