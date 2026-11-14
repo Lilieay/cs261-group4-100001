@@ -1,0 +1,34 @@
+erDiagram
+    USERS ||--o{ SUMMARIES : owns
+    COURSES ||--o{ SUMMARIES : contains
+    SUMMARIES ||--|| SUMMARY_FILES : has_one_pdf
+
+    USERS {
+        int id PK
+        varchar50 username UK
+        nvarchar255 displayname_th
+        nvarchar255 displayname_en
+    }
+    COURSES {
+        int id PK
+        varchar30 course_code UK
+        nvarchar255 course_name
+        nvarchar255 instructor_name
+        nvarcharmax description
+    }
+    SUMMARIES {
+        int id PK
+        int course_id FK
+        int owner_id FK
+        nvarchar title
+        nvarchar description
+        datetime2 created_at
+        datetime2 updated_at
+    }
+    SUMMARY_FILES {
+        int summary_id PK, FK
+        nvarchar storage_key UK
+        nvarchar original_name
+        varchar content_type
+        bigint size_bytes
+    }
