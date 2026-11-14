@@ -5,7 +5,9 @@ from fastapi.testclient import TestClient
 from starlette.datastructures import FormData
 
 from app.routers.my_summary_form import parse_summary_update_form
+from app.routers.my_summary_list import reject_my_summary_list_parameters
 from app.routers.summary_errors import SummaryApiRoute
+from app.schemas.summaries import SummaryListResponseDTO
 
 
 @pytest.fixture
@@ -20,7 +22,14 @@ def client():
         if credentials is None or credentials.credentials != "synthetic-token":
             raise HTTPException(401, "Internal authentication detail")
 
-    @router.get("/protected", dependencies=[Depends(require_login)])
+    @router.get(
+        "/protected",
+        dependencies=[
+            Depends(require_login),
+            Depends(reject_my_summary_list_parameters),
+        ],
+        response_model=SummaryListResponseDTO,
+    )
     def protected():
         return {"items": []}
 
@@ -71,6 +80,30 @@ def test_successful_private_response_cannot_be_cached(client):
     assert response.status_code == 200
     assert response.json() == {"items": []}
     assert response.headers["Cache-Control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "request_kwargs",
+    [{"params": {"owner_id": "1"}}, {"json": {"owner_id": 1}}],
+)
+def test_list_rejects_query_parameters_and_request_bodies(client, request_kwargs):
+    response = client.request(
+        "GET",
+        "/protected",
+        headers={"Authorization": "Bearer synthetic-token"},
+        **request_kwargs,
+    )
+
+    assert response.status_code == 422
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.json()["error"]["code"] == "INVALID_PARAMETERS"
+
+
+def test_list_authentication_runs_before_parameter_validation(client):
+    response = client.get("/protected", params={"owner_id": "1"})
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "AUTH_REQUIRED"
 
 
 @pytest.mark.parametrize("summary_id", ["0", "invalid"])
