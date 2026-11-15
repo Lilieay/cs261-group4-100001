@@ -1,6 +1,6 @@
 # Task103 U9 — Review และ Test Plan
 
-**รุ่น 0.2 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Test Plan — Not Run**
+**รุ่น 0.3 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Test Plan — Not Run**
 
 เอกสารนี้อัปเดตแผนทดสอบของ Task103 ให้ตรง Task94 API Contract v0.4 และการใช้ relation ร่วมกับ U10 ตาม Task104 v0.3 ไม่มีการอ้างว่ารัน Unit/API/Integration tests แล้ว
 
@@ -28,19 +28,28 @@
 
 Duplicate message “ได้บันทึกการแบ่งปันนี้ไปแล้ว” เป็น UI behavior เท่านั้น: ถ้า UI รู้จาก state ก่อนกดว่า saved อยู่แล้ว ให้แสดงข้อความนี้ได้โดยไม่ต้องรอ response ที่มี `already_saved` เพราะ response PUT ทั้งครั้งแรก/ซ้ำเหมือนกัน
 
-## 3. Test cases TC06–TC12 สำหรับส่วน DAO/API
+## 3. Current Acceptance Test Cases U9-TC06–U9-TC12 (อ้างอิง Task98 v0.3)
 
-> หมายเหตุด้าน traceability: ไฟล์ Task98 ฉบับเต็มไม่ได้แนบมาในชุดไฟล์รอบนี้ จึงจัดทำรายละเอียด TC06–TC12 ด้านล่างจากข้อกำหนดแก้ไขที่ผู้มอบหมายระบุและ Contract v0.4 เพื่อใช้เป็นแผนทดสอบต่อ ต้องเทียบชื่อ/ข้อความ acceptance กับ Task98 ต้นฉบับก่อน merge ห้ามถือว่าเป็นการถอดข้อความต้นฉบับ Task98 แบบคำต่อคำ
+เลขและชื่อ TC ในตารางนี้ยึดตามหัวข้อ 5.2 ของ Task98 ฉบับใน Repository ที่ commit `40e2c4a61541ca31d64db556458e955ee04fb9ff` โดยตรง ส่วน FK, transaction ordering และ concurrent PUT แยกเป็น Supplementary Tests ไม่เปลี่ยนเลข acceptance test ของ PO
 
-| TC | Scenario / ระดับ | ขั้นตอนหลัก | Expected result |
+| TC | Scenario ตาม Task98 | ขั้นตอนหลัก | Expected result ตาม Task98 / Contract |
 |---|---|---|---|
-| **TC06** | PUT ครั้งแรก / API + Integration | A PUT `/api/saved-items/guide/101` เมื่อ target มีอยู่และยังไม่ saved | `200` และ body `{item_type:"guide", item_id:101, saved:true}`; มี relation ใน `saved_guides` เพียงหนึ่งแถว |
-| **TC07** | PUT ซ้ำ / API + UI | A PUT target เดิมอีกครั้ง; ตรวจ response และ UI ที่รู้ state ก่อนกด | `200` และ body เหมือน TC06 ทุก field; ไม่มี row ซ้ำ; UI แสดง duplicate message จาก pre-known state ไม่อ่าน `already_saved` |
-| **TC08** | Shared storage กับ U10 / Integration + API | บันทึก Guide และ Summary ผ่าน U9 แล้วเรียก U10 `GET /api/saved-items`; จากนั้น DELETE ผ่าน U10 | U10 เห็น bookmark ที่ U9 บันทึกจาก relation ชุดเดียวกัน; DELETE ทำให้ U9 GET state เป็น `saved:false`; Guide ใช้ `saved_guides`, Summary ใช้ `saved_summaries` |
-| **TC09** | ER / FK / uniqueness / Integration | ตรวจ FK ไป users และ target; insert duplicate pair; บันทึก Guide 101 และ Summary 101 ให้ user เดียวกัน | duplicate ใน relation ชนิดเดียวกันถูกปฏิเสธ/ทำ idempotent; Guide 101 และ Summary 101 อยู่ร่วมกันได้; PK เป็น `(user_id, guide_id)` และ `(user_id, summary_id)` |
-| **TC10** | Transaction ordering / Unit + Integration | instrument SQLAlchemy Session; เรียก PUT; ตรวจ event/order ของ transaction และ SELECT | `session.begin()` เกิดก่อน target SELECT; SELECT และ INSERT อยู่ใน transaction เดียว; ไม่มี autobegin conflict/InvalidRequestError |
-| **TC11** | Storage unavailable / API + Integration | จำลอง DB read failure, insert failure และ commit failure ใน GET/PUT/DELETE | ทุกกรณี saved-items ตอบ `503 SAVED_ITEMS_UNAVAILABLE`; ห้ามตอบ `saved:false` หรือ `200`; rollback เมื่อยืนยัน failure ก่อน commit และไม่มี success ลวง |
-| **TC12** | Concurrent PUT / SQL Server Integration | ส่ง PUT พร้อมกันหลาย request สำหรับ current user/type/id เดียวกัน | มี bookmark row เดียว; ทุก request ที่ผลยืนยันได้ตอบ `200 saved:true`; DB error อื่นที่ไม่ใช่ duplicate ต้องไม่ถูกกลบ; ถ้า timeout/ผลไม่แน่ชัด UI GET state ก่อน retry |
+| **TC06** | บันทึกแนวข้อสอบรายรายการสำเร็จ | A Login แล้ว PUT Guide ที่มีอยู่จริง; ตรวจรายการส่วนตัว, reload และ Login ใหม่ | Guide รายการนั้นปรากฏในรายการส่วนตัวของ A ใต้ Course ที่ถูกต้องและคงอยู่หลัง reload/Login ใหม่; PUT ตอบ `200 saved:true` |
+| **TC07** | บันทึกสรุป PDF รายรายการสำเร็จ | A Login แล้ว PUT Summary PDF ที่มีอยู่จริง; ตรวจรายการส่วนตัว, reload และ Login ใหม่ | Summary PDF รายการนั้นปรากฏในรายการส่วนตัวของ A ใต้ Course ที่ถูกต้องและคงอยู่หลัง reload/Login ใหม่; PUT ตอบ `200 saved:true` |
+| **TC08** | แสดงรายการที่บันทึกใต้รายวิชาที่ถูกต้อง | บันทึก Guide และ Summary ที่สังกัดอย่างน้อยสอง Course แล้วเปิดรายการส่วนตัว | Guide และ Summary แต่ละรายการอยู่ใต้ Course ต้นสังกัดที่ถูกต้อง ไม่ปะปนหรือแสดงผิด Course |
+| **TC09** | บันทึกผลงานเดิมซ้ำ | A บันทึก Guide G1 หรือ Summary S1 สองครั้งผ่าน API แล้วตรวจ UI | PUT ทั้งสองครั้งตอบ `200 saved:true` ด้วย body เดียวกัน; มี bookmark เดียวต่อชนิดและ ID; UI แสดง “ได้บันทึกการแบ่งปันนี้ไปแล้ว” เมื่อทราบจาก state ก่อนกดว่าบันทึกอยู่แล้ว |
+| **TC10** | คำขอไม่มีสิทธิ์หรือผลงานไม่ถูกต้อง | ทดสอบไม่มี token, token ผิด/หมดอายุ, ส่ง `user_id` ของ B, type/ID ผิดรูปแบบ และ target ที่หาย ทั้ง Guide และ Summary | Token ใช้ไม่ได้ `401 AUTH_REQUIRED`; owner spoof หรือพารามิเตอร์ผิด `422 INVALID_PARAMETERS`; target หาย `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND`; ไม่สร้าง bookmark ใหม่ |
+| **TC11** | บันทึกล้มเหลวต้องคงรายการเดิม | A ทดลองบันทึก Guide และ Summary ที่ยังไม่ saved โดยจำลอง DB write failure ก่อน commit | `503 SAVED_ITEMS_UNAVAILABLE`; UI แจ้งบันทึกไม่สำเร็จ; target ยังคง `saved:false`; bookmark เดิมยังอยู่และไม่มี success ลวง |
+| **TC12** | แสดง bookmark แนวข้อสอบเดิมในรายการรวม | A มี G1 เดิมจาก `/api/saved-guides`; บันทึก S1 ผ่าน PUT saved-items; เปิดรายการรวม แล้ว PUT G1 ซ้ำผ่าน saved-items | รายการรวมแสดง G1 และ S1 คนละชิ้น; G1 ปรากฏเพียงครั้งเดียว; `item_type` และ `item_id` ตรงกับผลงาน |
+
+### 3.1 Supplementary Tests (ไม่ใช่ U9 acceptance TC)
+
+| รหัสเสริม | ประเด็น | วิธีตรวจและผลคาดหวัง |
+|---|---|---|
+| **ST01 — FK / Composite key** | Referential integrity และ uniqueness | ตรวจ FK ไป `users` และ target; PK/unique `(user_id, guide_id)` และ `(user_id, summary_id)`; Guide 101 กับ Summary 101 อยู่ร่วมกันได้ แต่คู่เดิมใน relation เดียวกันซ้ำไม่ได้ |
+| **ST02 — Transaction order** | SQLAlchemy transaction boundary | instrument Session แล้วพิสูจน์ว่า `session.begin()` เกิดก่อน SELECT target; SELECT และ INSERT อยู่ใน transaction เดียว; ไม่เกิด autobegin conflict |
+| **ST03 — Concurrent PUT** | คำขอบันทึกพร้อมกัน | ยิง PUT หลาย request สำหรับ user/type/id เดียวกันบน SQL Server; เหลือ relation เดียวและทุก request ที่ยืนยันผลได้ตอบ `200 saved:true`; duplicate-key recovery ต้อง rollback แล้วอ่าน state ใหม่ |
+| **ST04 — Cross-feature consistency** | U9/U10 ใช้ relation ร่วมกัน | U9 PUT แล้ว U10 GET list เห็นรายการเดียวกัน; U10 DELETE แล้ว U9 GET state เป็น `saved:false` |
 
 ## 4. การทดสอบร่วมที่ยังต้องครอบคลุม
 
@@ -52,6 +61,7 @@ Duplicate message “ได้บันทึกการแบ่งปัน�
 | Owner isolation | A save แล้ว B GET state เป็น false; B DELETE ไม่ลบ bookmark ของ A |
 | State durability | reload และ Login ใหม่บัญชีเดิมยังอ่าน saved state เดิม |
 | Empty list vs failure | ไม่มี bookmark = `200 {"items":[]}`; DB error = `503 SAVED_ITEMS_UNAVAILABLE` |
+| Duplicate-key recovery | unique conflict ที่เป็นคู่ key นี้เท่านั้น → rollback transaction เดิม → อ่าน relation ใหม่ใน transaction หลัง rollback; พบ relation จึงถือเป็น idempotent success; หากอ่านไม่ได้ตอบ 503 |
 | Legacy | bookmark เดิมใน `saved_guides` ยังคงอยู่; ไม่มี auto migration/copy/delete |
 | List consistency | U10 list เรียง course_code ASC, item_type ASC, item_id DESC และเปิด exact `open_path` |
 | Delete safety | ลบเฉพาะ relation; ไม่ลบ Guide/Summary/PDF/Course หรือ bookmark ของ user อื่น |
@@ -70,10 +80,12 @@ Duplicate message “ได้บันทึกการแบ่งปัน�
 | Role | Review focus | Reviewer / date / outcome |
 |---|---|---|
 | Frontend | DTO เดียวทั้ง PUT ครั้งแรก/ซ้ำ; UI duplicate message จาก state | Pending |
-| Backend | DAO relation dispatch, Session transaction, duplicate conflict handling, 503 | Pending |
+| Backend | DAO relation dispatch, Session transaction, duplicate-key rollback/re-read, 503 | Pending |
 | Data model / Task100 | saved_summaries PK/FK, saved_guides existing constraints, cleanup | Pending |
-| PO / Task98 | TC06–TC12 traceability, message behavior, acceptance | Pending |
+| PO / Task98 | TC06–TC12 traceability ตาม Task98 v0.3; supplementary tests แยกจาก acceptance | Pending |
 
-## 7. สถานะ
+## 7. สถานะและแหล่งอ้างอิง
 
 **Draft for Review — Not Implemented / Tests Not Run.** ต้อง review และแนบหลักฐานจริงก่อนเปลี่ยนสถานะ
+
+แหล่งอ้างอิงหลัก: [Task98 U9 Requirements and Test Cases PO Content Updated — commit `40e2c4a`](https://github.com/Lilieay/cs261-group4-100001/blob/40e2c4a61541ca31d64db556458e955ee04fb9ff/docs/U9/requirements/Task98_U9_Requirements_and_Test_Cases_PO_Content_Updated.md#L147) หัวข้อ 5.2 Current Acceptance Test Cases; Task94 API Contract v0.4; Task104 U10 DAO design v0.3.

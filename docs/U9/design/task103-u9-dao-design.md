@@ -1,6 +1,6 @@
 # Task103 U9 — DAO และ API Design
 
-**รุ่น 0.2 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Draft for Review**
+**รุ่น 0.3 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Draft for Review**
 
 เอกสารฉบับนี้ปรับจาก Task103 v0.1 ให้สอดคล้องกับ **Task94 API Contract v0.4** และแนวทางข้อมูล/DAO ใน **Task104 U10 v0.3** โดยบันทึกผลงานทีละชิ้น ได้แก่ Guide (`guide`) และ Summary PDF (`summary`) ไม่ใช่ Course ทั้งวิชา
 
@@ -48,6 +48,8 @@ erDiagram
         int summary_id PK, FK
     }
 ```
+
+![Saved items ER diagram](../assets/task103-saved-items-er.png)
 
 **คีย์และ FK ที่ต้องมี**
 
@@ -147,32 +149,48 @@ DAO ใช้ SQLAlchemy Session ที่ Service ส่งให้ ไม่ 
 4. ภายใน transaction ตรวจ target ด้วย DAO SELECT ตามชนิด
 5. หากไม่พบ target ให้ raise domain not-found; transaction rollback/ปิดตาม context manager
 6. ตรวจหรือ insert bookmark ลง relation ที่ตรงชนิด โดยใช้ composite PK/unique constraint ป้องกัน concurrent duplicate
-7. เมื่อมี bookmark อยู่แล้ว ให้ถือเป็น idempotent success ไม่ insert ซ้ำ
-8. context manager commit สำเร็จแล้วจึงสร้าง/ส่ง `200 SavedItemState(saved=true)`
+7. ถ้า INSERT สำเร็จ ให้ COMMIT transaction เดิม; ถ้าเกิด duplicate-key ของ composite key ที่คาดหมาย ให้ ROLLBACK transaction ที่ failed ก่อน แล้วเริ่ม transaction ใหม่เพื่ออ่าน relation ยืนยันสถานะ
+8. ตอบ `200 SavedItemState(saved=true)` หลัง commit สำเร็จ หรือหลังอ่านยืนยัน relation ใน transaction ใหม่เท่านั้น
 
 **ข้อห้าม SQLAlchemy:** ห้ามเรียก SELECT ด้วย Session ก่อน `session.begin()` เพราะ SQLAlchemy Session อาจ autobegin transaction ตั้งแต่ query แรก แล้ว `begin()` ภายหลังอาจ raise `InvalidRequestError` ว่ามี transaction อยู่แล้ว ห้ามใช้ `session.begin()` ซ้อน transaction โดยไม่ตั้งใจ
 
-ตัวอย่าง pseudo-code:
+ตัวอย่าง pseudo-code (แสดง transaction boundary; การจำแนก constraint ต้องตรวจชื่อ/รหัส unique constraint ของ DB จริง):
 
 ```python
 def save_item(session, current_user_id, item_type, item_id):
     dao = dao_for(item_type)  # enum allowlist only
-    with session.begin():
-        target = dao.target_exists(session, item_id)
-        if target is None:
-            raise TargetNotFound(item_type, item_id)
-        dao.insert_if_absent(session, current_user_id, item_id)
-    # commit สำเร็จแล้วเท่านั้น
-    return SavedItemState(
-        item_type=item_type, item_id=item_id, saved=True
-    )
+    try:
+        with session.begin():  # BEGIN ก่อน SELECT target
+            target = dao.target_exists(session, item_id)
+            if target is None:
+                raise TargetNotFound(item_type, item_id)
+            dao.insert(session, current_user_id, item_id)
+        # INSERT + COMMIT สำเร็จ
+        return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
+    except IntegrityError as exc:
+        if not is_expected_bookmark_unique_conflict(exc):
+            raise
+        session.rollback()  # ต้อง rollback transaction ที่ failed ก่อน query
+        with session.begin():  # transaction ใหม่สำหรับ read-after-conflict
+            exists = dao.is_saved(session, current_user_id, item_id)
+        if not exists:
+            raise SavedItemConflictNotConfirmed()
+        return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
 ```
 
 `insert_if_absent` ต้องจัดการเฉพาะ unique conflict ที่เป็น duplicate ของ key นี้เท่านั้น ห้ามกลบ DB exception ประเภทอื่นเป็น duplicate หากใช้ dialect-specific insert-on-conflict ให้ตรวจ semantics ของ SQL Server ที่ใช้งานจริงก่อนเลือก implementation
 
-### Concurrent PUT
+### Duplicate-key recovery และ Concurrent PUT
 
-สองคำขอพร้อมกันสำหรับ user/type/id เดียวกันอาจแข่ง insert ได้ ให้ unique key เป็น final guard; ทั้งสองคำขอควรจบเป็น `200 saved:true` เมื่อ relation มีอยู่จริงหลัง commit โดย duplicate-key ที่รู้แน่ชัดต้องถูกแปลงเป็น idempotent success หลัง rollback/reload ด้วย transaction ที่ถูกต้อง ไม่กลบ deadlock, connection failure หรือ constraint อื่น
+สองคำขอพร้อมกันสำหรับ user/type/id เดียวกันอาจแข่ง insert ได้ ให้ unique key เป็น final guard โดยแยกผลลัพธ์เป็นสองเส้นทางอย่างชัดเจน:
+
+1. **INSERT สำเร็จ:** DAO คืน inserted; Service COMMIT transaction เดิม แล้วตอบ `200 SavedItemState(saved=true)`
+2. **Duplicate key ของ composite key ที่คาดหมายเท่านั้น:** SQLAlchemy/DB แจ้ง unique constraint violation; Service ต้อง ROLLBACK transaction ที่ failed ก่อน ห้าม SELECT ต่อใน transaction ที่ failed; จากนั้นเริ่ม transaction ใหม่ (หรือใช้ Session ใหม่) เพื่ออ่าน relation ของ current user/type/id
+3. ถ้าอ่านพบ relation ให้จบ transaction อ่านสถานะและตอบ `200` ด้วย DTO เดียวกับ first save คือ `{item_type, item_id, saved:true}`
+4. ถ้าอ่านไม่พบ relation หรือไม่สามารถยืนยัน state ได้ ห้ามสมมติว่าเป็น duplicate success; ส่ง error ตาม Contract โดย DB read failure ใช้ `503 SAVED_ITEMS_UNAVAILABLE`
+5. DB error อื่น เช่น deadlock, connection failure หรือ constraint อื่น ต้องไม่ถูกกลบเป็น duplicate
+
+ทั้งสองคำขอที่ยืนยันได้ว่ามี relation หลัง commit จึงตอบ `200 saved:true`; UI ใช้ state ที่โหลดไว้ก่อนกดเพื่อแสดงข้อความ duplicate ไม่เพิ่ม `already_saved` หรือ `message` ใน PUT response
 
 ## 7. GET state, list และ DELETE
 

@@ -1,10 +1,12 @@
 # Task103 U9 — Sequence Diagrams
 
-**รุ่น 0.2 | 15 พฤศจิกายน 2569 | Draft for Review**
+**รุ่น 0.3 | 15 พฤศจิกายน 2569 | Draft for Review**
 
-Sequence ที่ปรับตาม Task94 v0.4 และ Task104 U10 v0.3 โดยใช้ relation ร่วมกัน (`saved_guides`, `saved_summaries`) และ transaction เริ่มก่อน target SELECT
+Sequence ที่ปรับตาม Task94 v0.4 และ Task104 U10 v0.3 โดยใช้ relation ร่วมกัน (`saved_guides`, `saved_summaries`) และ transaction เริ่มก่อน target SELECT; duplicate-key แยกเป็น rollback แล้วอ่าน state ใหม่
 
 ## 1. อ่านสถานะ
+
+![Saved state sequence](../assets/task103-saved-state.png)
 
 ```mermaid
 sequenceDiagram
@@ -39,6 +41,10 @@ sequenceDiagram
 
 ## 2. บันทึกผลงาน
 
+ภาพนี้แยกผล `INSERT` สำเร็จออกจาก `duplicate key` อย่างชัดเจน: กรณี INSERT สำเร็จจึง COMMIT transaction เดิม ส่วน duplicate-key ที่ยืนยันว่าเป็น unique conflict ของ bookmark key ที่ต้องการ จะ ROLLBACK transaction ที่ล้มเหลวก่อน แล้วเริ่ม transaction ใหม่เพื่ออ่านสถานะ หากพบ relation จึงตอบ success DTO เดียวกัน
+
+![Save item sequence — insert success and duplicate-key recovery](../assets/task103-save-item.png)
+
 ```mermaid
 sequenceDiagram
     actor Student as นักศึกษา
@@ -51,31 +57,60 @@ sequenceDiagram
     UI->>API: PUT /api/saved-items/{item_type}/{item_id} + Bearer
     API->>API: ตรวจ token, current_user, type และ ID
     API->>SVC: save(current_user.id, item_type, item_id)
-    Note over SVC,DB: BEGIN ต้องเกิดก่อน SELECT เพื่อป้องกัน SQLAlchemy autobegin
-    SVC->>DB: session.begin()
+    Note over SVC,DB: BEGIN ก่อน SELECT เพื่อป้องกัน SQLAlchemy autobegin
+    SVC->>DB: BEGIN transaction T1
     SVC->>DAO: target_exists(session, item_id)
     DAO->>DB: SELECT target ตามชนิด
     DB-->>DAO: target record
     alt target ไม่มี
         DAO-->>SVC: TargetNotFound
-        SVC->>DB: ROLLBACK
+        SVC->>DB: ROLLBACK T1
         SVC-->>API: GUIDE_NOT_FOUND หรือ SUMMARY_NOT_FOUND
         API-->>UI: 404 ErrorResponseDTO
     else target มี
         SVC->>DAO: insert_if_absent(session, current_user.id, item_id)
-        DAO->>DB: INSERT relation โดย unique PK กันซ้ำ
-        DB-->>DAO: inserted หรือ duplicate key ของ relation เดิม
-        DAO-->>SVC: idempotent save result
-        SVC->>DB: COMMIT
-        DB-->>SVC: commit confirmed
-        SVC-->>API: SavedItemState(saved=true)
-        API-->>UI: 200 {item_type,item_id,saved:true}
-        UI-->>Student: แสดงบันทึกแล้ว; duplicate message ใช้ state ที่ UI รู้ก่อน PUT
+        DAO->>DB: INSERT relation โดย composite PK กันซ้ำ
+        alt INSERT สำเร็จ
+            DB-->>DAO: inserted
+            DAO-->>SVC: inserted
+            SVC->>DB: COMMIT T1
+            DB-->>SVC: commit confirmed
+            SVC-->>API: SavedItemState(saved=true)
+            API-->>UI: 200 {item_type,item_id,saved:true}
+        else duplicate key ของ bookmark key เดิม
+            DB-->>DAO: unique constraint violation
+            DAO-->>SVC: DuplicateKey เฉพาะ constraint ที่คาดหมาย
+            SVC->>DB: ROLLBACK T1
+            Note over SVC,DB: ห้าม query ต่อใน transaction ที่ failed
+            SVC->>DB: BEGIN transaction T2 (หลัง rollback)
+            SVC->>DAO: is_saved(current_user.id, item_id)
+            DAO->>DB: SELECT relation จาก saved_guides หรือ saved_summaries
+            DB-->>DAO: relation exists / absent
+            DAO-->>SVC: saved state
+            alt relation พบ
+                SVC->>DB: COMMIT T2
+                SVC-->>API: SavedItemState(saved=true)
+                API-->>UI: 200 {item_type,item_id,saved:true}
+            else relation ไม่พบ
+                SVC->>DB: COMMIT T2
+                SVC-->>API: unexpected conflict / error
+                API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE หรือ mapped conflict error
+            end
+        else DB error อื่นที่ไม่ใช่ duplicate key ที่คาดหมาย
+            DB-->>DAO: SQL/storage exception
+            DAO-->>SVC: propagate exception
+            SVC->>DB: ROLLBACK T1
+            SVC-->>API: SAVED_ITEMS_UNAVAILABLE
+            API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE
+        end
     end
-    Note over API,UI: DB read/write/commit failure = 503 SAVED_ITEMS_UNAVAILABLE
+    Note over API,UI: ทั้ง first save และ duplicate success ใช้ 200 และ SavedItemState เดียวกัน
+    Note over UI: ข้อความ “ได้บันทึกการแบ่งปันนี้ไปแล้ว” ใช้ saved state ที่ UI รู้ก่อน PUT ไม่ได้มาจาก response field เพิ่มเติม
 ```
 
 ## 3. ดูรายการและนำออก (U10 shared relation)
+
+![U10 shared list and remove sequence](../assets/task103-saved-items-list-remove.png)
 
 ```mermaid
 sequenceDiagram
