@@ -4,6 +4,13 @@ from typing import Literal
 from pydantic import AwareDatetime, BaseModel, Field, field_validator
 
 from app.config import PDF_MAX_BYTES
+from app.schemas.guides import AcademicYear
+
+
+class SummaryExamMetadata(BaseModel):
+    academic_year: AcademicYear
+    semester: Literal[1, 2, 3]
+    exam_period: Literal["midterm", "final"]
 
 
 class SummaryCourseDTO(BaseModel):
@@ -29,6 +36,9 @@ class SummaryDTO(BaseModel):
     course: SummaryCourseDTO
     title: str
     description: str | None
+    academic_year: int | None = None
+    semester: Literal[1, 2, 3] | None = None
+    exam_period: Literal["midterm", "final"] | None = None
     owner: SummaryOwnerDTO
     file: SummaryFileDTO
     created_at: AwareDatetime

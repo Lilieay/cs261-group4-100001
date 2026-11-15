@@ -2,6 +2,7 @@
   'use strict';
 
   const MAX_PDF_BYTES = 15_000_000;
+  const FILE_TIMEOUT_MS = 120_000;
   const validId = value => /^[1-9]\d*$/.test(String(value)) && Number(value) <= 2147483647;
 
   class SummaryApiError extends Error {
@@ -73,7 +74,7 @@
   }
 
   async function openFile(id, signal) {
-    const pdf = await request(`${summaryPath(id)}/file`, {responseType: 'pdf', signal});
+    const pdf = await request(`${summaryPath(id)}/file`, {responseType: 'pdf', timeoutMs: FILE_TIMEOUT_MS, signal});
     if (pdf?.type !== 'application/pdf' || !pdf.size) {
       throw new SummaryApiError('ไม่สามารถเปิดไฟล์ PDF นี้ได้', 502);
     }
@@ -89,9 +90,12 @@
     return body;
   }
 
-  async function publish(courseId, title, description, file) {
+  async function publish(courseId, title, description, file, examMetadata = {}) {
     const body = summaryForm(courseId, title, description, file);
-    return summary(await request('/api/summaries', {method: 'POST', body}));
+    for (const key of ['academic_year', 'semester', 'exam_period']) {
+      if (examMetadata[key] !== undefined) body.set(key, examMetadata[key]);
+    }
+    return summary(await request('/api/summaries', {method: 'POST', body, timeoutMs: FILE_TIMEOUT_MS}));
   }
 
   async function mine() {
@@ -102,7 +106,7 @@
 
   async function update(id, courseId, title, description, file) {
     const body = summaryForm(courseId, title, description, file);
-    const result = summary(await request(summaryPath(id), {method: 'PUT', body, expectedStatus: 200}));
+    const result = summary(await request(summaryPath(id), {method: 'PUT', body, expectedStatus: 200, timeoutMs: FILE_TIMEOUT_MS}));
     if (result.id !== Number(id) || result.course.id !== Number(courseId)) {
       throw new SummaryApiError('ข้อมูลที่บันทึกไม่ตรงกับรายการที่เลือก', 502);
     }

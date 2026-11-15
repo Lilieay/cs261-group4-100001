@@ -91,6 +91,9 @@
         const back = new URL(api.courseUrl(summary.course), window.location.href);
         if (/^[1-9]\d*$/.test(params.get('page'))) back.searchParams.set('page', params.get('page'));
         if (['oldest', 'title'].includes(params.get('sort'))) back.searchParams.set('sort', params.get('sort'));
+        for (const key of ['period', 'year', 'semester']) {
+          if (params.has(key)) back.searchParams.set(key, params.get(key));
+        }
         $('summary-back').href = back.pathname + back.search;
         $('summary-back').setAttribute('aria-label', 'กลับรายการสรุปในรายวิชา');
       }

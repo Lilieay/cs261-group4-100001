@@ -544,6 +544,52 @@ test('U7 proxy forwards the owned list, metadata-only edits and empty deletion r
     const count = calls.length;
     assert.equal((await originalFetch(base + '/api/my-summaries?owner_id=3', {headers})).status, 422);
     assert.equal((await originalFetch(base + '/api/summaries/0', {method: 'DELETE', headers})).status, 422);
+    for (const [method, path] of [['GET', '/api/my-summaries'], ['DELETE', '/api/summaries/41']]) {
+      for (const framing of [{'content-length': '2'}, {'transfer-encoding': 'chunked'}]) {
+        const invalid = await request(port, path, method, {...headers, ...framing}, '{}');
+        assert.equal(invalid.status, 422);
+        assert.equal(JSON.parse(invalid.body).error.code, 'INVALID_PARAMETERS');
+      }
+    }
     assert.equal(calls.length, count);
+  });
+});
+
+test('summary proxy waits 120 seconds for PDF transfers and normalizes timeouts and connection failures', async t => {
+  const originalFetch = global.fetch;
+  const originalSetTimeout = global.setTimeout;
+  const timeouts = [];
+  t.mock.method(global, 'setTimeout', (callback, delay, ...args) => {
+    if (delay === 120_000 || delay === 12_000) {
+      timeouts.push(delay);
+      return originalSetTimeout(callback, 0, ...args);
+    }
+    return originalSetTimeout(callback, delay, ...args);
+  });
+  const calls = [];
+  t.mock.method(global, 'fetch', async (url, init) => {
+    calls.push([init.method, url.pathname]);
+    if (url.pathname === '/api/my-summaries') throw new Error('connection refused');
+    await new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(init.signal.reason), {once: true}));
+  });
+
+  await withServer(async port => {
+    const base = `http://127.0.0.1:${port}`;
+    const body = new FormData();
+    body.set('course_id', '2');
+    body.set('title', 'สรุป');
+    body.set('file', new Blob(['%PDF-'], {type: 'application/pdf'}), 'new.pdf');
+    const edit = await originalFetch(base + '/api/summaries/41', {method: 'PUT', body});
+    const pdf = await originalFetch(base + '/api/summaries/41/file');
+    const owned = await originalFetch(base + '/api/my-summaries');
+    for (const response of [edit, pdf, owned]) {
+      assert.equal(response.status, 502);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.deepEqual(await response.json(), {error: {
+        code: 'UPSTREAM_UNAVAILABLE', message: 'เชื่อมต่อบริการสรุป PDF ไม่สำเร็จ', fields: []
+      }});
+    }
+    assert.deepEqual(timeouts, [120_000, 120_000, 12_000]);
+    assert.deepEqual(calls, [['PUT', '/api/summaries/41'], ['GET', '/api/summaries/41/file'], ['GET', '/api/my-summaries']]);
   });
 });

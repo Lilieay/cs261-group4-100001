@@ -16,6 +16,7 @@
   const editFields = $('summary-editor-fields');
   const editSave = $('summary-edit-save');
   const editCancel = $('summary-edit-cancel');
+  const editRefresh = $('summary-edit-refresh');
   const editError = $('summary-editor-error');
   const courseStatus = $('summary-edit-course-status');
   const courseInput = $('summary-edit-course');
@@ -25,6 +26,7 @@
   const keepFile = $('summary-edit-keep-file');
   const dropZone = $('summary-edit-drop');
   const previewButton = $('summary-edit-preview-button');
+  const previewNewButton = $('summary-edit-preview-new');
   const preview = $('summary-edit-preview');
   const previewFrame = $('summary-edit-preview-frame');
   const previewLink = $('summary-edit-preview-open');
@@ -47,6 +49,8 @@
   let coursesRequest;
   let previewRequest;
   let previewUrl;
+  let editBlock = '';
+  let editFailure = '';
 
   function publishedDate(summary) {
     const time = Date.parse(summary.created_at);
@@ -58,7 +62,7 @@
     return `<article class="exam-card summary-owned-card">
       <div>
         <div class="badges">
-          <span class="badge code">${e(summary.course.course_code)}</span><span class="badge">สรุป PDF</span>
+          <span class="badge code">${e(summary.course.course_code)}</span><span class="badge">สรุปเนื้อหา</span>
           <span class="summary-owner-note">${e(publishedDate(summary))}</span>
         </div>
         <h3 class="exam-card-title" title="${e(summary.title)}">${e(summary.title)}</h3>
@@ -67,7 +71,7 @@
       </div>
       <div class="card-side">
         <div class="card-actions">
-          <a class="open" href="read-summary.html?${e(query.toString())}">${icon('openbook')}เปิดอ่านสรุป PDF</a>
+          <a class="open" href="read-summary.html?${e(query.toString())}">${icon('openbook')}เปิดอ่านสรุปเนื้อหา</a>
           <button type="button" data-summary-action="edit" data-summary-id="${e(summary.id)}">${icon('edit')}แก้ไขข้อมูล</button>
           <button type="button" class="delete" data-summary-action="delete" data-summary-id="${e(summary.id)}">${icon('trash')}ลบรายการ</button>
         </div>
@@ -107,15 +111,17 @@
   }
 
   async function load() {
-    if (loading) return;
+    if (loading) return false;
     loading = true;
     loadError = '';
     render();
     try {
       rows = await api.mine();
       refreshFilters();
+      return true;
     } catch (error) {
       loadError = error.message || 'โหลดรายการสรุป PDF ไม่สำเร็จ กรุณาลองใหม่';
+      return false;
     } finally {
       loading = false;
       render();
@@ -138,7 +144,8 @@
     selectedFile = message ? undefined : files[0];
     if (message) fileInput.value = '';
     $('summary-edit-file-name').textContent = selectedFile?.name || editing.file.original_name;
-    previewButton.textContent = selectedFile ? 'ดูตัวอย่างไฟล์ใหม่' : 'ดูตัวอย่างไฟล์เดิม';
+    previewButton.textContent = selectedFile ? 'ดูตัวอย่างไฟล์ที่เผยแพร่' : 'ดูตัวอย่างไฟล์เดิม';
+    previewNewButton.hidden = !selectedFile;
     keepFile.hidden = !(selectedFile || message);
     fieldError(fileInput, message);
   }
@@ -153,9 +160,8 @@
     previewUrl = undefined;
   }
 
-  previewButton.addEventListener('click', async () => {
+  async function openPreview(file) {
     if (!editor.open || busy || preview.open) return;
-    const file = selectedFile;
     const summary = editing;
     releasePreview();
     showError(previewError);
@@ -188,7 +194,10 @@
         previewStatus.hidden = true;
       }
     }
-  });
+  }
+
+  previewButton.addEventListener('click', () => openPreview());
+  previewNewButton.addEventListener('click', () => openPreview(selectedFile));
 
   preview.addEventListener('close', () => {
     if (!preview.open) releasePreview();
@@ -208,6 +217,10 @@
 
   async function openEditor(summary) {
     editing = summary;
+    editBlock = '';
+    editFailure = '';
+    editRefresh.hidden = true;
+    editSave.disabled = false;
     editForm.reset();
     for (const input of Object.values(inputs)) fieldError(input);
     showError(editError);
@@ -242,9 +255,46 @@
     for (const control of controls) control.disabled = value;
   }
 
+  function setEditBusy(value) {
+    setBusy(value, [editFields, editCancel]);
+    editSave.disabled = value || Boolean(editBlock);
+  }
+
+  const isUncertain = error => error.status === 0 || error.status >= 500;
+
+  async function verifyEditResult() {
+    editRefresh.hidden = true;
+    showError(editError, 'ยังยืนยันผลการแก้ไขไม่ได้ กำลังตรวจสอบรายการล่าสุด…');
+    if (!(await load())) {
+      showError(editError, `${editFailure} ตรวจสอบรายการล่าสุดไม่ได้ กรุณาตรวจสอบอีกครั้งก่อนบันทึกซ้ำ`);
+      editRefresh.hidden = false;
+    } else {
+      const latest = rows.find(row => row.id === editing.id);
+      editBlock = latest ? '' : 'missing';
+      if (latest) {
+        editing = latest;
+        if (!selectedFile) $('summary-edit-file-name').textContent = latest.file.original_name;
+        showError(editError, `${editFailure} โหลดรายการล่าสุดแล้ว กรุณาตรวจไฟล์ที่เผยแพร่ก่อนบันทึกอีกครั้ง`);
+      } else {
+        showError(editError, 'ไม่พบสรุปในรายการล่าสุด ข้อมูลที่กรอกยังอยู่ในฟอร์ม');
+      }
+    }
+    editError.focus();
+  }
+
+  editRefresh.addEventListener('click', async () => {
+    if (!editor.open || busy || editBlock !== 'refresh') return;
+    setEditBusy(true);
+    try {
+      await verifyEditResult();
+    } finally {
+      setEditBusy(false);
+    }
+  });
+
   async function refreshAfterFailure(error, dialog) {
     if (error.status === 401) return true;
-    const uncertain = error.status === 0 || error.status >= 500;
+    const uncertain = isUncertain(error);
     const stale = error.status === 403 || error.code === 'SUMMARY_NOT_FOUND';
     if (!uncertain && !stale) return false;
     dialog.close();
@@ -258,12 +308,11 @@
 
   editForm.addEventListener('submit', async event => {
     event.preventDefault();
-    if (!editor.open || busy) return;
-    const controls = [editFields, editSave, editCancel];
+    if (!editor.open || busy || editBlock) return;
     const courseId = Number(courseInput.value);
     const title = titleInput.value.trim();
     const description = descriptionInput.value.trim();
-    setBusy(true, controls);
+    setEditBusy(true);
     showError(editError);
     try {
       fieldError(courseInput, courseId ? '' : 'กรุณาเลือกรายวิชา');
@@ -287,6 +336,12 @@
       status.textContent = 'บันทึกการแก้ไขสรุปแล้ว';
       $('summary-list-heading').focus();
     } catch (error) {
+      if (isUncertain(error)) {
+        editBlock = 'refresh';
+        editFailure = error.message || 'ยังยืนยันผลการแก้ไขไม่ได้';
+        await verifyEditResult();
+        return;
+      }
       if (await refreshAfterFailure(error, editor)) return;
       for (const {field, message} of error.fields || []) {
         if (Object.hasOwn(inputs, field)) fieldError(inputs[field], message);
@@ -296,7 +351,7 @@
       showError(editError, error.message || 'บันทึกการแก้ไขไม่สำเร็จ');
       editError.focus();
     } finally {
-      setBusy(false, controls);
+      setEditBusy(false);
       editSave.textContent = 'บันทึกการแก้ไข';
     }
   });

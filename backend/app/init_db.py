@@ -4,9 +4,10 @@ import os
 import re
 import time
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.schema import CreateColumn
 
 from app.config import DB_CONNECTION_STRING
 from app.db import Base, SessionLocal, engine
@@ -65,9 +66,22 @@ def _ensure_database() -> None:
         master_engine.dispose()
 
 
+def _ensure_summary_exam_columns(database_engine) -> None:
+    """Add optional metadata to an existing summaries table without rewriting old rows."""
+    table = Summary.__table__
+    with database_engine.begin() as connection:
+        existing = {column["name"] for column in inspect(connection).get_columns(table.name)}
+        table_name = connection.dialect.identifier_preparer.format_table(table)
+        for name in ("academic_year", "semester", "exam_period"):
+            if name not in existing:
+                column = CreateColumn(table.c[name]).compile(dialect=connection.dialect)
+                connection.exec_driver_sql(f"ALTER TABLE {table_name} ADD {column}")
+
+
 def main() -> None:
     _ensure_database()
     Base.metadata.create_all(bind=engine)
+    _ensure_summary_exam_columns(engine)
     PDF_STORAGE_ROOT.mkdir(parents=True, exist_ok=True)
     pdf_storage = LocalPdfStorage(PDF_STORAGE_ROOT)
     if os.getenv("PDF_SCAN_ORPHANS_ON_STARTUP") == "1":

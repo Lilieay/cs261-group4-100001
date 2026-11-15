@@ -138,7 +138,7 @@
         <div class="chips"><button id="summary-clear-course" type="button" hidden></button></div>
       </aside>
       <section aria-labelledby="summary-list-heading">
-        <h2 id="summary-list-heading" tabindex="-1">รายการสรุป PDF ที่คุณเป็นเจ้าของ</h2>
+        <h2 id="summary-list-heading" tabindex="-1">รายการสรุปเนื้อหาที่คุณเป็นเจ้าของ</h2>
         <p class="status" id="summary-management-status" role="status"></p>
         <div id="my-summary-list"></div>
       </section>
@@ -262,6 +262,7 @@
       </header>
       <fieldset id="summary-editor-fields" class="summary-owner-body">
         <div id="summary-editor-error" class="summary-owner-error" role="alert" tabindex="-1" hidden></div>
+        <button id="summary-edit-refresh" type="button" class="summary-owner-link" hidden>ตรวจสอบรายการล่าสุด</button>
         <div class="summary-owner-field">
           <label for="summary-edit-course">รายวิชาประจำภาควิชา <span aria-hidden="true">*</span></label>
           <select id="summary-edit-course" required aria-describedby="summary-edit-course-error summary-edit-course-status"></select>
@@ -285,6 +286,7 @@
             </label>
             <div class="summary-edit-file-actions">
               <button id="summary-edit-preview-button" type="button" class="summary-owner-link" aria-haspopup="dialog">ดูตัวอย่างไฟล์เดิม</button>
+              <button id="summary-edit-preview-new" type="button" class="summary-owner-link" aria-haspopup="dialog" hidden>ดูตัวอย่างไฟล์ใหม่</button>
               <button id="summary-edit-keep-file" type="button" class="summary-owner-link" hidden>ใช้ไฟล์เดิม</button>
             </div>
           </div>

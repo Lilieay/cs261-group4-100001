@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>เผยแพร่สรุปข้อสอบ PDF วิชา CS | พี่จ๋า ขอแนวข้อสอบหน่อย</title>
+  <title>เผยแพร่สรุปเนื้อหารายวิชา CS | พี่จ๋า ขอแนวข้อสอบหน่อย</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,6 +16,7 @@
   <script src="/js/http-client.js" defer></script>
   <script src="/js/profile.js" defer></script>
   <script src="/js/course-api.js" defer></script>
+  <script src="/js/upload-config.js" defer></script>
   <script src="/js/summary-api.js" defer></script>
   <script src="/js/upload-summary.js" defer></script>
 </head>
@@ -42,10 +43,10 @@
     <div class="publish-content">
       <nav class="summary-tabs" aria-label="ประเภทเอกสารที่จะเผยแพร่">
         <a href="upload.html"><svg class="icon" aria-hidden="true"><use href="/assets/icons/navbar.svg#i-upload"/></svg>เผยแพร่แนวข้อสอบวิชา CS</a>
-        <a href="upload-summary.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="/assets/icons/navbar.svg#i-shared"/></svg>เผยแพร่สรุปข้อสอบ PDF</a>
+        <a href="upload-summary.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="/assets/icons/navbar.svg#i-shared"/></svg>เผยแพร่สรุปเนื้อหารายวิชา CS</a>
       </nav>
       <div class="page-header">
-        <h1>เผยแพร่สรุปข้อสอบ PDF วิชา CS</h1>
+        <h1>เผยแพร่สรุปเนื้อหารายวิชา CS</h1>
         <p>แบ่งปันสรุปของคุณให้เพื่อนนักศึกษามหาวิทยาลัยธรรมศาสตร์ กรุณากรอกข้อมูลที่มี <span class="required">*</span> ให้ครบถ้วน</p>
       </div>
       <noscript><p class="publish-notice">กรุณาเปิด JavaScript เพื่อเผยแพร่สรุป PDF</p></noscript>
@@ -97,9 +98,46 @@
               </div>
             </div>
             <div class="form-column">
-              <div class="form-group full-height">
+              <div class="form-group">
+                <label for="summary-year">ปีการศึกษา <span class="required" aria-hidden="true">*</span></label>
+                <div class="select-wrapper">
+                  <select id="summary-year" name="academic_year" required aria-describedby="summary-year-error">
+                    <option value="">เลือกปีการศึกษา</option>
+                  </select>
+                  <svg class="icon select-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+                <small class="upload-field-error" id="summary-year-error" hidden></small>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="summary-semester">ภาคเรียน <span class="required" aria-hidden="true">*</span></label>
+                  <div class="select-wrapper">
+                    <select id="summary-semester" name="semester" required aria-describedby="summary-semester-error">
+                      <option value="">เลือกภาคเรียน</option>
+                      <option value="1">ภาคเรียนที่ 1</option>
+                      <option value="2">ภาคเรียนที่ 2</option>
+                      <option value="3">ภาคฤดูร้อน</option>
+                    </select>
+                    <svg class="icon select-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                  </div>
+                  <small class="upload-field-error" id="summary-semester-error" hidden></small>
+                </div>
+                <div class="form-group">
+                  <label for="summary-period">ช่วงการสอบ <span class="required" aria-hidden="true">*</span></label>
+                  <div class="select-wrapper">
+                    <select id="summary-period" name="exam_period" required aria-describedby="summary-period-error">
+                      <option value="">เลือกช่วงการสอบ</option>
+                      <option value="midterm">กลางภาค (Midterm)</option>
+                      <option value="final">ปลายภาค (Final)</option>
+                    </select>
+                    <svg class="icon select-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                  </div>
+                  <small class="upload-field-error" id="summary-period-error" hidden></small>
+                </div>
+              </div>
+              <div class="form-group">
                 <label for="summary-description">ข้อมูลประกอบ</label>
-                <textarea id="summary-description" name="description" rows="9" placeholder="คำแนะนำ" aria-describedby="summary-description-error"></textarea>
+                <textarea id="summary-description" name="description" rows="4" placeholder="คำแนะนำ" aria-describedby="summary-description-error"></textarea>
                 <small class="upload-field-error" id="summary-description-error" hidden></small>
               </div>
             </div>
