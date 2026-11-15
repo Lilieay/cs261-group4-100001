@@ -5,13 +5,14 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 
 from app.config import PDF_MAX_BYTES
 from app.dependencies import current_user, get_summary_service
 from app.routers.summary_errors import SummaryApiRoute
-from app.schemas.summaries import CourseSummaryListResponse, SummaryDTO
+from app.schemas.summaries import CourseSummaryListResponse, SummaryDTO, SummaryExamMetadata
 from app.services.auth import AuthenticatedUser
 from app.services.pdf_validator import PdfValidationError
 from app.services.summaries import SummaryService
@@ -34,6 +35,23 @@ def parse_summary_id(value: str, source: str, field: str) -> int:
     }])
 
 
+def parse_exam_metadata(values: dict) -> SummaryExamMetadata | None:
+    fields = {name: values[name] for name in SummaryExamMetadata.model_fields if name in values}
+    if not fields:
+        return None
+    for name in ("academic_year", "semester"):
+        value = fields.get(name)
+        if isinstance(value, str) and re.fullmatch(r"[0-9]{1,4}", value):
+            fields[name] = int(value)
+    try:
+        return SummaryExamMetadata.model_validate(fields)
+    except ValidationError as error:
+        raise RequestValidationError([
+            {**item, "loc": ("body", *item["loc"])}
+            for item in error.errors(include_input=False, include_context=False)
+        ]) from error
+
+
 @router.post("/api/summaries", response_model=SummaryDTO, status_code=201)
 async def publish_summary(
     request: Request,
@@ -47,7 +65,7 @@ async def publish_summary(
         raise HTTPException(415)
 
     async with request.form() as form:
-        allowed = {"course_id", "title", "description", "file"}
+        allowed = {"course_id", "title", "description", "file"} | SummaryExamMetadata.model_fields.keys()
         items = form.multi_items()
         names = [name for name, _value in items]
         if (
@@ -56,7 +74,7 @@ async def publish_summary(
                 names.count(required) != 1
                 for required in ("course_id", "title", "file")
             )
-            or names.count("description") > 1
+            or len(names) != len(set(names))
         ):
             raise PdfValidationError(
                 "INVALID_PARAMETERS",
@@ -78,6 +96,7 @@ async def publish_summary(
                 "INVALID_PARAMETERS", "ชนิดข้อมูลของ multipart part ไม่ถูกต้อง"
             )
         course_id = parse_summary_id(raw_course_id, "body", "course_id")
+        exam_metadata = parse_exam_metadata(values)
 
         content = await file.read(PDF_MAX_BYTES + 1)
         return await run_in_threadpool(
@@ -89,6 +108,7 @@ async def publish_summary(
             content_type=file.content_type,
             content=content,
             authenticated_user=user_context[1],
+            exam_metadata=exam_metadata,
         )
 
 

@@ -39,3 +39,20 @@ test('transport timeout covers response-body reading and callers can still cance
   controller.abort();
   await assert.rejects(pending, /aborted/);
 });
+
+test('summary client gives PDF upload, replacement and reading the same 120-second deadline', async () => {
+  const calls = [];
+  const file = new File(['%PDF-example'], 'original.pdf', {type: 'application/pdf'});
+  const summary = {id: 41, course: {id: 2, course_code: 'CS261'}, title: 'Summary',
+    owner: {id: 1, display_name: 'Student'}, file: {original_name: file.name, read_path: '/api/summaries/41/file'}};
+  const window = {HttpClient: {token: () => 'session', request: async (url, options) => {
+    calls.push(options.timeoutMs);
+    return {response: {status: 200, ok: true}, payload: url.endsWith('/file') ? file : summary};
+  }}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/summary-api.js'), 'utf8'),
+    {window, FormData, URLSearchParams});
+  await window.SummaryApi.publish(2, 'Summary', '', file);
+  await window.SummaryApi.update(41, 2, 'Summary', '', file);
+  await window.SummaryApi.openFile(41);
+  assert.deepEqual(calls, [120_000, 120_000, 120_000]);
+});

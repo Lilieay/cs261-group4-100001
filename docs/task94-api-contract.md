@@ -80,7 +80,12 @@ POST /api/summaries ใช้ multipart/form-data ช่องข้อมูล
 | course_id | form text | บังคับ เป็นเลขฐานสิบจำนวนเต็มบวกในช่วง ID และเป็นวิชา CS ที่มีอยู่ Backend แปลงเป็น integer ไม่รับทศนิยมหรือเลขรูปแบบ exponent |
 | title | form text | บังคับ หลัง trim ยาว 1 ถึง 200 ตัวอักษร |
 | description | form text | ไม่บังคับ หลัง trim ไม่เกิน 2,000 ตัวอักษร ไม่ส่งหรือช่องว่างล้วนจัดเก็บเป็น null |
+| academic_year | form text | ปีการศึกษา พ.ศ. 2566 ถึง 2569 ตามตัวเลือกในฟอร์มแนวข้อสอบ |
+| semester | form text | ภาคเรียน 1, 2 หรือ 3 โดย 3 คือภาคฤดูร้อน |
+| exam_period | form text | midterm หรือ final |
 | file | binary file | บังคับหนึ่งไฟล์ เงื่อนไข PDF ตามส่วน U6 |
+
+ฟอร์มเผยแพร่บนเว็บต้องส่งปีการศึกษา ภาคเรียน และช่วงสอบครบทั้งสามค่า API ยังรับคำขอรุ่นเดิมที่ไม่ส่งทั้งสามช่องและเก็บเป็น null หากส่งอย่างน้อยหนึ่งช่องต้องส่งให้ครบและถูกต้องทุกค่า
 
 ### คำขอแก้ไข SummaryUpdateForm
 
@@ -101,6 +106,9 @@ PUT ใช้ multipart/form-data ต้องส่ง course_id และ titl
 | course | CourseRefDTO | {id, course_code, course_name} ทั้งรหัสและชื่อวิชาเป็น string |
 | title | string | ชื่อสรุปหลัง normalize |
 | description | string หรือ null | ข้อมูลประกอบ |
+| academic_year | integer หรือ null | ปีการศึกษา พ.ศ. |
+| semester | integer หรือ null | ภาคเรียน 1, 2 หรือ 3 |
+| exam_period | string หรือ null | midterm หรือ final |
 | owner | PublicUserDTO | {id, display_name} ไม่ส่ง username หรือข้อมูล Login |
 | file | SummaryFileDTO | {original_name, content_type, size_bytes, read_path} |
 | created_at<br>updated_at | string | เวลาสร้างและแก้ไข metadata ครั้งล่าสุด แบบ UTC |
@@ -108,6 +116,8 @@ PUT ใช้ multipart/form-data ต้องส่ง course_id และ titl
 PublicUserDTO = {id: integer, display_name: string} ส่วน SummaryFileDTO มี original_name เป็น string ชื่อไฟล์ที่ตัด path และอักขระควบคุมแล้ว content_type เป็น string ค่า application/pdf size_bytes เป็น integer มากกว่า 0 และ read_path เป็น string ค่า /api/summaries/{summary_id}/file ไม่ส่ง storage path หรือ public URL
 
 SummaryListResponse = {items: SummaryDTO[]} และ CourseSummaryListResponse = {course_id: integer, items: SummaryDTO[]} เรียง created_at จากใหม่ไปเก่า แล้ว id จากมากไปน้อย ไม่เปลี่ยนลำดับเมื่อแก้ไขชื่อ
+
+แท็บสรุปกรองสามช่องจากรายการที่โหลดตามรายวิชา ค่า null ของสรุปเดิมจะแสดงเมื่อไม่เลือกเงื่อนไขสำหรับช่องนั้น การแก้ไขด้วย SummaryUpdateForm คงค่าทั้งสามช่องเดิมไว้
 
 ## 3 U6 เผยแพร่และเปิดอ่านสรุป
 

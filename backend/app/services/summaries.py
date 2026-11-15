@@ -17,6 +17,7 @@ from app.schemas.summaries import (
     CourseSummaryListResponse,
     SummaryCourseDTO,
     SummaryDTO,
+    SummaryExamMetadata,
     SummaryFileDTO,
     SummaryOwnerDTO,
 )
@@ -70,6 +71,7 @@ class SummaryService:
         content_type: str | None,
         content: bytes,
         authenticated_user: AuthenticatedUser,
+        exam_metadata: SummaryExamMetadata | None = None,
     ) -> SummaryDTO:
         normalized_title = title.strip()
         normalized_description = (description or "").strip() or None
@@ -113,6 +115,7 @@ class SummaryService:
                 owner_pk,
                 normalized_title,
                 normalized_description,
+                **(exam_metadata.model_dump() if exam_metadata else {}),
             )
             summary_file = self.summary_file_dao.create(
                 summary_id=summary.id,
@@ -235,6 +238,9 @@ class SummaryService:
             ),
             title=summary.title,
             description=summary.description,
+            academic_year=summary.academic_year,
+            semester=summary.semester,
+            exam_period=summary.exam_period,
             owner=SummaryOwnerDTO(
                 id=owner.id, display_name=format_publisher_name(owner)
             ),

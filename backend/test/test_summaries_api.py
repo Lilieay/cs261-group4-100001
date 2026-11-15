@@ -185,6 +185,7 @@ class SummaryApiTests(unittest.TestCase):
         self.assertEqual(created.status_code, 201, created.text)
         self.assertEqual(created.headers["cache-control"], "no-store")
         body = created.json()
+        self.assertIsNone(body["academic_year"])
         self.assertEqual(body["title"], "สรุป Task110")
         self.assertEqual(body["created_at"], body["updated_at"])
         self.assertEqual(body["course"]["course_code"], "CS261")
@@ -246,6 +247,44 @@ class SummaryApiTests(unittest.TestCase):
                     error = response.json()["error"]
                     self.assertEqual(error["code"], "INVALID_PARAMETERS")
                     self.assertEqual(error["fields"][0]["field"], field)
+
+    def test_exam_metadata_persists_in_summary_list_and_requires_all_three_values(self):
+        headers = self.headers_for()
+        missing = self.publish(headers, academic_year="2569")
+        self.assertEqual(missing.status_code, 422)
+        invalid = self.publish(headers, academic_year="2569", semester="4", exam_period="final")
+        self.assertEqual(invalid.status_code, 422)
+
+        created = self.publish(headers, academic_year="2569", semester="2", exam_period="final")
+        self.assertEqual(created.status_code, 201, created.text)
+        listed = self.client.get(f"/api/courses/{self.cs_course_id}/summaries", headers=headers)
+        self.assertEqual(listed.status_code, 200, listed.text)
+        row, = listed.json()["items"]
+        self.assertEqual(row["id"], created.json()["id"])
+        self.assertEqual((row["academic_year"], row["semester"], row["exam_period"]), (2569, 2, "final"))
+        edited = self.client.put(
+            f"/api/summaries/{row['id']}", headers=headers,
+            files={"course_id": (None, str(self.cs_course_id)), "title": (None, "Edited title")},
+        )
+        self.assertEqual(edited.status_code, 200, edited.text)
+        body = edited.json()
+        self.assertEqual((body["academic_year"], body["semester"], body["exam_period"]), (2569, 2, "final"))
+
+    def test_existing_table_gets_nullable_exam_columns_without_rewriting_rows(self):
+        from app.init_db import _ensure_summary_exam_columns
+
+        database = create_engine("sqlite://")
+        with database.begin() as connection:
+            connection.exec_driver_sql("CREATE TABLE summaries (id INTEGER PRIMARY KEY, title TEXT)")
+            connection.exec_driver_sql("INSERT INTO summaries VALUES (1, 'original')")
+        _ensure_summary_exam_columns(database)
+        _ensure_summary_exam_columns(database)
+        with database.connect() as connection:
+            row = connection.exec_driver_sql(
+                "SELECT title, academic_year, semester, exam_period FROM summaries WHERE id = 1"
+            ).one()
+        self.assertEqual(tuple(row), ("original", None, None, None))
+        database.dispose()
 
     def test_list_returns_empty_items_for_course_without_summaries(self):
         response = self.client.get(

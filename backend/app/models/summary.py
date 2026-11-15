@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Unicode,
     UniqueConstraint,
@@ -53,6 +54,9 @@ class Summary(Base):
     )
     title: Mapped[str] = mapped_column(Unicode(400), nullable=False)
     description: Mapped[str | None] = mapped_column(Unicode(4000), nullable=True)
+    academic_year: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    semester: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    exam_period: Mapped[str | None] = mapped_column(String(10), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         _UTC_DATETIME, nullable=False, default=utc_now_naive
     )

@@ -48,7 +48,9 @@ def test_response_filters_private_storage_and_account_data(summary_payload):
     assert set(body) == {
         "id", "course", "title", "description", "owner", "file",
         "created_at", "updated_at",
+        "academic_year", "semester", "exam_period",
     }
+    assert all(body[field] is None for field in ("academic_year", "semester", "exam_period"))
     assert body["owner"] == {"id": 11, "display_name": "Test author"}
     assert body["file"] == {
         "original_name": "summary.pdf",

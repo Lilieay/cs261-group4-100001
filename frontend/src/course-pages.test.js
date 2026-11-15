@@ -67,7 +67,7 @@ test('U6 lists summaries using the selected course and discards a guide response
     }}
   });
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(get('#filters').hidden, true);
+  assert.equal(get('#filters').hidden, false);
   assert.match(get('#documentList').innerHTML, /สรุป &lt;CS261&gt;/);
   assert.match(get('#documentList').innerHTML, /read-summary\.html\?summary=41/);
 
@@ -80,6 +80,35 @@ test('U6 lists summaries using the selected course and discards a guide response
   assert.deepEqual(summaryCalls, [7, 7]);
   assert.match(get('#documentList').innerHTML, /ผู้เผยแพร่/);
   assert.doesNotMatch(get('#documentList').innerHTML, /Stale guide/);
+});
+
+test('summary filters combine year, semester and exam period while keeping old uploads in all results', async () => {
+  const owner = {display_name: 'ผู้เผยแพร่'};
+  const rows = [
+    {id: 1, title: 'Old upload', owner},
+    {id: 2, title: 'Match', academic_year: 2569, semester: 2, exam_period: 'final', owner},
+    {id: 3, title: 'Other semester', academic_year: 2569, semester: 1, exam_period: 'final', owner},
+    {id: 4, title: 'Other year', academic_year: 2568, semester: 2, exam_period: 'final', owner},
+    {id: 5, title: 'Other period', academic_year: 2569, semester: 2, exam_period: 'midterm', owner}
+  ];
+  const {get} = runPage('choose-courses.js', {
+    url: 'http://frontend/choose-courses.html?courseId=7&type=summaries',
+    api: {getCourse: async () => ({id: 7, code: 'CS261', name: 'Software Engineering'})},
+    summaryApi: {list: async () => rows}
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(get('#documentList').innerHTML, /Old upload/);
+  assert.match(get('#yearFilter').innerHTML, /2568/);
+  assert.match(get('#periodFilter').innerHTML, /ปลายภาค/);
+  get('#yearFilter').value = '2569';
+  get('#semesterFilter').value = '2';
+  get('#periodFilter').value = 'ปลายภาค';
+  get('#periodFilter').listeners.change();
+  assert.equal(get('#resultCount').textContent, 'พบ 1 เอกสาร');
+  assert.match(get('#documentList').innerHTML, /Match/);
+  assert.doesNotMatch(get('#documentList').innerHTML, /Old upload|Other/);
+  get('#clearFilters').listeners.click();
+  assert.equal(get('#resultCount').textContent, 'พบ 5 เอกสาร');
 });
 
 test('course search page keeps the newest response when an older search finishes last', async () => {

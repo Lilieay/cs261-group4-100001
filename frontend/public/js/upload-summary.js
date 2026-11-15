@@ -23,7 +23,13 @@
   const courseLink = $('summary-upload-course-link');
   const retryCourses = $('summary-courses-retry');
   const verify = $('summary-verify');
-  const inputs = {course_id: courseInput, title: titleInput, description: descriptionInput, file: fileInput};
+  const examInputs = {
+    academic_year: [$('summary-year'), 'ปีการศึกษา'],
+    semester: [$('summary-semester'), 'ภาคเรียน'],
+    exam_period: [$('summary-period'), 'ช่วงการสอบ']
+  };
+  const inputs = {course_id: courseInput, title: titleInput, description: descriptionInput, file: fileInput,
+    ...Object.fromEntries(Object.entries(examInputs).map(([name, [input]]) => [name, input]))};
   const summaryApi = window.SummaryApi;
   let courses = [];
   let selectedFile;
@@ -72,11 +78,7 @@
 
   function chooseFile(files) {
     const [file] = files;
-    let message = '';
-    if (files.length > 1) message = 'กรุณาแนบไฟล์ PDF เพียงหนึ่งไฟล์';
-    else if (file && (!/\.pdf$/i.test(file.name) || (file.type && file.type !== 'application/pdf') || !file.size)) {
-      message = 'กรุณาเลือกไฟล์ PDF ที่เปิดอ่านได้';
-    } else if (file?.size > summaryApi.MAX_PDF_BYTES) message = 'ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MB';
+    const message = summaryApi.pdfSelectionError(files);
 
     selectedFile = message ? undefined : file;
     if (message) fileInput.value = '';
@@ -86,19 +88,10 @@
     fieldError(fileInput, message);
   }
 
-  async function pdfError(file) {
-    try {
-      if (await file.slice(0, 5).text() !== '%PDF-') return 'ไฟล์นี้ไม่ใช่ PDF ที่ถูกต้อง';
-      return '';
-    } catch (_) {
-      return 'อ่านไฟล์นี้ไม่ได้ กรุณาเลือกไฟล์อีกครั้ง';
-    }
-  }
-
   previewButton.addEventListener('click', async () => {
     const file = selectedFile;
     if (!file || fields.disabled || preview.open) return;
-    const message = await pdfError(file);
+    const message = await summaryApi.pdfSignatureError(file);
     if (file !== selectedFile || fields.disabled || preview.open) return;
     if (message) {
       fieldError(fileInput, message);
@@ -135,15 +128,18 @@
     if (id) readLink.href = `read-summary.html?summary=${id}`;
   }
 
-  async function validate(course, title, description) {
+  async function validate(course, title, description, examMetadata) {
     if (!course) fieldError(courseInput, 'กรุณาเลือกรายวิชา CS');
     if (!title || [...title].length > 200) fieldError(titleInput, 'กรุณากรอกชื่อสรุปความยาว 1 ถึง 200 ตัวอักษร');
     if ([...description].length > 2000) fieldError(descriptionInput, 'ข้อมูลประกอบต้องไม่เกิน 2,000 ตัวอักษร');
+    for (const [name, [input, label]] of Object.entries(examInputs)) {
+      if (!examMetadata[name]) fieldError(input, `กรุณาเลือก${label}`);
+    }
     if (!selectedFile && fileInput.getAttribute('aria-invalid') !== 'true') {
       fieldError(fileInput, 'กรุณาแนบไฟล์ PDF');
     }
     if (selectedFile) {
-      const message = await pdfError(selectedFile);
+      const message = await summaryApi.pdfSignatureError(selectedFile);
       if (message) fieldError(fileInput, message);
     }
     return form.querySelector('[aria-invalid="true"]');
@@ -155,10 +151,11 @@
     const course = courses.find(item => item.id === Number(courseInput.value));
     const title = titleInput.value.trim();
     const description = descriptionInput.value.trim();
+    const examMetadata = Object.fromEntries(Object.entries(examInputs).map(([name, [input]]) => [name, input.value]));
     fields.disabled = true;
     showError();
     result.hidden = true;
-    const invalid = await validate(course, title, description);
+    const invalid = await validate(course, title, description, examMetadata);
     if (invalid) {
       fields.disabled = false;
       invalid.focus();
@@ -167,14 +164,14 @@
 
     status.textContent = 'กำลังเผยแพร่สรุป…';
     try {
-      const summary = await summaryApi.publish(course.id, title, description, selectedFile);
+      const summary = await summaryApi.publish(course.id, title, description, selectedFile, examMetadata);
       $('summary-success-name').textContent = summary.title;
       $('summary-success-read').href = `read-summary.html?summary=${summary.id}`;
       success.showModal();
     } catch (error) {
       if (error.status === 401) return;
       if (error.status === 0 || [502, 504].includes(error.status)) {
-        pendingCheck = {course, title, description, file: selectedFile};
+        pendingCheck = {course, title, description, file: selectedFile, examMetadata};
         showResult('ยังยืนยันผลไม่ได้ กรุณาตรวจสอบรายการของคุณก่อนส่งอีกครั้งเพื่อเลี่ยงรายการซ้ำ', course);
         verify.hidden = false;
         verify.focus();
@@ -194,13 +191,14 @@
   }
 
   verify.addEventListener('click', async () => {
-    const {course, title, description, file} = pendingCheck;
+    const {course, title, description, file, examMetadata} = pendingCheck;
     verify.disabled = true;
     resultMessage.textContent = 'กำลังตรวจรายการสรุปของคุณในรายวิชา…';
     try {
       const summaries = await summaryApi.list(course.id);
       const match = summaries.find(item => item.owner.id === user.id && item.title === title
-        && (item.description || '') === description && item.file.size_bytes === file.size);
+        && (item.description || '') === description && item.file.size_bytes === file.size
+        && Object.entries(examMetadata).every(([name, value]) => String(item[name]) === value));
       if (match) {
         showResult('พบสรุปของคุณที่ตรงกับข้อมูลที่ส่ง กรุณาเปิดเพื่อตรวจสอบ', course, match.id);
         readLink.focus();
@@ -219,7 +217,7 @@
   });
 
   fileInput.addEventListener('change', () => chooseFile(fileInput.files));
-  for (const input of [courseInput, titleInput, descriptionInput]) {
+  for (const input of Object.values(inputs).filter(input => input !== fileInput)) {
     input.addEventListener('input', () => fieldError(input));
   }
   for (const name of ['dragenter', 'dragover']) {
@@ -244,5 +242,6 @@
     if (user) loadCourses();
     else window.location.reload();
   });
+  for (const year of window.GuidePublishConfig.academicYears) $('summary-year').add(new Option(year, year));
   loadCourses();
 })();

@@ -160,6 +160,7 @@
     render();
   });
   const tabs = [$('#exams-tab'), $('#summaries-tab')];
+  let guidesStarted = false;
   function selectTab(selected) {
     tabs.forEach((tab, index) => {
       const active = index === selected;
@@ -167,17 +168,29 @@
       tab.tabIndex = active ? 0 : -1;
       document.getElementById(tab.getAttribute('aria-controls')).hidden = !active;
     });
+    if (selected === 1) window.MySummaries?.load();
+    else if (!guidesStarted) {
+      guidesStarted = true;
+      loadMyGuides();
+    }
+  }
+  function switchTab(selected) {
+    if (tabs[selected].getAttribute('aria-selected') === 'true') return;
+    selectTab(selected);
+    const url = new URL(window.location.href);
+    if (selected === 1) url.searchParams.set('type', 'summaries');
+    else url.searchParams.delete('type');
+    window.history.replaceState(null, '', url);
   }
   tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => selectTab(index));
+    tab.addEventListener('click', () => switchTab(index));
     tab.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index;
-      selectTab(next);
+      switchTab(next);
       tabs[next].focus();
     });
   });
-  render();
-  loadMyGuides();
+  selectTab(new URLSearchParams(window.location.search).get('type') === 'summaries' ? 1 : 0);
 })();
