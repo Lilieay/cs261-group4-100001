@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คะแนนรีวิว | CS261</title>
+  <link rel="stylesheet" href="../css/reviews-list.css">
+</head>
+<body>
+  <main class="modal-stage">
+    <section class="review-modal reviews-modal" role="dialog" aria-labelledby="reviews-title">
+      <header class="modal-header">
+        <span class="header-icon" aria-hidden="true">★</span>
+        <div class="header-copy">
+          <h1 id="reviews-title">คะแนนรีวิว</h1>
+          <p>ความคิดเห็นจากเพื่อน ๆ ที่เคยอ่านเอกสารนี้</p>
+        </div>
+        <button class="back-button" type="button" aria-label="ย้อนกลับ">←</button>
+      </header>
+
+      <div class="modal-body">
+        <section class="review-overview" aria-label="สรุปคะแนนรีวิว">
+          <div class="course-summary">
+            <p class="course-code">CS261 · Data Structures and Algorithms</p>
+            <h2>แนวข้อสอบปลายภาค CS261 Data Structures &amp; Algorithms ปีการศึกษา 2567</h2>
+          </div>
+
+          <div class="score-summary">
+            <strong class="average-score">4.5</strong>
+            <div class="average-stars" aria-label="คะแนนเฉลี่ย 4.5 จาก 5 ดาว">★★★★<span>☆</span></div>
+            <strong class="review-total">30 รีวิว</strong>
+          </div>
+        </section>
+
+        <section class="reviews-section" aria-labelledby="review-list-title">
+          <div class="section-heading">
+            <h2 id="review-list-title">รีวิวและความคิดเห็น</h2>
+            <span class="review-filter">ทั้งหมด</span>
+          </div>
+
+          <article class="review-item">
+            <div class="review-meta">
+              <h3>สุดารัตน์ พานิช</h3>
+              <span class="review-stars" aria-label="4 จาก 5 ดาว">★★★★<span>☆</span></span>
+            </div>
+            <p>แนวข้อสอบค่อนข้างครบถ้วน ช่วยให้เตรียมตัวอ่านหนังสือได้ง่ายขึ้น</p>
+          </article>
+
+          <article class="review-item">
+            <div class="review-meta">
+              <h3>กฤษณะ เกตุแก้ว</h3>
+              <span class="review-stars" aria-label="3 จาก 5 ดาว">★★★<span>☆☆</span></span>
+            </div>
+            <p>สรุปเนื้อหาได้ดี แต่อยากให้เพิ่มตัวอย่างโจทย์อีกเล็กน้อย</p>
+          </article>
+
+          <article class="review-item">
+            <div class="review-meta">
+              <h3>พงษ์ชัย อินทร์ทอง</h3>
+              <span class="review-stars" aria-label="5 จาก 5 ดาว">★★★★★</span>
+            </div>
+            <p>เนื้อหาครอบคลุมและอ่านเข้าใจง่าย เหมาะสำหรับใช้ทบทวนก่อนสอบ</p>
+          </article>
+
+          <article class="review-item">
+            <div class="review-meta">
+              <h3>ณัฐวุฒิ แซ่ตั้ง</h3>
+              <span class="review-stars" aria-label="5 จาก 5 ดาว">★★★★★</span>
+            </div>
+            <p>ช่วยจัดลำดับหัวข้อที่ควรอ่านได้ดี ใช้ประกอบการเตรียมสอบได้จริง</p>
+          </article>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

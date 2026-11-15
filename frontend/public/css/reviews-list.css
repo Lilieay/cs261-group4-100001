@@ -1,0 +1,265 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: "Noto Sans Thai", "Tahoma", sans-serif;
+  color: #202536;
+  background: #383838;
+  font-synthesis: none;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.modal-stage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+  background: #383838;
+}
+
+.review-modal {
+  width: min(100%, 470px);
+  max-height: min(760px, calc(100vh - 40px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e8c7d0;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgb(0 0 0 / 18%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 18px 18px 16px;
+  background: #f0f1ff;
+}
+
+.header-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  color: #c9163b;
+  background: #e1e5f5;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.header-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.modal-header h1 {
+  margin: 0 0 3px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.modal-header p {
+  margin: 0;
+  color: #8790a5;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.back-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: #171b25;
+  background: #fff;
+  border: 2px solid #171b25;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.modal-body {
+  min-height: 0;
+  padding: 16px 17px 18px;
+  overflow-y: auto;
+}
+
+.review-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e4eb;
+}
+
+.course-summary {
+  padding: 12px 13px;
+  border-radius: 6px;
+  background: #f0f1ff;
+}
+
+.course-code {
+  margin: 0 0 5px;
+  color: #68728d;
+  font-size: 10px;
+}
+
+.course-summary h2 {
+  margin: 0;
+  color: #202536;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.score-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.average-score {
+  color: #111;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.average-stars,
+.review-stars {
+  color: #c9163b;
+  font-size: 18px;
+  letter-spacing: -2px;
+  white-space: nowrap;
+}
+
+.average-stars span,
+.review-stars span {
+  color: #9297a4;
+}
+
+.review-total {
+  color: #111;
+  font-size: 14px;
+}
+
+.reviews-section {
+  padding-top: 13px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.review-filter {
+  padding: 4px 8px;
+  color: #8d94a5;
+  border: 1px solid #e4e7ef;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.review-item {
+  padding: 13px 3px 12px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.review-item:last-child {
+  border-bottom: 0;
+}
+
+.review-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+
+.review-meta h3 {
+  margin: 0;
+  color: #202536;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.review-stars {
+  font-size: 13px;
+  letter-spacing: -1px;
+}
+
+.review-item p {
+  margin: 0;
+  color: #8991a3;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.back-button:focus-visible {
+  outline: 2px solid #536b9a;
+  outline-offset: 3px;
+}
+
+@media (max-width: 440px) {
+  .modal-stage {
+    padding: 10px;
+  }
+
+  .review-modal {
+    max-height: calc(100vh - 20px);
+  }
+
+  .modal-header {
+    padding: 15px;
+  }
+
+  .modal-body {
+    padding: 13px;
+  }
+
+  .review-overview {
+    grid-template-columns: minmax(0, 1fr) 88px;
+    gap: 8px;
+  }
+
+  .average-score {
+    font-size: 26px;
+  }
+
+  .average-stars {
+    font-size: 16px;
+  }
+
+  .course-summary {
+    padding: 10px;
+  }
+
+  .course-summary h2 {
+    font-size: 11px;
+  }
+}

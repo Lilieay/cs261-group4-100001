@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ให้คะแนนรีวิว | CS261</title>
+  <link rel="stylesheet" href="../css/rate-review.css">
+</head>
+<body>
+  <main class="modal-stage">
+    <section class="review-modal rate-modal" role="dialog" aria-labelledby="rate-title" aria-describedby="rate-description">
+      <header class="modal-header">
+        <span class="header-icon" aria-hidden="true">★</span>
+        <div>
+          <h1 id="rate-title">ให้คะแนนรีวิว</h1>
+          <p id="rate-description">แบ่งปันความคิดเห็น เพื่อช่วยเพื่อนเลือกอ่านเอกสาร</p>
+        </div>
+      </header>
+
+      <div class="modal-body">
+        <section class="course-summary" aria-label="เอกสารที่กำลังรีวิว">
+          <p class="course-code">CS261 · Data Structures and Algorithms</p>
+          <h2>แนวข้อสอบปลายภาค CS261 Data Structures &amp; Algorithms ปีการศึกษา 2567</h2>
+        </section>
+
+        <form class="review-form">
+          <fieldset class="rating-field">
+            <legend>คะแนนของคุณ <span class="required">*</span></legend>
+            <div class="star-picker" role="radiogroup" aria-label="เลือกคะแนน 1 ถึง 5 ดาว">
+              <input type="radio" name="rating" id="star-5" value="5">
+              <label for="star-5" aria-label="5 ดาว">★</label>
+
+              <input type="radio" name="rating" id="star-4" value="4" checked>
+              <label for="star-4" aria-label="4 ดาว">★</label>
+
+              <input type="radio" name="rating" id="star-3" value="3">
+              <label for="star-3" aria-label="3 ดาว">★</label>
+
+              <input type="radio" name="rating" id="star-2" value="2">
+              <label for="star-2" aria-label="2 ดาว">★</label>
+
+              <input type="radio" name="rating" id="star-1" value="1">
+              <label for="star-1" aria-label="1 ดาว">★</label>
+            </div>
+            <p class="rating-value">4 / 5 คะแนน</p>
+            <div class="rating-hints">
+              <span>1 = ควรปรับปรุง</span>
+              <span>5 = ดีเยี่ยม</span>
+            </div>
+          </fieldset>
+
+          <div class="comment-field">
+            <label for="review-comment">ความคิดเห็น <span class="optional">(ไม่บังคับ)</span></label>
+            <textarea id="review-comment" name="comment" rows="4"
+              placeholder="บอกเพื่อน ๆ ว่าเอกสารนี้มีประโยชน์อย่างไร..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <footer class="modal-footer">
+        <button class="button button-secondary" type="button">ยกเลิก</button>
+        <button class="button button-primary" type="button">ส่งคะแนน</button>
+      </footer>
+    </section>
+  </main>
+</body>
+</html>
