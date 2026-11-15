@@ -1,6 +1,6 @@
 # Task101 U7 Sequence Diagram
 
-รุ่น 0.2 | วันที่ 10 พฤศจิกายน 2569 | แบบเสนอสำหรับ review ยังไม่ใช่ flow ที่ implement แล้ว
+รุ่น 0.3 | วันที่ 15 พฤศจิกายน 2569 | แบบเสนอสำหรับ review ยังไม่ใช่ flow ที่ implement แล้ว
 
 แต่ละภาพแสดงเส้นทางสำเร็จเป็นหลัก รวม Router, DTO และ Service เป็นช่อง API เดียวเพื่อให้อ่านลำดับได้ง่าย DAO, SQL และ storage ยังแยกหน้าที่ชัดเจน กรณีผิดพลาดอยู่ในตารางใต้ภาพ เมื่อพบข้อผิดพลาดให้หยุดเส้นทางสำเร็จ ณ ขั้นที่เกี่ยวข้อง
 
@@ -8,25 +8,9 @@
 
 ## 1 ดูรายการสรุปของฉัน
 
-[ต้นฉบับ Mermaid](diagrams/task101-my-list.mmd)
+![ดูรายการสรุปของฉัน](diagrams/task101-my-list.png)
 
-```mermaid
-sequenceDiagram
-    actor Student as นักศึกษา
-    participant UI as หน้าสรุปของฉัน
-    participant API as API / DTO / Service
-    participant DAO as MySummaryDAO
-    participant SQL as SQL Server
-    Student->>UI: เปิดหน้าสรุปของฉัน
-    UI->>API: GET /api/my-summaries + token
-    API->>API: ตรวจ Login และระบุเจ้าของจาก session
-    API->>DAO: list_owned(owner_id)
-    DAO->>SQL: SELECT ของเจ้าของ เรียงใหม่ไปเก่า
-    SQL-->>DAO: รายการสรุป หรือรายการว่าง
-    DAO-->>API: Summary records
-    API-->>UI: 200 items
-    UI-->>Student: แสดงรายการ หรือทางไปเผยแพร่เมื่อยังไม่มีสรุป
-```
+[ต้นฉบับ Mermaid](diagrams/task101-my-list.mmd)
 
 ภาพนี้อ่านเฉพาะ metadata จึงไม่เรียก storage และไม่มีการเขียนข้อมูล
 
@@ -39,35 +23,9 @@ sequenceDiagram
 
 ## 2 เปิดอ่าน PDF
 
-[ต้นฉบับ Mermaid](diagrams/task101-read.mmd)
+![เปิดอ่าน PDF](diagrams/task101-read.png)
 
-```mermaid
-sequenceDiagram
-    actor Student as นักศึกษา
-    participant UI as หน้าอ่าน PDF
-    participant API as API / DTO / Service
-    participant DAO as DAO อ่านของ Task100
-    participant SQL as SQL Server
-    participant Storage as Private PDF storage
-    Student->>UI: เลือกสรุป
-    UI->>API: GET /api/summaries/id + token
-    API->>API: ตรวจ Login
-    API->>DAO: get_by_id(id)
-    DAO->>SQL: SELECT Summary และข้อมูลประกอบ
-    SQL-->>DAO: Summary record
-    DAO-->>API: Summary record
-    API-->>UI: 200 SummaryDTO พร้อม read_path
-    UI->>API: GET read_path + token
-    API->>API: ตรวจ Login อีกครั้ง
-    API->>DAO: get_by_id(id) อีกครั้ง
-    DAO->>SQL: SELECT file reference ปัจจุบัน
-    SQL-->>DAO: file reference
-    DAO-->>API: file reference
-    API->>Storage: เปิดไฟล์จาก private key
-    Storage-->>API: PDF stream
-    API-->>UI: 200 application/pdf
-    UI-->>Student: เปิดอ่าน PDF
-```
+[ต้นฉบับ Mermaid](diagrams/task101-read.mmd)
 
 ใช้ API อ่านร่วมของ Task100 การขอไฟล์ต้องตรวจ Login และอ่าน Summary ปัจจุบันซ้ำ แม้คำขอ metadata ก่อนหน้าจะสำเร็จ
 
@@ -83,45 +41,11 @@ UI fetch พร้อม Authorization ตรวจ status และ Content-Typ
 
 ## 3 แก้ไขและแทนที่ PDF
 
+![แก้ไขและแทนที่ PDF](diagrams/task101-update.png)
+
 [ต้นฉบับ Mermaid](diagrams/task101-update.mmd)
 
-```mermaid
-sequenceDiagram
-    actor Owner as เจ้าของ
-    participant UI as ฟอร์มแก้ไข
-    participant API as API / DTO / Service
-    participant DAO as Summary DAO และ CourseDAO
-    participant SQL as SQL Server
-    participant Storage as Private PDF storage
-    Owner->>UI: แก้ข้อมูล และอาจเลือก PDF ใหม่
-    UI->>API: PUT /api/summaries/id multipart + token
-    API->>API: ตรวจ Login และข้อมูลฟอร์ม
-    API->>DAO: ตรวจสรุป เจ้าของ และวิชาปลายทาง
-    DAO->>SQL: SELECT ใน read Session สั้น
-    SQL-->>DAO: ข้อมูลที่ใช้ตรวจสอบ
-    DAO-->>API: ผ่านการตรวจสอบ
-    API->>SQL: ปิด read Session
-    opt เลือก PDF ใหม่
-        API->>Storage: ตรวจ PDF และเตรียมไฟล์ด้วย key ใหม่
-        Storage-->>API: file reference ที่พร้อมอ่าน
-    end
-    API->>SQL: เริ่ม write Session และ transaction ใหม่
-    API->>DAO: lock และตรวจสรุป เจ้าของ วิชา ซ้ำ
-    DAO->>SQL: SELECT พร้อม write lock
-    SQL-->>DAO: ข้อมูลปัจจุบัน
-    DAO-->>API: ยืนยันว่าแก้ไขได้
-    API->>DAO: update_owned(id, owner_id, metadata, file reference)
-    DAO->>SQL: UPDATE แถวเดิม คงไฟล์เดิมเมื่อไม่ส่งไฟล์ใหม่
-    SQL-->>DAO: ข้อมูลหลังแก้ไข
-    DAO-->>API: ข้อมูลสำหรับ SummaryDTO
-    API->>SQL: COMMIT
-    SQL-->>API: ยืนยันสำเร็จ
-    API-->>UI: 200 SummaryDTO
-    UI-->>Owner: แจ้งสำเร็จและโหลดข้อมูลใหม่
-    Note over API,Storage: ไฟล์เก่ารอเก็บกวาดหลัง commit ตามกติกา Task100
-```
-
-PUT multipart เป็นข้อเสนอปรับ Task94/96 ตามมติล่าสุด เปลี่ยนวิชาและ PDF ได้ ถ้าไม่ส่งไฟล์ใหม่ให้คงไฟล์ปัจจุบันใต้ lock โดยคง ID เจ้าของและ created_at เสมอ
+PUT multipart ใช้ตาม Task94 v0.4 เปลี่ยนวิชาและ PDF ได้ ถ้าไม่ส่งไฟล์ใหม่ให้คงไฟล์ปัจจุบันใต้ lock โดยคง ID เจ้าของและ created_at เสมอ
 
 | กรณี | ผลลัพธ์ |
 | --- | --- |
@@ -138,41 +62,9 @@ read Session ของขั้นตรวจเบื้องต้นต้�
 
 ## 4 ยืนยันและยกเลิกลบ
 
-[ต้นฉบับ Mermaid](diagrams/task101-delete.mmd)
+![ยืนยันและยกเลิกลบ](diagrams/task101-delete.png)
 
-```mermaid
-sequenceDiagram
-    actor Owner as เจ้าของ
-    participant UI as หน้าสรุปของฉัน
-    participant API as API / DTO / Service
-    participant DAO as DeleteOwnedSummaryDAO
-    participant SQL as SQL Server
-    participant Storage as Private PDF storage
-    Owner->>UI: กดลบสรุป
-    UI-->>Owner: แสดงชื่อรายการและขอยืนยัน
-    alt ยกเลิก
-        Owner->>UI: ยกเลิก
-        UI-->>Owner: ปิดหน้าต่าง ไม่ส่ง DELETE
-    else ยืนยันลบ
-        Owner->>UI: ยืนยัน
-        UI->>API: DELETE /api/summaries/id + token
-        API->>API: ตรวจ Login และรูปแบบคำขอ
-        API->>SQL: เริ่ม transaction
-        API->>DAO: lock และตรวจสรุปกับเจ้าของ
-        DAO->>SQL: SELECT พร้อม write lock
-        SQL-->>DAO: Summary ปัจจุบัน
-        DAO-->>API: ยืนยันว่าเป็นเจ้าของ
-        API->>DAO: delete_owned(id, owner_id)
-        DAO->>SQL: DELETE เฉพาะสรุปนี้
-        SQL-->>DAO: ลบได้หนึ่งรายการ
-        DAO-->>API: ผลลบและ file reference เดิม
-        API->>SQL: COMMIT
-        SQL-->>API: ยืนยันสำเร็จ
-        API-->>UI: 204 ไม่มี body
-        UI-->>Owner: นำรายการออกและโหลดใหม่
-    end
-    Note over API,Storage: หลังลบสำเร็จ API อ่านได้ 404 ส่วนไฟล์จริงรอเก็บกวาดภายหลัง
-```
+[ต้นฉบับ Mermaid](diagrams/task101-delete.mmd)
 
 ยกเลิกไม่ส่ง API เมื่อยืนยันลบให้ตอบ 204 หลัง DB commit สำเร็จ ทุกคำขออ่านใหม่ต้องได้ 404 แม้ไฟล์ private ยังรอเก็บกวาด
 

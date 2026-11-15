@@ -20,10 +20,13 @@ sequenceDiagram
     API->>SQL: เริ่ม write Session และ transaction ใหม่
     API->>DAO: lock และตรวจสรุป เจ้าของ วิชา ซ้ำ
     DAO->>SQL: SELECT พร้อม write lock
-    SQL-->>DAO: ข้อมูลปัจจุบัน
+    SQL-->>DAO: ข้อมูลปัจจุบันและ storage_key จาก summary_files
     DAO-->>API: ยืนยันว่าแก้ไขได้
     API->>DAO: update_owned(id, owner_id, metadata, file reference)
-    DAO->>SQL: UPDATE แถวเดิม คงไฟล์เดิมเมื่อไม่ส่งไฟล์ใหม่
+    DAO->>SQL: UPDATE summaries ใน transaction เดิม
+    opt มี PDF ใหม่
+        DAO->>SQL: UPDATE summary_files ใน transaction เดียวกัน
+    end
     SQL-->>DAO: ข้อมูลหลังแก้ไข
     DAO-->>API: ข้อมูลสำหรับ SummaryDTO
     API->>SQL: COMMIT

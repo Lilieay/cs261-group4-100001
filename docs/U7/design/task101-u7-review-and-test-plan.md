@@ -1,6 +1,6 @@
 # Task101 U7 จุดทดสอบและบันทึก review
 
-รุ่น 0.2 | วันที่ 10 พฤศจิกายน 2569 | สถานะ: ยังไม่รัน Unit, API หรือ Integration tests
+รุ่น 0.3 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: ยังไม่รัน Unit, API หรือ Integration tests
 
 ใช้คู่กับ [แบบ DAO](task101-u7-dao-design.md) และ [Sequence Diagram](task101-u7-sequences.md) การตรวจเอกสารไม่ใช่ผลทดสอบ implementation หรือการอนุมัติของทีม
 
@@ -25,7 +25,7 @@ Unit ใช้ fake DAO และ storage เพื่อทดสอบกา�
 | TC07 ไม่มีสิทธิ์ | service ปฏิเสธ B ก่อน prepare PDF; owner predicate ป้องกันเขียนข้ามบัญชี | ไม่มี/หมดอายุ token 401 พร้อม WWW-Authenticate; B แก้/ลบ S1 ได้ 403; owner spoof ได้ 422 | ยิงตรง Backend และผ่าน proxy ไม่เปลี่ยน S1/P1; my-list ไม่รับ user_id query |
 | TC08 หายหรือล้มเหลว | 404 ไม่ upsert; rollback เฉพาะเมื่อยืนยันว่าไม่ commit; uncertain result ไม่สั่งลบไฟล์ | missing ID GET/PUT/DELETE 404; confirmed pre-commit failure 503; wrapper ตรง contract | fault ระหว่าง storage/SQL/commit/response; update แข่ง delete ไม่คืนชีพ S1; UI refetch เมื่อ timeout |
 
-TC03 เดิมคงรายวิชาและ PDF เสมอ มติผู้ใช้วันที่ 10 พฤศจิกายน 2569 ขยายให้เปลี่ยนได้ตามการเลือก กรณี metadata-only ยังใช้เกณฑ์เดิม เพิ่มกรณีแทนที่และย้ายวิชาโดยไม่เปลี่ยนรหัส TC เดิม ต้องปรับ Task96 และ fixtures ร่วมกันก่อนตรวจรับ
+TC03 เดิมคงรายวิชาและ PDF เสมอ มติผู้ใช้วันที่ 10 พฤศจิกายน 2569 ขยายให้เปลี่ยนได้ตามการเลือก กรณี metadata-only ยังใช้เกณฑ์เดิม เพิ่มกรณีแทนที่และย้ายวิชาโดยไม่เปลี่ยนรหัส TC เดิม ใช้ Task96 และ fixtures รุ่นที่ merge แล้วเป็นฐานตรวจรับ
 
 ## 3 กรณีขยายสำหรับ PDF และ transaction
 
@@ -35,10 +35,10 @@ TC03 เดิมคงรายวิชาและ PDF เสมอ มติ
 | D02 | PDF ขนาด 15,000,000 bytes และ 15,000,001 bytes | ไฟล์แรกผ่านถ้า PDF valid; ไฟล์หลังได้ 413 PDF_TOO_LARGE ข้อมูลเดิมไม่เปลี่ยน |
 | D03 | ไฟล์ว่าง/ปลอม, PDF เสีย/ไม่มีหน้า/เข้ารหัส | 422 PDF_INVALID หรือ PDF_UNREADABLE ตามชนิด ไม่มี file reference ใหม่ใน DB |
 | D04 | เตรียม P2 ไม่สำเร็จ | 503 เมื่อ storage ล้มเหลว หรือ validation error ตามเหตุ DB/P1 คงเดิม |
-| D05 | prepare P2 ผ่าน แต่ UPDATE หรือ commit ยืนยัน rollback | 503 DB/P1 คงเดิม P2 เป็น orphan ที่เก็บกวาดได้ |
+| D05 | prepare P2 ผ่าน แต่ UPDATE หรือ commit ยืนยัน rollback | 503 เมื่อ UPDATE summaries หรือ summary_files ล้มเหลว ให้ rollback ทั้งสองตาราง P1 ยังอ่านได้ และ P2 เป็น orphan ที่เก็บกวาดได้ |
 | D06 | commit ผ่าน แต่ response หลุด | refetch ได้ค่าปัจจุบัน ห้าม retry อัตโนมัติและห้ามลบ P2 ที่ถูกอ้างอยู่ |
 | D07 | commit คืน error ที่ยังไม่ทราบผล | ตรวจ connection ใหม่ เก็บ P1/P2 จนรู้ผล ไม่อ้างว่า rollback สำเร็จเพราะเรียก rollback อย่างเดียว |
-| D08 | ลบ DB สำเร็จ แต่เก็บกวาดไฟล์ไม่ได้ | 204 รายการและไฟล์ผ่าน API ได้ 404 เก็บไฟล์ private ไว้ retry ไม่คืน Summary กลับมา |
+| D08 | ลบ summaries และ cascade summary_files สำเร็จ แต่เก็บกวาดไฟล์จริงไม่ได้ | 204 รายการและไฟล์ผ่าน API ได้ 404 เก็บไฟล์ private ไว้ retry ไม่คืน Summary กลับมา |
 | D09 | DELETE DB ล้มเหลวและยืนยัน rollback | 503 S1/P1 พร้อมอ่าน ห้ามลบไฟล์จริงก่อน DB commit |
 | D10 | upload P2 ช้า แล้วอีกคำขอลบ S1 | ขั้น lock หลัง upload ตรวจไม่พบ ตอบ 404 ไม่ insert P2 ไม่มี record อ้าง |
 | D11 | สองคำขอแก้พร้อมกัน รวม metadata-only แข่ง replace | serialize writer; ค่าสุดท้ายมาจาก commit ล่าสุด; metadata-only ไม่ย้อน file reference เก่า |
@@ -72,23 +72,27 @@ TC03 เดิมคงรายวิชาและ PDF เสมอ มติ
 
 ตามข้อเสนอแนะของผู้ใช้ ลดเงื่อนไขซ้อนใน Sequence โดยให้ภาพแสดงเส้นทางสำเร็จเป็นหลัก รวม API, DTO และ Service เป็น lifeline เดียว และย้ายข้อผิดพลาดไปเป็นตารางใต้แต่ละภาพ คงทางเลือกเปลี่ยน PDF และยืนยัน/ยกเลิกลบในภาพ ไม่เปลี่ยน DAO, สิทธิ์หรือกติกา transaction ของรุ่น 0.1 ตรวจ Mermaid syntax และความตรงกันของ inline กับ `.mmd` ใหม่หลังแก้
 
+### แก้ตาม GitHub review ในรุ่น 0.3
+
+[Anas ขอแก้ใน PR #105](https://github.com/Lilieay/cs261-group4-100001/pull/105#pullrequestreview-5904496844) รุ่นนี้ปรับ DAO, SQL และแผนภาพตาม [Task100](https://github.com/Lilieay/cs261-group4-100001/blob/sprint2/docs/U6/design/task100-u6-pdf-backend-design.md) ให้แยกข้อมูลสรุปกับข้อมูลไฟล์ ใช้ transaction เดียวเมื่อแทนที่ PDF และเก็บกวาดไฟล์เดิมหลัง commit เพดาน PDF ของ Task100 และ Task94 v0.4 ตรงกันที่ 15,000,000 bytes กรณี D02 ครอบคลุมทั้งไฟล์ขนาดพอดีและเกิน 1 byte ส่วน D05 เพิ่มการตรวจ rollback ทั้งสองตาราง
+
 ## 5 DoD และ review ที่ยังต้องมีหลักฐาน
 
 | ข้อของ Task101 | หลักฐานในชุดนี้ | สถานะ |
 | --- | --- | --- |
-| ทบทวนตาราง/ER และไม่สร้างซ้ำ | แบบ DAO ส่วน 1/2 อ้าง User/Course จริงและแยกข้อมูลที่ต้องใช้จาก Task100 | ตรวจของเดิมเท่าที่มีแล้ว รอแบบ Summary/ER จาก Task100 เพื่อเทียบจริง |
+| ทบทวนตาราง/ER และไม่สร้างซ้ำ | แบบ DAO ส่วน 1/2 อ้าง User/Course จริงและแยกข้อมูลที่ต้องใช้จาก Task100 | เทียบ summaries, summary_files และ FK กับแบบ Task100 แล้ว |
 | DAO input/output/errors | แบบ DAO ส่วน 4 พร้อม SQL และ transaction boundary | จัดทำแล้ว รอทีมตรวจ |
 | Sequence ทุก flow | my-list, read, update, delete/cancel พร้อม Mermaid source | จัดทำแล้ว |
 | สิทธิ์ ข้อมูลผิด ไม่พบ บันทึกล้มเหลว | ตาราง error ใต้แต่ละ Sequence และในแบบ DAO | จัดทำแล้ว |
 | ตรวจเทียบ contract/TC และ test levels | ส่วน 2/3/4 ของเอกสารนี้และรายการ contract delta | self-review แล้ว ยังไม่รันระบบ |
-| รุ่นเอกสารและไฟล์แก้ไขได้ใน repo | Markdown กับ `.mmd` ใน `docs/U7/design` รุ่น 0.2 | จัดทำแล้ว |
+| รุ่นเอกสารและไฟล์แก้ไขได้ใน repo | Markdown, Word และภาพ PNG พร้อม Mermaid ต้นฉบับ รุ่น 0.3 | จัดทำแล้ว |
 
-ไม่ทำเครื่องหมายว่าทั้ง Task ผ่าน DoD ขณะ Task94/96 ยังไม่มีหลักฐานยืนยันฉบับที่ตรงมติใหม่ และยังไม่ได้เทียบกับแบบ Task100
+รอผู้ตรวจยืนยันการแก้ใน PR #105 ส่วนผล Unit, API และ Integration เป็นงานถัดไป
 
 | ผู้ตรวจตามบทบาท | ประเด็นที่ต้อง review | สถานะและหลักฐาน |
 | --- | --- | --- |
 | Frontend | multipart, description clear, optional file, 204 และ refetch เมื่อผลไม่แน่ชัด | รอตรวจ ยังไม่มีวันที่หรือผลอนุมัติ |
-| Backend/ผู้ทำ Task100 | Summary mapping, SQL lock/FK, storage preparation และ cleanup, body limit | รอตรวจ ยังไม่มีวันที่หรือผลอนุมัติ |
+| Backend/ผู้ทำ Task100 | Summary mapping, SQL lock/FK, storage preparation และ cleanup, body limit | Anas ขอแก้วันที่ 14 พฤศจิกายน 2569 รุ่น 0.3 แก้ตามข้อพบแล้ว รอตรวจซ้ำ |
 | ผู้ดูแล Task94/96 และ PO | รับข้อเปลี่ยนตามมติล่าสุดเข้ารุ่นเอกสารกลางและ TC03 | รอตรวจ ยังไม่มีวันที่หรือผลอนุมัติ |
 
 เมื่อมี review ให้บันทึกผู้ตรวจจริง วันที่ รุ่นเอกสาร ลิงก์หลักฐาน ข้อพบและผลแก้ที่นี่ ไม่ใช้ self-review หรือการตรวจไฟล์แทนการยอมรับร่วม ไม่มีการโพสต์ Trello หรือเปลี่ยนสถานะการ์ดจากการจัดทำเอกสารนี้

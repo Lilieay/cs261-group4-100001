@@ -8,7 +8,7 @@ sequenceDiagram
     UI->>API: GET /api/my-summaries + token
     API->>API: ตรวจ Login และระบุเจ้าของจาก session
     API->>DAO: list_owned(owner_id)
-    DAO->>SQL: SELECT ของเจ้าของ เรียงใหม่ไปเก่า
+    DAO->>SQL: SELECT summaries และข้อมูลไฟล์ เรียงใหม่ไปเก่า
     SQL-->>DAO: รายการสรุป หรือรายการว่าง
     DAO-->>API: Summary records
     API-->>UI: 200 items

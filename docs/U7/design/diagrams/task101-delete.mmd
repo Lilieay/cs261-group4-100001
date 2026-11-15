@@ -20,7 +20,7 @@ sequenceDiagram
         SQL-->>DAO: Summary ปัจจุบัน
         DAO-->>API: ยืนยันว่าเป็นเจ้าของ
         API->>DAO: delete_owned(id, owner_id)
-        DAO->>SQL: DELETE เฉพาะสรุปนี้
+        DAO->>SQL: DELETE summaries และ cascade แถว summary_files
         SQL-->>DAO: ลบได้หนึ่งรายการ
         DAO-->>API: ผลลบและ file reference เดิม
         API->>SQL: COMMIT

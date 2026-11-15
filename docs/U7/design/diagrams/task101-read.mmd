@@ -16,7 +16,7 @@ sequenceDiagram
     UI->>API: GET read_path + token
     API->>API: ตรวจ Login อีกครั้ง
     API->>DAO: get_by_id(id) อีกครั้ง
-    DAO->>SQL: SELECT file reference ปัจจุบัน
+    DAO->>SQL: SELECT storage_key ปัจจุบันจาก summary_files
     SQL-->>DAO: file reference
     DAO-->>API: file reference
     API->>Storage: เปิดไฟล์จาก private key
