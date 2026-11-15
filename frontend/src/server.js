@@ -95,18 +95,43 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   const summaryError = (res, status, code, message) => res.status(status).json({
     error: {code, message, fields: []}
   });
+  const hasSummaryQuery = req => Boolean(new URL(req.originalUrl, 'http://frontend').search);
 
-  app.post('/api/summaries', express.raw({type: 'multipart/form-data', limit: 16_000_000, inflate: false}), (req, res) => {
+  const summaryMultipart = express.raw({type: 'multipart/form-data', limit: 16_000_000, inflate: false});
+  function writeSummary(req, res) {
     res.set('Cache-Control', 'no-store');
+    const id = req.params.summaryId;
+    if (id !== undefined && (!validId(id) || hasSummaryQuery(req))) {
+      return summaryError(res, 422, 'INVALID_PARAMETERS', 'ข้อมูลที่ใช้แก้ไขสรุปไม่ถูกต้อง');
+    }
     if (!req.is('multipart/form-data')) {
       return summaryError(res, 415, 'UNSUPPORTED_MEDIA_TYPE', 'กรุณาแนบไฟล์ PDF ผ่านแบบฟอร์ม');
     }
     if (!Buffer.isBuffer(req.body) || !req.body.length) {
-      return summaryError(res, 422, 'INVALID_PARAMETERS', 'กรุณากรอกข้อมูลและแนบไฟล์ PDF');
+      return summaryError(res, 422, 'INVALID_PARAMETERS', 'กรุณากรอกข้อมูลสรุป');
     }
-    return proxy(req, res, '/api/summaries', {
+    return proxy(req, res, id === undefined ? '/api/summaries' : `/api/summaries/${id}`, {
       body: req.body, multipart: true, errorMessage: summaryUnavailable
     });
+  }
+  app.post('/api/summaries', summaryMultipart, writeSummary);
+  app.put('/api/summaries/:summaryId', summaryMultipart, writeSummary);
+
+  app.get('/api/my-summaries', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (hasSummaryQuery(req)) {
+      return summaryError(res, 422, 'INVALID_PARAMETERS', 'รายการสรุปของฉันไม่รับตัวกรองจาก URL');
+    }
+    return proxy(req, res, '/api/my-summaries', {errorMessage: summaryUnavailable});
+  });
+
+  app.delete('/api/summaries/:summaryId', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const id = req.params.summaryId;
+    if (!validId(id) || hasSummaryQuery(req)) {
+      return summaryError(res, 422, 'INVALID_PARAMETERS', 'ข้อมูลที่ใช้ลบสรุปไม่ถูกต้อง');
+    }
+    return proxy(req, res, `/api/summaries/${id}`, {errorMessage: summaryUnavailable});
   });
 
   app.get(['/api/courses/:courseId/summaries', '/api/summaries/:summaryId', '/api/summaries/:summaryId/file'], (req, res) => {
@@ -198,7 +223,7 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   app.use(express.static(path.join(publicRoot, 'pages')));
   app.use(express.static(publicRoot));
   app.use((error, req, res, next) => {
-    if (/^\/api\/summaries\/?$/i.test(req.path)) {
+    if (/^\/api\/summaries(?:\/[^/]+)?\/?$/i.test(req.path)) {
       res.set('Cache-Control', 'no-store');
       if (error.status === 413) return summaryError(res, 413, 'REQUEST_TOO_LARGE', 'ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MB');
       if (error.status === 415) return summaryError(res, 415, 'UNSUPPORTED_MEDIA_TYPE', 'รูปแบบไฟล์อัปโหลดไม่ถูกต้อง');

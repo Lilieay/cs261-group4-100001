@@ -4,6 +4,7 @@
   const $ = id => document.getElementById(id);
   const params = new URLSearchParams(window.location.search);
   const summaryId = params.get('summary');
+  const fromMySummaries = params.get('source') === 'my-summaries';
   const status = $('summary-read-status');
   const viewer = $('summary-viewer');
   const frame = $('summary-pdf');
@@ -16,6 +17,11 @@
   let summary;
   let pdfUrl;
   let fileRequest;
+
+  if (fromMySummaries) {
+    $('summary-back').href = 'shared-courses.html?type=summaries';
+    $('summary-back').setAttribute('aria-label', 'กลับหน้าสรุปของฉัน');
+  }
 
   function releaseFile() {
     fileRequest?.abort();
@@ -81,11 +87,13 @@
         $('summary-reading-description').textContent = summary.description;
         $('summary-description-box').hidden = false;
       }
-      const back = new URL(api.courseUrl(summary.course), window.location.href);
-      if (/^[1-9]\d*$/.test(params.get('page'))) back.searchParams.set('page', params.get('page'));
-      if (['oldest', 'title'].includes(params.get('sort'))) back.searchParams.set('sort', params.get('sort'));
-      $('summary-back').href = back.pathname + back.search;
-      $('summary-back').setAttribute('aria-label', 'กลับรายการสรุปในรายวิชา');
+      if (!fromMySummaries) {
+        const back = new URL(api.courseUrl(summary.course), window.location.href);
+        if (/^[1-9]\d*$/.test(params.get('page'))) back.searchParams.set('page', params.get('page'));
+        if (['oldest', 'title'].includes(params.get('sort'))) back.searchParams.set('sort', params.get('sort'));
+        $('summary-back').href = back.pathname + back.search;
+        $('summary-back').setAttribute('aria-label', 'กลับรายการสรุปในรายวิชา');
+      }
       $('summary-detail').hidden = false;
       loadInstructor(summary.course.id);
       await loadFile();

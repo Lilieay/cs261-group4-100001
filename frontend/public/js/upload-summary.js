@@ -72,11 +72,7 @@
 
   function chooseFile(files) {
     const [file] = files;
-    let message = '';
-    if (files.length > 1) message = 'กรุณาแนบไฟล์ PDF เพียงหนึ่งไฟล์';
-    else if (file && (!/\.pdf$/i.test(file.name) || (file.type && file.type !== 'application/pdf') || !file.size)) {
-      message = 'กรุณาเลือกไฟล์ PDF ที่เปิดอ่านได้';
-    } else if (file?.size > summaryApi.MAX_PDF_BYTES) message = 'ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MB';
+    const message = summaryApi.pdfSelectionError(files);
 
     selectedFile = message ? undefined : file;
     if (message) fileInput.value = '';
@@ -86,19 +82,10 @@
     fieldError(fileInput, message);
   }
 
-  async function pdfError(file) {
-    try {
-      if (await file.slice(0, 5).text() !== '%PDF-') return 'ไฟล์นี้ไม่ใช่ PDF ที่ถูกต้อง';
-      return '';
-    } catch (_) {
-      return 'อ่านไฟล์นี้ไม่ได้ กรุณาเลือกไฟล์อีกครั้ง';
-    }
-  }
-
   previewButton.addEventListener('click', async () => {
     const file = selectedFile;
     if (!file || fields.disabled || preview.open) return;
-    const message = await pdfError(file);
+    const message = await summaryApi.pdfSignatureError(file);
     if (file !== selectedFile || fields.disabled || preview.open) return;
     if (message) {
       fieldError(fileInput, message);
@@ -143,7 +130,7 @@
       fieldError(fileInput, 'กรุณาแนบไฟล์ PDF');
     }
     if (selectedFile) {
-      const message = await pdfError(selectedFile);
+      const message = await summaryApi.pdfSignatureError(selectedFile);
       if (message) fieldError(fileInput, message);
     }
     return form.querySelector('[aria-invalid="true"]');

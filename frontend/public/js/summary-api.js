@@ -5,10 +5,11 @@
   const validId = value => /^[1-9]\d*$/.test(String(value)) && Number(value) <= 2147483647;
 
   class SummaryApiError extends Error {
-    constructor(message, status = 0, fields = []) {
+    constructor(message, status = 0, fields = [], code = '') {
       super(message);
       this.status = status;
       this.fields = Array.isArray(fields) ? fields : [];
+      this.code = code;
     }
   }
 
@@ -18,7 +19,7 @@
     return new SummaryApiError('กรุณาเข้าสู่ระบบก่อนใช้สรุป PDF', 401);
   }
 
-  async function request(path, options = {}) {
+  async function request(path, {expectedStatus, ...options} = {}) {
     const token = window.HttpClient.token();
     if (!token) throw login();
     let result;
@@ -31,7 +32,10 @@
     if (response.status === 401) throw login();
     if (!response.ok) {
       throw new SummaryApiError(payload?.error?.message || payload?.detail || 'โหลดข้อมูลสรุปไม่สำเร็จ',
-        response.status, payload?.error?.fields);
+        response.status, payload?.error?.fields, payload?.error?.code);
+    }
+    if (expectedStatus && response.status !== expectedStatus) {
+      throw new SummaryApiError('ผลการจัดการสรุปจากบริการไม่ถูกต้อง', 502);
     }
     return payload;
   }
@@ -76,13 +80,54 @@
     return pdf;
   }
 
-  async function publish(courseId, title, description, file) {
+  function summaryForm(courseId, title, description, file) {
     const body = new FormData();
     body.set('course_id', courseId);
     body.set('title', title);
     if (description) body.set('description', description);
-    body.set('file', file.type ? file : new Blob([file], {type: 'application/pdf'}), file.name);
+    if (file) body.set('file', file.type ? file : file.slice(0, file.size, 'application/pdf'), file.name);
+    return body;
+  }
+
+  async function publish(courseId, title, description, file) {
+    const body = summaryForm(courseId, title, description, file);
     return summary(await request('/api/summaries', {method: 'POST', body}));
+  }
+
+  async function mine() {
+    const result = await request('/api/my-summaries');
+    if (!Array.isArray(result?.items)) throw new SummaryApiError('รูปแบบรายการสรุปจากบริการไม่ถูกต้อง', 502);
+    return result.items.map(summary);
+  }
+
+  async function update(id, courseId, title, description, file) {
+    const body = summaryForm(courseId, title, description, file);
+    const result = summary(await request(summaryPath(id), {method: 'PUT', body, expectedStatus: 200}));
+    if (result.id !== Number(id) || result.course.id !== Number(courseId)) {
+      throw new SummaryApiError('ข้อมูลที่บันทึกไม่ตรงกับรายการที่เลือก', 502);
+    }
+    return result;
+  }
+
+  async function remove(id) {
+    await request(summaryPath(id), {method: 'DELETE', expectedStatus: 204});
+  }
+
+  function pdfSelectionError(files) {
+    const [file] = files;
+    if (files.length > 1) return 'กรุณาแนบไฟล์ PDF เพียงหนึ่งไฟล์';
+    if (file && (!/\.pdf$/i.test(file.name) || (file.type && file.type !== 'application/pdf') || !file.size)) {
+      return 'กรุณาเลือกไฟล์ PDF ที่เปิดอ่านได้';
+    }
+    return file?.size > MAX_PDF_BYTES ? 'ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MB' : '';
+  }
+
+  async function pdfSignatureError(file) {
+    try {
+      return await file.slice(0, 5).text() === '%PDF-' ? '' : 'ไฟล์นี้ไม่ใช่ PDF ที่ถูกต้อง';
+    } catch (_) {
+      return 'อ่านไฟล์นี้ไม่ได้ กรุณาเลือกไฟล์อีกครั้ง';
+    }
   }
 
   function courseUrl(course) {
@@ -90,5 +135,7 @@
     return `choose-courses.html?${query}`;
   }
 
-  window.SummaryApi = Object.freeze({MAX_PDF_BYTES, list, read, openFile, publish, courseUrl});
+  window.SummaryApi = Object.freeze({
+    list, read, openFile, publish, courseUrl, mine, update, remove, pdfSelectionError, pdfSignatureError
+  });
 })();

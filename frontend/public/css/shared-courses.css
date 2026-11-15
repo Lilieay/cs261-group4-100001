@@ -121,7 +121,15 @@
 .filters {
   margin-top: 12px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+}
+
+.filters select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 5px;
 }
 
 .filters[hidden], [hidden] {
@@ -528,7 +536,7 @@ dialog .primary, .primary {
     gap: 8px;
   }
 
-  .search-box #filter-toggle {
+  .search-box .filter-toggle {
     width: 44px;
     height: 44px;
     flex: 0 0 44px;
@@ -538,22 +546,22 @@ dialog .primary, .primary {
     color: #555;
   }
 
-  .search-box #filter-toggle .icon {
+  .search-box .filter-toggle .icon {
     width: 23px;
     height: 23px;
     stroke-width: 1.8;
   }
 
-  #filter-toggle .icon circle {
+  .filter-toggle .icon circle {
     fill: #fff;
   }
 
-  .search-box #filter-toggle:hover, .search-box #filter-toggle[aria-expanded="true"] {
+  .search-box .filter-toggle:hover, .search-box .filter-toggle[aria-expanded="true"] {
     background: #edf0fa;
     color: #303e7e;
   }
 
-  .search-box #filter-toggle:hover circle, .search-box #filter-toggle[aria-expanded="true"] circle {
+  .search-box .filter-toggle:hover circle, .search-box .filter-toggle[aria-expanded="true"] circle {
     fill: #edf0fa;
   }
 
@@ -561,62 +569,6 @@ dialog .primary, .primary {
     min-width: 0;
   }
 
-  #filters {
-    position: static;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    width: 100%;
-    min-width: 0;
-    gap: 8px;
-    margin-top: 14px;
-    padding: 14px;
-    border: 1px solid #d9dff3;
-    border-radius: 8px;
-    background: #f8f9fd;
-  }
-
-  #filters[hidden] {
-    display: none !important;
-  }
-
-  #filters label {
-    color: #3e4c64;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  #filters select {
-    position: static;
-    display: block;
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    padding: 4px;
-    border: 1px solid #d9dff3;
-    border-radius: 5px;
-    background: #fff;
-    font-family: "Prompt", sans-serif;
-    font-size: 12px;
-  }
-
-  #filters #course-filter {
-    height: 170px;
-  }
-
-  #filters #year-filter {
-    height: 105px;
-  }
-
-  #filters option {
-    padding: 9px 10px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  #filters option:checked {
-    background: #e5ebff;
-    color: #243c77;
-  }
 }
 
 .search-box {
@@ -631,7 +583,7 @@ dialog .primary, .primary {
   min-width: 0;
 }
 
-.search-box #filter-toggle {
+.search-box .filter-toggle {
   display: grid;
   place-items: center;
   flex: 0 0 36px;
@@ -646,7 +598,7 @@ dialog .primary, .primary {
   line-height: 1;
 }
 
-.search-box #filter-toggle .icon {
+.search-box .filter-toggle .icon {
   display: block;
   position: static;
   width: 24px;
@@ -659,94 +611,13 @@ dialog .primary, .primary {
   stroke-linecap: round;
 }
 
-.search-box #filter-toggle:hover, .search-box #filter-toggle[aria-expanded="true"] {
+.search-box .filter-toggle:hover, .search-box .filter-toggle[aria-expanded="true"] {
   background: #4c494a;
   color: #fff;
 }
 
 .workspace > aside {
   min-width: 0;
-}
-
-#filters {
-  position: static;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  width: 100%;
-  min-width: 0;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px solid #d9dff3;
-  border-radius: 8px;
-  background: #f8f9fd;
-}
-
-#filters[hidden] {
-  display: none !important;
-}
-
-#filters label {
-  color: #3e4c64;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-#filters select {
-  position: static;
-  display: block;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  padding: 6px;
-  border: 1px solid #d9dff3;
-  border-radius: 5px;
-  background: #fff;
-  font-family: "Prompt", sans-serif;
-  font-size: 12px;
-}
-
-#filters #course-filter {
-  height: 220px;
-}
-
-#filters #year-filter {
-  height: 130px;
-}
-
-#filters option {
-  padding: 8px 10px;
-}
-
-#filters select option {
-  padding: 9px 10px;
-  cursor: pointer;
-}
-
-#filters select option:hover {
-  background: #e8edff;
-  color: #243c77;
-}
-
-#filters select option:checked {
-  background: #d6e1ff;
-  color: #1c376c;
-  font-weight: 500;
-}
-
-#filters select option:checked:hover {
-  background: #c5d5ff;
-}
-
-#filters select option:checked {
-  background: #fff;
-  color: #1a1f2a;
-  font-weight: 400;
-}
-
-#filters select option:hover, #filters select option:checked:hover {
-  background: #e8edff;
-  color: #243c77;
 }
 
 .metadata .question-breakdown {

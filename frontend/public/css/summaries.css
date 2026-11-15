@@ -1,4 +1,4 @@
-.summary-page {
+.summary-page, .summary-preview-dialog {
   --summary-red: #c81032;
   --summary-border: #d8dff2;
   --summary-field: #f1f2ff;
@@ -237,7 +237,7 @@
   white-space: nowrap;
 }
 
-#summary-preview-frame {
+.summary-preview-frame {
   display: block;
   width: 100%;
   height: 65dvh;
