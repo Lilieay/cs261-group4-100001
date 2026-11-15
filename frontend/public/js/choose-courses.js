@@ -132,10 +132,12 @@
     $('#activeFilters').innerHTML = chips.join('');
   }
 
+  const reviewButton = '<button class="document-review-button" type="button" data-document-reviews><span data-review-card-score hidden></span><span data-review-card-count>— รีวิว</span></button>';
+
   function documentCard(row) {
     const back = `choose-courses.html${new URL(window.location.href).search}`;
     const query = new URLSearchParams({ course: course.code, courseId: String(course.id), guide: row.id, source: 'api', returnTo: back });
-    return `<article class="document-card"><div class="document-main"><div class="badges"><span class="course-badge">${e(course.code)}</span><span class="type-badge">แนวข้อสอบ</span><span>ปี ${e(row.year)}</span><span>ภาคเรียน${e(data.semesterLabel(row.semester))}</span><span>${e(row.period)}</span></div><h2>${e(row.title)}</h2><div class="document-bottom"><span>แบ่งปันโดย ${e(row.publisher_name || 'ไม่ระบุชื่อ')}</span></div></div><a class="view-button" href="read-courses.html?${e(query.toString())}">ดูเอกสาร <span aria-hidden="true">→</span></a></article>`;
+    return `<article class="document-card"><div class="document-main"><div class="badges"><span class="course-badge">${e(course.code)}</span><span class="type-badge">แนวข้อสอบ</span><span>ปี ${e(row.year)}</span><span>ภาคเรียน${e(data.semesterLabel(row.semester))}</span><span>${e(row.period)}</span></div><h2>${e(row.title)}</h2><div class="document-bottom"><span>แบ่งปันโดย ${e(row.publisher_name || 'ไม่ระบุชื่อ')}</span></div></div><div class="document-actions"><a class="view-button" href="read-courses.html?${e(query.toString())}">ดูเอกสาร <span aria-hidden="true">→</span></a>${reviewButton}</div></article>`;
   }
 
   function summaryCard(row) {
@@ -156,7 +158,10 @@
         <h2>${e(row.title)}</h2>
         <div class="document-bottom"><span>แบ่งปันโดย ${e(row.owner.display_name)}</span></div>
       </div>
-      <a class="view-button" href="read-summary.html?${e(query.toString())}">ดูเอกสาร <span aria-hidden="true">→</span></a>
+      <div class="document-actions">
+        <a class="view-button" href="read-summary.html?${e(query.toString())}">ดูเอกสาร <span aria-hidden="true">→</span></a>
+        ${reviewButton}
+      </div>
     </article>`;
   }
 
@@ -196,9 +201,14 @@
     if (course && !rowsLoading) page = Math.max(1, Math.min(page, Math.ceil(matching.length / PAGE_SIZE) || 1));
     if (!rowsLoading) updateUrl();
     $('#resultCount').textContent = rowsLoading ? (summaries ? 'กำลังโหลดรายการสรุป…' : 'กำลังโหลดรายการแนวข้อสอบ…') : `พบ ${matching.length} เอกสาร`;
-    $('#documentList').innerHTML = matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-      .map(summaries ? summaryCard : documentCard).join('');
-    $('#documentList').hidden = matching.length === 0;
+    const visible = matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const list = $('#documentList');
+    list.innerHTML = visible.map(summaries ? summaryCard : documentCard).join('');
+    list.hidden = matching.length === 0;
+    window.Reviews?.connectCards(list, visible.map(row => ({
+      id: row.id, type: summaries ? 'summary' : 'guide', title: row.title,
+      courseCode: course.code, courseName: course.name, ownerId: row.owner?.id
+    })));
     let title = '', detail = '', clear = false;
     if (courseLoading) { title = 'กำลังโหลดข้อมูลรายวิชา…'; detail = ''; }
     else if (courseError && ![404, 422].includes(courseErrorStatus)) { title = 'โหลดข้อมูลไม่สำเร็จ'; detail = courseError; }

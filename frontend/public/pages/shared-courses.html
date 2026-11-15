@@ -156,13 +156,24 @@
     </div>
     <div id="reader-content"></div><button type="button" data-close="reader" class="primary">ปิด</button>
   </dialog>
-  <dialog id="delete-confirm" aria-labelledby="delete-title">
-    <h2 id="delete-title">ยืนยันการลบแนวข้อสอบ</h2>
-    <p>ต้องการลบรายการนี้หรือไม่?</p>
-    <p><strong id="delete-guide-title"></strong><br><span id="delete-guide-course"></span></p>
+  <dialog id="delete-confirm" class="summary-owner-dialog summary-delete-dialog" aria-labelledby="delete-title">
     <form method="dialog">
-      <button type="submit" value="cancel">ยกเลิก</button>
-      <button id="confirm-delete" type="submit" value="delete">ยืนยันลบ</button>
+      <header class="summary-owner-header">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Zm0 6v4m0 4h.01"/></svg>
+        <h2 id="delete-title">ยืนยันการลบแนวข้อสอบ</h2>
+      </header>
+      <div class="summary-owner-body">
+        <p><strong>ต้องการลบแนวข้อสอบนี้หรือไม่?</strong></p>
+        <div class="summary-delete-item">
+          <strong id="delete-guide-title"></strong>
+          <p id="delete-guide-course"></p>
+        </div>
+        <p class="summary-owner-error">รายการจะหายจากหน้าแนวข้อสอบของฉันและหน้ารายวิชา ผู้ใช้อื่นจะเปิดอ่านผ่านระบบไม่ได้ และไม่สามารถย้อนกลับได้</p>
+      </div>
+      <footer class="summary-owner-actions">
+        <button type="submit" value="cancel" autofocus>ยกเลิก</button>
+        <button id="confirm-delete" class="summary-owner-submit" type="submit" value="delete"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>ยืนยันการลบ</button>
+      </footer>
     </form>
   </dialog>
   <dialog id="editor" aria-labelledby="editor-title">

@@ -593,3 +593,60 @@ test('summary proxy waits 120 seconds for PDF transfers and normalizes timeouts 
     assert.deepEqual(calls, [['PUT', '/api/summaries/41'], ['GET', '/api/summaries/41/file'], ['GET', '/api/my-summaries']]);
   });
 });
+
+test('U8 proxies review collections ahead of the legacy guide wildcard and keeps write responses intact', async t => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  const calls = [];
+  global.fetch = async (url, options) => {
+    calls.push({url: url.pathname, ...options});
+    if (options.method === 'DELETE') return new Response(null, {status: 204});
+    return new Response('{"ok":true}', {status: options.method === 'POST' ? 201 : 200,
+      headers: {'Content-Type': 'application/json'}});
+  };
+  const auth = {Authorization: 'Bearer review-user'};
+  const body = '{"rating":4,"comment":"ดีมาก"}';
+  const json = {...auth, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body)};
+  await withServer(async port => {
+    for (const collection of ['guides', 'summaries']) {
+      const path = `/api/${collection}/12/reviews`;
+      assert.equal((await request(port, path, 'GET', auth)).status, 200);
+      assert.equal((await request(port, path, 'POST', json, body)).status, 201);
+      assert.deepEqual(calls.slice(-2).map(call => call.url), [path, path]);
+      assert.equal(calls.at(-1).headers.Authorization, auth.Authorization);
+      assert.equal(calls.at(-1).body.toString(), body);
+    }
+    assert.equal((await request(port, '/api/reviews/25', 'PUT', json, body)).status, 200);
+    const removed = await request(port, '/api/reviews/25', 'DELETE', auth);
+    assert.equal(removed.status, 204);
+    assert.equal(removed.body, '');
+    assert.equal(removed.headers['cache-control'], 'no-store');
+    assert.equal(calls.at(-1).body, undefined);
+  });
+});
+
+test('U8 review proxy responds with structured errors for unsupported requests and unavailable upstream', async t => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  let forwards = 0;
+  global.fetch = async () => { forwards++; throw new Error('offline'); };
+  const auth = {Authorization: 'Bearer review-user'};
+  const path = '/api/guides/12/reviews';
+  await withServer(async port => {
+    const missing = await request(port, path);
+    assert.equal(missing.status, 401);
+    assert.equal(JSON.parse(missing.body).error.code, 'AUTH_REQUIRED');
+    const method = await request(port, path, 'PUT', auth);
+    assert.equal(method.status, 405);
+    assert.equal(method.headers.allow, 'GET, POST');
+    const large = 'x'.repeat(32769);
+    const tooLarge = await request(port, path, 'POST', {...auth, 'Content-Length': large.length}, large);
+    assert.equal(tooLarge.status, 413);
+    assert.equal(JSON.parse(tooLarge.body).error.code, 'REQUEST_TOO_LARGE');
+    assert.equal(forwards, 0);
+    const failed = await request(port, path, 'GET', auth);
+    assert.equal(failed.status, 502);
+    assert.equal(JSON.parse(failed.body).error.code, 'UPSTREAM_UNAVAILABLE');
+    assert.equal(forwards, 1);
+  });
+});

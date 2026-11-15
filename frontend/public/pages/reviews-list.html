@@ -1,102 +1,53 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>คะแนนรีวิว | CS261</title>
-  <link rel="stylesheet" href="../css/reviews-list.css">
-</head>
-<body class="has-user-review">
-  <main class="modal-stage">
-    <section class="reviews-modal" role="dialog" aria-modal="true" aria-labelledby="reviews-title">
-      <header class="modal-header">
-        <div class="header-icon" aria-hidden="true">★</div>
-        <div class="header-copy">
-          <h1 id="reviews-title">คะแนนรีวิว</h1>
-          <p>ดูความเห็นของเพื่อนๆ เพื่อช่วยเลือกแนวข้อสอบ หรือสรุปที่ตรงใจ</p>
-        </div>
-        <a class="back-button" href="choose-courses.html" aria-label="ย้อนกลับ">
-          <span aria-hidden="true">←</span>
-        </a>
-      </header>
+<template id="review-list-template">
+  <header class="review-panel-header">
+    <span class="review-panel-icon" data-review-star-icon aria-hidden="true"></span>
+    <div class="review-panel-heading">
+      <p data-review-course></p>
+      <h2 id="reviews-title" tabindex="-1" data-review-title></h2>
+    </div>
+    <button class="review-panel-close" type="button" data-review-action="close" aria-label="ปิดหน้าคะแนนรีวิว"></button>
+  </header>
 
-      <div class="modal-content">
-        <section class="review-overview" aria-label="สรุปคะแนนรีวิว">
-          <div class="course-summary">
-            <p class="course-code">CS261 · Data Structures and Algorithms</p>
-            <h2>แนวข้อสอบกลางภาค CS261 Data Structures &amp; Algorithms ปีการศึกษา 2567</h2>
-          </div>
-          <div class="score-summary">
-            <strong class="average-score">4.5</strong>
-            <div class="average-stars" aria-label="คะแนนเฉลี่ย 4.5 จาก 5 ดาว">
-              <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="empty">☆</span>
-            </div>
-            <strong class="review-total">30 รีวิว</strong>
-          </div>
-        </section>
-
-        <!-- ส่วนคะแนนของผู้ใช้: หัวข้อ ปุ่ม และรีวิวของตัวเองอยู่ในกรอบเดียวกัน -->
-        <section class="my-review" aria-label="คะแนนของคุณ">
-          <div class="my-review-header">
-            <h2>คะแนนของคุณ</h2>
-
-            <!-- แสดงเมื่อยังไม่เคยรีวิว -->
-            <a class="review-action write-review-button" href="rate-review.html">
-              <span aria-hidden="true">★</span> รีวิวของคุณ
-            </a>
-
-            <!-- แสดงเมื่อเคยรีวิวแล้ว -->
-            <a class="review-action edit-review-button" href="rate-review.html">
-              แก้ไขรีวิว
-            </a>
-          </div>
-
-          <!-- รีวิวของเจ้าของบัญชีอยู่ภายใน my-review -->
-          <article class="review-item own-review">
-            <div class="review-heading">
-              <h3>ณัฐวรา พลนัน</h3>
-              <div class="review-stars" aria-label="4 จาก 5 ดาว">
-                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="empty">☆</span>
-              </div>
-            </div>
-            <p>แนวข้อสอบมีเนื้อหาครบถ้วน อาจจะต้องอ่านแบบฝึกหัดเพิ่มเติมอีกเล็กน้อย แต่ส่วนตัวใช้สำหรับการทบทวน</p>
-          </article>
-        </section>
-
-        <!-- รีวิวของผู้ใช้อื่นเริ่มหลังจบกรอบคะแนนของคุณ -->
-        <section class="reviews-list" aria-label="ความคิดเห็นจากผู้รีวิว">
-          <article class="review-item">
-            <div class="review-heading">
-              <h3>กชพร พูนเจริญวัฒน์</h3>
-              <div class="review-stars" aria-label="3 จาก 5 ดาว">
-                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="empty">☆</span><span class="empty">☆</span>
-              </div>
-            </div>
-            <p>สรุปดี แต่สั้นเกินไปโดยตัวอย่างไม่ครบ</p>
-          </article>
-
-          <article class="review-item">
-            <div class="review-heading">
-              <h3>เทวลิน อินทร์ตั้ย</h3>
-              <div class="review-stars" aria-label="5 จาก 5 ดาว">
-                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span>
-              </div>
-            </div>
-            <p>โจทย์มีการเรียงลำดับความยากง่ายได้ดีมาก พร้อมเฉลยละเอียดที่อธิบายเป็นขั้นตอน ทำให้คนไม่มีพื้นฐานก็สามารถทำความเข้าใจและนำไปประยุกต์ใช้ในห้องสอบได้จริง</p>
-          </article>
-
-          <article class="review-item">
-            <div class="review-heading">
-              <h3>ชาระวัน คงมี</h3>
-              <div class="review-stars" aria-label="5 จาก 5 ดาว">
-                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span>
-              </div>
-            </div>
-            <p>ตอนแรกกังวลมากว่าจะอ่านไม่ทัน แต่พอได้ลองทำแนวข้อสอบชุดนี้แล้วมั่นใจขึ้นเยอะเลย เข้าใจง่าย อ่านแล้วไม่ปวดหัว คุ้มค่ากับการลงทุนมากๆ</p>
-          </article>
-        </section>
+  <div class="review-panel-body review-list-body">
+    <section class="review-list-overview" data-review-summary aria-label="สรุปคะแนนรีวิว" hidden>
+      <p class="review-notice" data-review-empty hidden>ยังไม่มีรีวิว</p>
+      <div class="review-list-score" data-review-score hidden>
+        <strong data-review-average></strong>
+        <div class="review-star-display" role="img" data-review-score-stars></div>
+        <span data-review-count></span>
       </div>
     </section>
-  </main>
-</body>
-</html>
+
+    <section class="review-personal" data-review-own-review aria-labelledby="review-personal-title" hidden>
+      <div class="review-personal-heading">
+        <h3 id="review-personal-title">รีวิวของคุณ</h3>
+        <button class="review-control" type="button" data-review-action="edit">แก้ไขรีวิว</button>
+      </div>
+      <div data-review-own-entry></div>
+    </section>
+
+    <div data-review-editor hidden></div>
+    <p class="review-notice" role="status" tabindex="-1" data-review-message hidden></p>
+    <button class="review-control" type="button" data-review-action="reload" hidden>โหลดรีวิวอีกครั้ง</button>
+    <button class="review-control" type="button" data-review-action="recheck" hidden>ตรวจสอบสถานะล่าสุด</button>
+
+    <section class="review-community" data-review-community aria-labelledby="review-community-title" hidden>
+      <h3 id="review-community-title">รีวิวจากคนอื่น</h3>
+      <div data-review-entries></div>
+    </section>
+  </div>
+  <footer class="review-panel-footer" data-review-footer hidden>
+    <p class="review-owner-notice" data-review-owner-note hidden>เจ้าของเอกสารไม่สามารถรีวิวผลงานของตัวเองได้</p>
+    <button class="review-control review-control-primary" type="button" data-review-action="add" hidden>เพิ่มรีวิวของคุณ</button>
+  </footer>
+</template>
+
+<template id="review-item-template">
+  <article class="review-entry">
+    <div class="review-entry-heading">
+      <h4 data-review-author></h4>
+      <div class="review-star-display" role="img" data-review-entry-stars></div>
+    </div>
+    <p data-review-comment hidden></p>
+  </article>
+</template>
