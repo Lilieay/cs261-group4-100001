@@ -43,7 +43,7 @@ WHERE summary_id IS NOT NULL;
 
 ### ความสัมพันธ์ของตาราง
 
-![ความสัมพันธ์ของตาราง](diagrams/task102-review-er.png)
+![ความสัมพันธ์ของตาราง](../assets/task102-review-er.png)
 
 [ไฟล์ Mermaid](diagrams/task102-review-er.mmd)
 
@@ -86,7 +86,7 @@ POST และ PUT รับ JSON เฉพาะ `rating` กับ `comment` �
 
 #### แสดงรายการ
 
-![แสดงรายการรีวิว](diagrams/task102-review-list.png)
+![แสดงรายการรีวิว](../assets/task102-review-list.png)
 
 [ไฟล์ Mermaid](diagrams/task102-review-list.mmd)
 
@@ -94,7 +94,7 @@ POST และ PUT รับ JSON เฉพาะ `rating` กับ `comment` �
 
 #### เพิ่มรีวิว
 
-![เพิ่มรีวิว](diagrams/task102-review-create.png)
+![เพิ่มรีวิว](../assets/task102-review-create.png)
 
 [ไฟล์ Mermaid](diagrams/task102-review-create.mmd)
 
@@ -102,7 +102,7 @@ POST และ PUT รับ JSON เฉพาะ `rating` กับ `comment` �
 
 #### แก้ไขรีวิว
 
-![แก้ไขรีวิว](diagrams/task102-review-update.png)
+![แก้ไขรีวิว](../assets/task102-review-update.png)
 
 [ไฟล์ Mermaid](diagrams/task102-review-update.mmd)
 
@@ -110,7 +110,7 @@ POST และ PUT รับ JSON เฉพาะ `rating` กับ `comment` �
 
 #### ลบรีวิว
 
-![ลบรีวิว](diagrams/task102-review-delete.png)
+![ลบรีวิว](../assets/task102-review-delete.png)
 
 [ไฟล์ Mermaid](diagrams/task102-review-delete.mmd)
 
