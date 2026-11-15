@@ -6,68 +6,101 @@
   <title>คะแนนรีวิว | CS261</title>
   <link rel="stylesheet" href="../css/reviews-list.css">
 </head>
-<body>
+
+<!--
+  สถานะเริ่มต้น: has-user-review = ผู้ใช้เคยรีวิวแล้ว
+  หากยังไม่เคยรีวิว ให้เปลี่ยนเป็น: no-user-review
+
+  ภายหลังเพื่อนสามารถให้ JavaScript เปลี่ยน class ของ body
+  ตามสถานะรีวิวจริงของผู้ใช้ได้ โดยไม่ต้องแก้ HTML/CSS เพิ่ม
+-->
+<body class="has-user-review">
   <main class="modal-stage">
-    <section class="review-modal reviews-modal" role="dialog" aria-labelledby="reviews-title">
+    <section class="reviews-modal" role="dialog" aria-modal="true" aria-labelledby="reviews-title">
       <header class="modal-header">
-        <span class="header-icon" aria-hidden="true">★</span>
+        <div class="header-icon" aria-hidden="true">★</div>
+
         <div class="header-copy">
           <h1 id="reviews-title">คะแนนรีวิว</h1>
-          <p>ความคิดเห็นจากเพื่อน ๆ ที่เคยอ่านเอกสารนี้</p>
+          <p>ดูความเห็นของเพื่อนๆ เพื่อช่วยเลือกแนวข้อสอบ หรือสรุปที่ตรงใจ</p>
         </div>
-        <button class="back-button" type="button" aria-label="ย้อนกลับ">←</button>
+
+        <a class="back-button" href="choose-courses.html" aria-label="ย้อนกลับ">
+          <span aria-hidden="true">←</span>
+        </a>
       </header>
 
-      <div class="modal-body">
+      <div class="modal-content">
         <section class="review-overview" aria-label="สรุปคะแนนรีวิว">
           <div class="course-summary">
             <p class="course-code">CS261 · Data Structures and Algorithms</p>
-            <h2>แนวข้อสอบปลายภาค CS261 Data Structures &amp; Algorithms ปีการศึกษา 2567</h2>
+            <h2>แนวข้อสอบกลางภาค CS261 Data Structures &amp; Algorithms ปีการศึกษา 2567</h2>
           </div>
 
           <div class="score-summary">
             <strong class="average-score">4.5</strong>
-            <div class="average-stars" aria-label="คะแนนเฉลี่ย 4.5 จาก 5 ดาว">★★★★<span>☆</span></div>
+            <div class="average-stars" aria-label="คะแนนเฉลี่ย 4.5 จาก 5 ดาว">
+              <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="empty">☆</span>
+            </div>
             <strong class="review-total">30 รีวิว</strong>
           </div>
         </section>
 
-        <section class="reviews-section" aria-labelledby="review-list-title">
-          <div class="section-heading">
-            <h2 id="review-list-title">รีวิวและความคิดเห็น</h2>
-            <span class="review-filter">ทั้งหมด</span>
-          </div>
+        <section class="my-review" aria-label="คะแนนของคุณ">
+          <h2>คะแนนของคุณ</h2>
 
-          <article class="review-item">
-            <div class="review-meta">
-              <h3>สุดารัตน์ พานิช</h3>
-              <span class="review-stars" aria-label="4 จาก 5 ดาว">★★★★<span>☆</span></span>
+          <!-- แสดงเมื่อผู้ใช้ยังไม่เคยรีวิว -->
+          <a class="review-action write-review-button" href="rate-review.html">
+            <span aria-hidden="true">★</span> รีวิวของคุณ
+          </a>
+
+          <!-- แสดงเมื่อผู้ใช้เคยรีวิวแล้ว -->
+          <a class="review-action edit-review-button" href="rate-review.html">
+            แก้ไขรีวิว
+          </a>
+        </section>
+
+        <section class="reviews-list" aria-label="ความคิดเห็นจากผู้รีวิว">
+          <!-- รีวิวของผู้ใช้เอง: แสดงเป็นรายการแรกเมื่อเคยรีวิวแล้ว -->
+          <article class="review-item own-review">
+            <div class="review-heading">
+              <h3>ณัฐวรา พลนัน</h3>
+              <div class="review-stars" aria-label="4 จาก 5 ดาว">
+                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="empty">☆</span>
+              </div>
             </div>
-            <p>แนวข้อสอบค่อนข้างครบถ้วน ช่วยให้เตรียมตัวอ่านหนังสือได้ง่ายขึ้น</p>
+            <p>แนวข้อสอบมีเนื้อหาครบถ้วน อาจจะต้องอ่านแบบฝึกหัดเพิ่มเติมอีกเล็กน้อย แต่ส่วนตัวใช้สำหรับการทบทวน</p>
+          </article>
+
+          <!-- รีวิวของผู้ใช้คนอื่น -->
+          <article class="review-item">
+            <div class="review-heading">
+              <h3>กชพร พูนเจริญวัฒน์</h3>
+              <div class="review-stars" aria-label="3 จาก 5 ดาว">
+                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="empty">☆</span><span class="empty">☆</span>
+              </div>
+            </div>
+            <p>สรุปดี แต่สั้นเกินไปโดยตัวอย่างไม่ครบ</p>
           </article>
 
           <article class="review-item">
-            <div class="review-meta">
-              <h3>กฤษณะ เกตุแก้ว</h3>
-              <span class="review-stars" aria-label="3 จาก 5 ดาว">★★★<span>☆☆</span></span>
+            <div class="review-heading">
+              <h3>เทวลิน อินทร์ตั้ย</h3>
+              <div class="review-stars" aria-label="5 จาก 5 ดาว">
+                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span>
+              </div>
             </div>
-            <p>สรุปเนื้อหาได้ดี แต่อยากให้เพิ่มตัวอย่างโจทย์อีกเล็กน้อย</p>
+            <p>โจทย์มีการเรียงลำดับความยากง่ายได้ดีมาก พร้อมเฉลยละเอียดที่อธิบายเป็นขั้นตอน ทำให้คนไม่มีพื้นฐานก็สามารถทำความเข้าใจและนำไปประยุกต์ใช้ในห้องสอบได้จริง</p>
           </article>
 
           <article class="review-item">
-            <div class="review-meta">
-              <h3>พงษ์ชัย อินทร์ทอง</h3>
-              <span class="review-stars" aria-label="5 จาก 5 ดาว">★★★★★</span>
+            <div class="review-heading">
+              <h3>ชาระวัน คงมี</h3>
+              <div class="review-stars" aria-label="5 จาก 5 ดาว">
+                <span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span><span class="filled">★</span>
+              </div>
             </div>
-            <p>เนื้อหาครอบคลุมและอ่านเข้าใจง่าย เหมาะสำหรับใช้ทบทวนก่อนสอบ</p>
-          </article>
-
-          <article class="review-item">
-            <div class="review-meta">
-              <h3>ณัฐวุฒิ แซ่ตั้ง</h3>
-              <span class="review-stars" aria-label="5 จาก 5 ดาว">★★★★★</span>
-            </div>
-            <p>ช่วยจัดลำดับหัวข้อที่ควรอ่านได้ดี ใช้ประกอบการเตรียมสอบได้จริง</p>
+            <p>ตอนแรกกังวลมากว่าจะอ่านไม่ทัน แต่พอได้ลองทำแนวข้อสอบชุดนี้แล้วมั่นใจขึ้นเยอะเลย เข้าใจง่าย อ่านแล้วไม่ปวดหัว คุ้มค่ากับการลงทุนมากๆ</p>
           </article>
         </section>
       </div>
