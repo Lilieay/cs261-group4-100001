@@ -21,7 +21,7 @@ router = APIRouter(tags=["U6 PDF Summaries"], route_class=SummaryApiRoute)
 SummaryServiceDependency = Annotated[SummaryService, Depends(get_summary_service)]
 
 
-def _parse_id(value: str, source: str, field: str) -> int:
+def parse_summary_id(value: str, source: str, field: str) -> int:
     digits = value.lstrip("0")
     if 0 < len(digits) <= 10 and re.fullmatch(r"[0-9]+", digits):
         identifier = int(digits)
@@ -77,7 +77,7 @@ async def publish_summary(
             raise PdfValidationError(
                 "INVALID_PARAMETERS", "ชนิดข้อมูลของ multipart part ไม่ถูกต้อง"
             )
-        course_id = _parse_id(raw_course_id, "body", "course_id")
+        course_id = parse_summary_id(raw_course_id, "body", "course_id")
 
         content = await file.read(PDF_MAX_BYTES + 1)
         return await run_in_threadpool(
@@ -103,7 +103,7 @@ def list_course_summaries(
         tuple[str, AuthenticatedUser], Depends(current_user)
     ],
 ) -> CourseSummaryListResponse:
-    return service.list_by_course(_parse_id(course_id, "path", "course_id"))
+    return service.list_by_course(parse_summary_id(course_id, "path", "course_id"))
 
 
 @router.get("/api/summaries/{summary_id}", response_model=SummaryDTO)
@@ -114,7 +114,7 @@ def read_summary(
         tuple[str, AuthenticatedUser], Depends(current_user)
     ],
 ) -> SummaryDTO:
-    return service.get_summary(_parse_id(summary_id, "path", "summary_id"))
+    return service.get_summary(parse_summary_id(summary_id, "path", "summary_id"))
 
 
 @router.get("/api/summaries/{summary_id}/file")
@@ -125,7 +125,7 @@ def open_summary_file(
         tuple[str, AuthenticatedUser], Depends(current_user)
     ],
 ) -> StreamingResponse:
-    identifier = _parse_id(summary_id, "path", "summary_id")
+    identifier = parse_summary_id(summary_id, "path", "summary_id")
     summary_file, handle = service.open_pdf(identifier)
     headers = {
         "Content-Disposition": f'inline; filename="summary-{identifier}.pdf"',

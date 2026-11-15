@@ -3,18 +3,14 @@ from typing import Any
 
 
 class PdfUploadSizeLimitMiddleware:
-    """Bound the complete multipart request body for the PDF publish route."""
+    """Bound the complete multipart request body for PDF publishing and editing."""
 
     def __init__(self, app: Any, max_bytes: int):
         self.app = app
         self.max_bytes = max_bytes
 
     async def __call__(self, scope, receive, send):
-        if not (
-            scope.get("type") == "http"
-            and scope.get("method") == "POST"
-            and scope.get("path") == "/api/summaries"
-        ):
+        if scope.get("type") != "http" or not self._is_upload_request(scope):
             await self.app(scope, receive, send)
             return
 
@@ -48,6 +44,15 @@ class PdfUploadSizeLimitMiddleware:
                 break
 
         await self.app(scope, self._replay(chunks), send)
+
+    @staticmethod
+    def _is_upload_request(scope) -> bool:
+        method = scope.get("method")
+        path = scope.get("path", "").rstrip("/")
+        if method == "POST":
+            return path == "/api/summaries"
+        prefix = "/api/summaries/"
+        return method == "PUT" and path.startswith(prefix) and "/" not in path[len(prefix):]
 
     @staticmethod
     def _replay(chunks: list[bytes]):
