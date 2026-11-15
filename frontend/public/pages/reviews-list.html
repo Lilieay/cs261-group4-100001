@@ -6,25 +6,15 @@
   <title>คะแนนรีวิว | CS261</title>
   <link rel="stylesheet" href="../css/reviews-list.css">
 </head>
-
-<!--
-  สถานะเริ่มต้น: has-user-review = ผู้ใช้เคยรีวิวแล้ว
-  หากยังไม่เคยรีวิว ให้เปลี่ยนเป็น: no-user-review
-
-  ภายหลังเพื่อนสามารถให้ JavaScript เปลี่ยน class ของ body
-  ตามสถานะรีวิวจริงของผู้ใช้ได้ โดยไม่ต้องแก้ HTML/CSS เพิ่ม
--->
 <body class="has-user-review">
   <main class="modal-stage">
     <section class="reviews-modal" role="dialog" aria-modal="true" aria-labelledby="reviews-title">
       <header class="modal-header">
         <div class="header-icon" aria-hidden="true">★</div>
-
         <div class="header-copy">
           <h1 id="reviews-title">คะแนนรีวิว</h1>
           <p>ดูความเห็นของเพื่อนๆ เพื่อช่วยเลือกแนวข้อสอบ หรือสรุปที่ตรงใจ</p>
         </div>
-
         <a class="back-button" href="choose-courses.html" aria-label="ย้อนกลับ">
           <span aria-hidden="true">←</span>
         </a>
@@ -36,7 +26,6 @@
             <p class="course-code">CS261 · Data Structures and Algorithms</p>
             <h2>แนวข้อสอบกลางภาค CS261 Data Structures &amp; Algorithms ปีการศึกษา 2567</h2>
           </div>
-
           <div class="score-summary">
             <strong class="average-score">4.5</strong>
             <div class="average-stars" aria-label="คะแนนเฉลี่ย 4.5 จาก 5 ดาว">
@@ -46,22 +35,23 @@
           </div>
         </section>
 
+        <!-- ส่วนคะแนนของผู้ใช้: หัวข้อ ปุ่ม และรีวิวของตัวเองอยู่ในกรอบเดียวกัน -->
         <section class="my-review" aria-label="คะแนนของคุณ">
-          <h2>คะแนนของคุณ</h2>
+          <div class="my-review-header">
+            <h2>คะแนนของคุณ</h2>
 
-          <!-- แสดงเมื่อผู้ใช้ยังไม่เคยรีวิว -->
-          <a class="review-action write-review-button" href="rate-review.html">
-            <span aria-hidden="true">★</span> รีวิวของคุณ
-          </a>
+            <!-- แสดงเมื่อยังไม่เคยรีวิว -->
+            <a class="review-action write-review-button" href="rate-review.html">
+              <span aria-hidden="true">★</span> รีวิวของคุณ
+            </a>
 
-          <!-- แสดงเมื่อผู้ใช้เคยรีวิวแล้ว -->
-          <a class="review-action edit-review-button" href="rate-review.html">
-            แก้ไขรีวิว
-          </a>
-        </section>
+            <!-- แสดงเมื่อเคยรีวิวแล้ว -->
+            <a class="review-action edit-review-button" href="rate-review.html">
+              แก้ไขรีวิว
+            </a>
+          </div>
 
-        <section class="reviews-list" aria-label="ความคิดเห็นจากผู้รีวิว">
-          <!-- รีวิวของผู้ใช้เอง: แสดงเป็นรายการแรกเมื่อเคยรีวิวแล้ว -->
+          <!-- รีวิวของเจ้าของบัญชีอยู่ภายใน my-review -->
           <article class="review-item own-review">
             <div class="review-heading">
               <h3>ณัฐวรา พลนัน</h3>
@@ -71,8 +61,10 @@
             </div>
             <p>แนวข้อสอบมีเนื้อหาครบถ้วน อาจจะต้องอ่านแบบฝึกหัดเพิ่มเติมอีกเล็กน้อย แต่ส่วนตัวใช้สำหรับการทบทวน</p>
           </article>
+        </section>
 
-          <!-- รีวิวของผู้ใช้คนอื่น -->
+        <!-- รีวิวของผู้ใช้อื่นเริ่มหลังจบกรอบคะแนนของคุณ -->
+        <section class="reviews-list" aria-label="ความคิดเห็นจากผู้รีวิว">
           <article class="review-item">
             <div class="review-heading">
               <h3>กชพร พูนเจริญวัฒน์</h3>
