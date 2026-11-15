@@ -15,7 +15,7 @@
   }
 
   // Transport only. Each API adapter owns its validation and user-facing errors.
-  async function request(url, {timeoutMs = 0, token: bearer, ...options} = {}) {
+  async function request(url, {timeoutMs = 0, token: bearer, responseType = 'json', ...options} = {}) {
     const controller = timeoutMs ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     const abort = () => controller.abort();
@@ -28,10 +28,13 @@
       const response = await fetch(url, {
         ...options,
         ...(controller ? {signal: controller.signal} : {}),
-        headers: {...options.headers, Accept: 'application/json',
+        headers: {...options.headers, Accept: responseType === 'pdf' ? 'application/pdf, application/json' : 'application/json',
           ...(bearer ? {Authorization: `Bearer ${bearer}`} : {})},
         cache: 'no-store'
       });
+      if (response.ok && responseType === 'pdf') {
+        return {response, payload: await response.blob()};
+      }
       const text = await response.text();
       let payload = null;
       try { payload = text ? JSON.parse(text) : null; } catch (_) { /* Adapters validate payloads. */ }

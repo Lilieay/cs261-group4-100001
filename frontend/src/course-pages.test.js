@@ -21,7 +21,7 @@ class Element {
   querySelector() { return null; }
 }
 
-function runPage(file, {url, api, guideApi = {}, data = {}}) {
+function runPage(file, {url, api, summaryApi, guideApi = {}, data = {}}) {
   const elements = new Map();
   const get = selector => {
     if (!elements.has(selector)) elements.set(selector, new Element());
@@ -36,13 +36,13 @@ function runPage(file, {url, api, guideApi = {}, data = {}}) {
   };
   const window = {
     location: {href: url}, history: {replaceState() {}}, addEventListener() {},
-    CourseApi: api, GuideApi: {savedState: async () => false, ...guideApi}, CourseData: data
+    CourseApi: api, SummaryApi: summaryApi, GuideApi: {savedState: async () => false, ...guideApi}, CourseData: data
   };
   const source = fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8');
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/ui-utils.js'), 'utf8'), {window});
   window.UiUtils = {...window.UiUtils, ...data};
   vm.runInNewContext(source, {window, document, URL, URLSearchParams, AbortController, setTimeout, clearTimeout});
-  return {elements, get};
+  return {elements, get, tabs};
 }
 
 function deferred() {
@@ -50,6 +50,37 @@ function deferred() {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 }
+
+test('U6 lists summaries using the selected course and discards a guide response after switching tabs', async () => {
+  const guide = deferred();
+  const summaryCalls = [];
+  const {get, tabs} = runPage('choose-courses.js', {
+    url: 'http://frontend/choose-courses.html?courseId=7&course=CS261&type=summaries',
+    api: {getCourse: async () => ({id: 7, code: 'CS261', name: 'Software Engineering'})},
+    guideApi: {
+      filterOptions: async () => ({exam_periods: [], academic_years: [], semesters: []}),
+      list: () => guide.promise
+    },
+    summaryApi: {list: async id => {
+      summaryCalls.push(id);
+      return [{id: 41, title: 'สรุป <CS261>', owner: {display_name: 'ผู้เผยแพร่'}}];
+    }}
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(get('#filters').hidden, true);
+  assert.match(get('#documentList').innerHTML, /สรุป &lt;CS261&gt;/);
+  assert.match(get('#documentList').innerHTML, /read-summary\.html\?summary=41/);
+
+  tabs[0].listeners.click();
+  await new Promise(resolve => setImmediate(resolve));
+  tabs[1].listeners.click();
+  await new Promise(resolve => setImmediate(resolve));
+  guide.resolve([{id: '55', title: 'Stale guide'}]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(summaryCalls, [7, 7]);
+  assert.match(get('#documentList').innerHTML, /ผู้เผยแพร่/);
+  assert.doesNotMatch(get('#documentList').innerHTML, /Stale guide/);
+});
 
 test('course search page keeps the newest response when an older search finishes last', async () => {
   const old = deferred();

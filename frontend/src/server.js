@@ -8,19 +8,21 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   const app = express();
   app.disable('x-powered-by');
 
-  async function proxy(req, res, upstreamPath, {body, onResponse, errorMessage} = {}) {
+  async function proxy(req, res, upstreamPath, {body, multipart = false,
+    accept = 'application/json', onResponse, errorMessage} = {}) {
     res.set('Cache-Control', 'no-store');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 12000);
     try {
       const base = new URL(backendUrl);
       if (!['http:', 'https:'].includes(base.protocol)) throw new Error('Invalid backend protocol');
-      const headers = {Accept: 'application/json'};
+      const headers = {Accept: accept};
       if (req.get('authorization')) headers.Authorization = req.get('authorization');
-      if (body !== undefined) headers['Content-Type'] = 'application/json';
+      if (multipart) headers['Content-Type'] = req.get('content-type');
+      else if (body !== undefined) headers['Content-Type'] = 'application/json';
       const response = await fetch(new URL(upstreamPath, base), {
         method: req.method, headers, signal: controller.signal, cache: 'no-store', redirect: 'manual',
-        ...(body === undefined ? {} : {body: JSON.stringify(body)})
+        ...(body === undefined ? {} : {body: multipart ? body : JSON.stringify(body)})
       });
       if (onResponse) return await onResponse(response);
       const text = await response.text();
@@ -89,6 +91,58 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
     return proxy(req, res, target, {errorMessage: 'ไม่สามารถเชื่อมต่อบริการรายวิชาได้ กรุณาลองใหม่อีกครั้ง'});
   });
 
+  const summaryUnavailable = 'เชื่อมต่อบริการสรุป PDF ไม่สำเร็จ';
+  const summaryError = (res, status, code, message) => res.status(status).json({
+    error: {code, message, fields: []}
+  });
+
+  app.post('/api/summaries', express.raw({type: 'multipart/form-data', limit: 16_000_000, inflate: false}), (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!req.is('multipart/form-data')) {
+      return summaryError(res, 415, 'UNSUPPORTED_MEDIA_TYPE', 'กรุณาแนบไฟล์ PDF ผ่านแบบฟอร์ม');
+    }
+    if (!Buffer.isBuffer(req.body) || !req.body.length) {
+      return summaryError(res, 422, 'INVALID_PARAMETERS', 'กรุณากรอกข้อมูลและแนบไฟล์ PDF');
+    }
+    return proxy(req, res, '/api/summaries', {
+      body: req.body, multipart: true, errorMessage: summaryUnavailable
+    });
+  });
+
+  app.get(['/api/courses/:courseId/summaries', '/api/summaries/:summaryId', '/api/summaries/:summaryId/file'], (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!validId(req.params.courseId ?? req.params.summaryId) || Object.keys(req.query).length) {
+      return summaryError(res, 422, 'INVALID_PARAMETERS', 'ข้อมูลที่ใช้เปิดสรุปไม่ถูกต้อง');
+    }
+    const isFile = /\/file\/?$/i.test(req.path);
+    const upstreamPath = req.params.courseId
+      ? `/api/courses/${req.params.courseId}/summaries`
+      : `/api/summaries/${req.params.summaryId}${isFile ? '/file' : ''}`;
+    return proxy(req, res, upstreamPath, {
+      errorMessage: summaryUnavailable,
+      ...(isFile && {
+        accept: 'application/pdf, application/json',
+        onResponse: async response => {
+          const contentType = response.headers.get('content-type');
+          if (!response.ok) {
+            const body = await response.text();
+            return res.type('json').status(response.status).send(body);
+          }
+          if (response.status !== 200 || contentType?.split(';')[0] !== 'application/pdf') {
+            return summaryError(res, 502, 'INVALID_RESPONSE', 'บริการส่งไฟล์ PDF กลับมาไม่ถูกต้อง');
+          }
+          const bytes = Buffer.from(await response.arrayBuffer());
+          res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `inline; filename="summary-${req.params.summaryId}.pdf"`,
+            'X-Content-Type-Options': 'nosniff'
+          });
+          return res.end(bytes);
+        }
+      })
+    });
+  });
+
   app.get('/api/my-guides', (req, res) => proxy(req, res, '/api/my-guides', {
     errorMessage: 'ไม่สามารถโหลดรายการแนวข้อสอบได้ กรุณาลองใหม่อีกครั้ง'
   }));
@@ -136,7 +190,7 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
 
   const publicRoot = path.join(__dirname, '../public');
   const pages = ['index', 'login', 'courses', 'choose-courses', 'read-courses',
-    'shared-courses', 'saved-courses', 'upload'];
+    'shared-courses', 'saved-courses', 'upload', 'upload-summary', 'read-summary'];
   // Keep a single URL for each page even when opened through its folder path.
   app.get(pages.map(page => `/pages/${page}.html`), (req, res) => {
     res.redirect(302, req.originalUrl.replace(/^\/pages/, ''));
@@ -144,6 +198,12 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   app.use(express.static(path.join(publicRoot, 'pages')));
   app.use(express.static(publicRoot));
   app.use((error, req, res, next) => {
+    if (/^\/api\/summaries\/?$/i.test(req.path)) {
+      res.set('Cache-Control', 'no-store');
+      if (error.status === 413) return summaryError(res, 413, 'REQUEST_TOO_LARGE', 'ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MB');
+      if (error.status === 415) return summaryError(res, 415, 'UNSUPPORTED_MEDIA_TYPE', 'รูปแบบไฟล์อัปโหลดไม่ถูกต้อง');
+      return summaryError(res, 400, 'INVALID_PARAMETERS', 'ข้อมูลอัปโหลดไม่ถูกต้อง');
+    }
     if (req.path.startsWith('/api/auth') || req.path === '/api/guides' || req.path.startsWith('/api/my-guides/')) {
       return res.status(error.status === 413 ? 413 : 400).json({detail: 'ข้อมูลคำขอไม่ถูกต้อง'});
     }
