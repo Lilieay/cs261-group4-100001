@@ -68,6 +68,11 @@ class ReviewRoute(APIRoute):
                 else:
                     if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
                         return error(415, "UNSUPPORTED_MEDIA_TYPE", "กรุณาส่ง application/json")
+                    if size:
+                        # Decode before JSON parsing: json.loads(bytes) otherwise
+                        # auto-detects UTF-16/32, outside the UTF-8 contract.
+                        # Cache the parsed value for FastAPI's request.json().
+                        request._json = json.loads(request._body.decode("utf-8"))
                 response = await original(request)
                 response.headers.update(HEADERS)
                 return response

@@ -60,6 +60,17 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 `init_reviews` สร้างเฉพาะ reviews พร้อม FK, CHECK และ indexes ใน transaction ไม่ลบตารางเดิม ไม่ seed ทับข้อมูล หาก reviews มีอยู่แล้วจะหยุดโดยไม่แก้ schema ให้ตรวจเทียบคอลัมน์ FK และ indexes ก่อนดำเนินการต่อ ไม่ควรใช้ create_all ของ Base เดิมเพื่อแทนคำสั่งนี้
 
+### ขั้นตอนบน Docker สำหรับ Integration
+
+Docker entrypoint ปัจจุบันรัน `python -m app.init_db` เพื่อสร้างตารางเดิมและ U6 แต่ยังไม่สร้าง reviews โดยอัตโนมัติ หลังตั้ง `.env` และเปิด Docker ให้รันจาก repository root:
+
+```powershell
+docker compose up -d --build
+docker compose exec backend python -m scripts.init_reviews
+```
+
+รันคำสั่ง init_reviews ครั้งแรกหลังตาราง U6 พร้อม ก่อนเริ่มทดสอบรีวิว ถ้า backend เปิดได้แต่ยังไม่ได้สร้าง reviews API รีวิวจะตอบ 503 STORAGE_UNAVAILABLE เมื่อเข้าถึงตาราง ไม่ถือว่าระบบ U8 พร้อมจาก healthcheck `/` เพียงอย่างเดียว เมื่อ reviews มีอยู่แล้วให้ตรวจ schema เดิมและข้ามการสร้างซ้ำ ห้ามลบ volume เพื่อแก้ปัญหานี้ เก็บผลคำสั่งและ SHA ที่ใช้เป็นหลักฐานใน Task122 ขั้นตอนนี้ยังไม่ได้รันกับ Docker/SQL Server จริงใน Task114
+
 ก่อนติดตั้งบน SQL Server ต้องตรวจ schema ที่ใช้งานจริงและ cascade paths ร่วมกับ U6/U7 แล้วทดสอบในฐานข้อมูลแยก งานนี้ตรวจ compilation ของ DDL แล้ว แต่ยังไม่มีผลรัน DDL บน SQL Server จริง
 
 ## ข้อมูลทดสอบและการรัน

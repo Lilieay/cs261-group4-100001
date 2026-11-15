@@ -2,9 +2,15 @@
 
 วันที่ 14 พฤศจิกายน 2569 บน Windows, Python 3.12.14, FastAPI 0.162.7, Pydantic 2.14.3, SQLAlchemy 2.1.8, pytest 9.2.0
 
-ผลล่าสุดหลังรวม `sprint2` commit `fd1d031` และแก้ conflict main.py: `python -m pytest backend/test -q --disable-warnings --maxfail=1` ได้ **270 passed, 3 skipped, 81 subtests passed** ใช้เวลา 7.28 วินาที มี warning 1 รายการจาก dependency ผลนี้รวม Unit/API ของ Task114 และ regression ของ Backend เดิมรวม U6 ไม่ใช่ผล SQL Server หรือ Browser Integration
+ผลล่าสุดหลังแก้ review เรื่อง UTF-8 วันที่ 15 พฤศจิกายน 2569: `python -m pytest backend/test -q --disable-warnings --maxfail=1` ได้ **282 passed, 3 skipped, 81 subtests passed** ใช้เวลา 7.60 วินาที มี warning 1 รายการจาก dependency ผลนี้รวม Unit/API ของ Task114 และ regression ของ Backend เดิมรวม U6 ไม่ใช่ผล SQL Server หรือ Browser Integration
 
-ชุด Task114 มี 94 tests ใน `backend/test/test_reviews_unit.py` และ `backend/test/test_reviews_api.py` โดยผลรันรวมข้างต้นผ่านทั้งหมด 3 tests ที่ skip อยู่ในชุดเดิมรวม U6 และต้องเปิด flag SQL Server
+ชุด Task114 มี 106 tests ใน `backend/test/test_reviews_unit.py` และ `backend/test/test_reviews_api.py` รันเฉพาะสองไฟล์ได้ 106 passed ใน 3.21 วินาที ผลรันรวมข้างต้นผ่านทั้งหมด 3 tests ที่ skip อยู่ในชุดเดิมรวม U6 และต้องเปิด flag SQL Server
+
+## ผลแก้ review เรื่อง JSON encoding
+
+บังคับ decode body ด้วย UTF-8 แบบ strict ก่อน parse JSON แล้วส่งผล parse ให้ FastAPI ใช้ต่อ เพื่อปิดการตรวจ encoding อัตโนมัติของ json.loads(bytes) เพิ่ม 12 กรณีที่รันกับ Guide และ Summary ครอบคลุม UTF-16 แบบมี BOM/LE/BE, UTF-32, byte UTF-8 เสีย และ UTF-8 ภาษาไทย/emoji ที่ถูกต้อง POST และ PUT ที่ encoding ผิดตอบ 400 MALFORMED_REQUEST โดย fields เป็น [] และข้อมูลเดิมไม่เปลี่ยน รวม POST ของผู้ใช้ที่ยังไม่มีรีวิวต้องไม่สร้างข้อมูลใหม่
+
+เพิ่มขั้นตอน `docker compose exec backend python -m scripts.init_reviews` หลัง U6 initializer ในคู่มือ เพื่อป้องกันการเข้าใจว่า healthcheck ผ่านแล้วแปลว่าตาราง reviews พร้อม ยังไม่มีผลรัน Docker/SQL Server จริงในรอบนี้
 
 ## สิ่งที่ทดสอบและส่วนที่จำลอง
 

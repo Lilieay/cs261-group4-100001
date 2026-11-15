@@ -3,6 +3,7 @@
 The minimal Summary fixture is not the U6 ORM or real PDF storage. These tests
 do not establish SQL Server locking/cascade/concurrency or full integration.
 """
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -197,6 +198,38 @@ def test_protocol_validation(api):
                  413, "REQUEST_TOO_LARGE")
     assert_error(client.patch(url, headers=auth()), 405, "METHOD_NOT_ALLOWED")
     assert_error(client.get("/api/reviews/1/unknown", headers=auth()), 404, "ROUTE_NOT_FOUND")
+
+
+@pytest.mark.parametrize("kind", ["guide", "summary"])
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be", "utf-32", "invalid-utf8"])
+def test_reject_non_utf8_json_before_parsing_without_mutation(api, kind, encoding):
+    client, _ = api
+    original = client.post(path(kind), headers=auth(), json={"rating": 4, "comment": "เดิม"}).json()
+    body = (b'{"rating":5,"comment":"\xff"}' if encoding == "invalid-utf8" else
+            json.dumps({"rating": 5, "comment": "ใหม่"}, ensure_ascii=False).encode(encoding))
+    headers = {**auth(), "Content-Type": "application/json"}
+    for method, url in [("POST", path(kind)), ("PUT", f"/api/reviews/{original['id']}")]:
+        response = client.request(method, url, headers=headers, content=body)
+        assert_error(response, 400, "MALFORMED_REQUEST")
+        assert response.json()["error"]["fields"] == []
+        assert client.get(path(kind), headers=auth()).json()["items"] == [original]
+    # A fresh user's POST must also be rejected before any review is created.
+    assert_error(client.post(path(kind), headers={**auth("other"), "Content-Type": "application/json"},
+                             content=body), 400, "MALFORMED_REQUEST")
+    assert client.get(path(kind), headers=auth()).json()["items"] == [original]
+
+
+@pytest.mark.parametrize("kind", ["guide", "summary"])
+def test_accept_actual_utf8_json_on_create_and_update(api, kind):
+    client, _ = api
+    headers = {**auth(), "Content-Type": "application/json; charset=utf-8"}
+    body = json.dumps({"rating": 5, "comment": "เข้าใจง่าย 😀"}, ensure_ascii=False).encode("utf-8")
+    created = client.post(path(kind), headers=headers, content=body)
+    assert created.status_code == 201, created.text
+    assert created.json()["comment"] == "เข้าใจง่าย 😀"
+    updated = client.put(f"/api/reviews/{created.json()['id']}", headers=headers, content=body)
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["comment"] == "เข้าใจง่าย 😀"
 
 
 @pytest.mark.parametrize("kind", ["guide", "summary"])
