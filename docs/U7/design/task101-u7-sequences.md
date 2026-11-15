@@ -8,7 +8,7 @@
 
 ## 1 ดูรายการสรุปของฉัน
 
-![ดูรายการสรุปของฉัน](diagrams/task101-my-list.png)
+![ดูรายการสรุปของฉัน](../assets/task101-my-list.png)
 
 [ต้นฉบับ Mermaid](diagrams/task101-my-list.mmd)
 
@@ -23,7 +23,7 @@
 
 ## 2 เปิดอ่าน PDF
 
-![เปิดอ่าน PDF](diagrams/task101-read.png)
+![เปิดอ่าน PDF](../assets/task101-read.png)
 
 [ต้นฉบับ Mermaid](diagrams/task101-read.mmd)
 
@@ -41,7 +41,7 @@ UI fetch พร้อม Authorization ตรวจ status และ Content-Typ
 
 ## 3 แก้ไขและแทนที่ PDF
 
-![แก้ไขและแทนที่ PDF](diagrams/task101-update.png)
+![แก้ไขและแทนที่ PDF](../assets/task101-update.png)
 
 [ต้นฉบับ Mermaid](diagrams/task101-update.mmd)
 
@@ -62,7 +62,7 @@ read Session ของขั้นตรวจเบื้องต้นต้�
 
 ## 4 ยืนยันและยกเลิกลบ
 
-![ยืนยันและยกเลิกลบ](diagrams/task101-delete.png)
+![ยืนยันและยกเลิกลบ](../assets/task101-delete.png)
 
 [ต้นฉบับ Mermaid](diagrams/task101-delete.mmd)
 
