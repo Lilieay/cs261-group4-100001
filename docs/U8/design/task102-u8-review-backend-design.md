@@ -43,35 +43,9 @@ WHERE summary_id IS NOT NULL;
 
 ### ความสัมพันธ์ของตาราง
 
-[ไฟล์ Mermaid](diagrams/task102-review-er.mmd)
+![ความสัมพันธ์ของตาราง](../assets/task102-review-er.png)
 
-```mermaid
-erDiagram
-  USERS ||--o{ REVIEWS : writes
-  GUIDES o|--o{ REVIEWS : has
-  SUMMARIES o|--o{ REVIEWS : has
-  USERS {
-    int id PK
-  }
-  GUIDES {
-    int id PK
-    int publisher_id FK
-  }
-  SUMMARIES {
-    int id PK
-    int owner_id FK
-  }
-  REVIEWS {
-    int id PK
-    int author_id FK
-    int guide_id FK "nullable, exactly one target FK"
-    int summary_id FK "nullable, exactly one target FK"
-    tinyint rating
-    nvarchar comment "nullable"
-    datetime2 created_at
-    datetime2 updated_at
-  }
-```
+[ไฟล์ Mermaid](diagrams/task102-review-er.mmd)
 
 
 ## DAO และ transaction
@@ -106,94 +80,43 @@ POST และ PUT รับ JSON เฉพาะ `rating` กับ `comment` �
 
 ใช้ error envelope ของ Task94 ส่ง JSON ผิดรูปแบบตอบ 400 `MALFORMED_REQUEST` และชนิด request ผิดตอบ 415 `UNSUPPORTED_MEDIA_TYPE` เมื่อ SQL ล้มเหลวก่อน commit และยืนยัน rollback ได้ ให้ตอบ 503 `STORAGE_UNAVAILABLE` โดยคงข้อมูลเดิม ถ้าการเชื่อมต่อหลุดจนไม่ทราบผล commit ให้ตอบ 503 เมื่อยังส่ง response ได้ และให้ UI โหลดรายการล่าสุดก่อนแจ้งผลหรือให้ผู้ใช้ลองใหม่ โดยเฉพาะ POST ที่ห้าม retry อัตโนมัติ
 
-### ### แผนภาพลำดับ
+## แผนภาพลำดับ
 
 ทั้งสี่ภาพใช้กับแนวข้อสอบและสรุป PDF เหมือนกัน ภาพแสดงทางเดินตอนทำสำเร็จ ผลตอบกลับเมื่อข้อมูลผิดหรือ SQL ล้มเหลวดูได้จากตารางด้านบน
 
 #### แสดงรายการ
 
-[ไฟล์ Mermaid](diagrams/task102-review-list.mmd)
+![แสดงรายการรีวิว](../assets/task102-review-list.png)
 
-```mermaid
-sequenceDiagram
-  participant UI
-  participant API as API / Service
-  participant DAO as ReviewDAO
-  participant DB as SQL Server
-  UI->>API: ขอรายการรีวิวของผลงาน
-  API->>DAO: เช็กล็อกอินแล้วขอรายการ
-  DAO->>DB: อ่านผลงานและรีวิว เรียงจากใหม่ไปเก่า
-  DB-->>DAO: คืนรายการรีวิว
-  DAO-->>API: ส่งรายการกลับ
-  API-->>UI: 200 แสดงรีวิวหรือรายการว่าง
-```
+[ไฟล์ Mermaid](diagrams/task102-review-list.mmd)
 
 ผลงานไม่มีหรือถูกลบได้ 404 ตามชนิด ส่วนผลงานที่ยังอยู่แต่ไม่มีรีวิวได้ 200 พร้อม `items: []`
 
 #### เพิ่มรีวิว
 
-[ไฟล์ Mermaid](diagrams/task102-review-create.mmd)
+![เพิ่มรีวิว](../assets/task102-review-create.png)
 
-```mermaid
-sequenceDiagram
-  participant UI
-  participant API as API / Service
-  participant DAO as ReviewDAO
-  participant DB as SQL Server
-  UI->>API: ส่งคะแนนและข้อความ
-  API->>DAO: เช็กล็อกอินและข้อมูล แล้วส่งคำขอเพิ่มรีวิว
-  DAO->>DB: อ่านเจ้าของพร้อมล็อกผลงาน แล้ว INSERT เมื่อ Service อนุญาต
-  DB-->>DAO: คืนรีวิวที่เพิ่ม
-  DAO-->>API: ส่งรีวิวกลับ
-  API->>DB: Commit
-  API-->>UI: 201 แสดงรีวิวใหม่
-```
+[ไฟล์ Mermaid](diagrams/task102-review-create.mmd)
 
 ถ้าเป็นผลงานตัวเองตอบ 403 ถ้ารีวิวซ้ำตอบ 409 และให้แก้รายการเดิม
 
 #### แก้ไขรีวิว
 
-[ไฟล์ Mermaid](diagrams/task102-review-update.mmd)
+![แก้ไขรีวิว](../assets/task102-review-update.png)
 
-```mermaid
-sequenceDiagram
-  participant UI
-  participant API as API / Service
-  participant DAO as ReviewDAO
-  participant DB as SQL Server
-  UI->>API: ส่งคะแนนและข้อความใหม่
-  API->>DAO: เช็กล็อกอินและข้อมูล แล้วส่งคำขอแก้รีวิว
-  DAO->>DB: อ่านผู้เขียนพร้อมล็อกรีวิว แล้ว UPDATE เมื่อ Service อนุญาต
-  DB-->>DAO: คืนรีวิวที่แก้
-  DAO-->>API: ส่งรีวิวกลับ
-  API->>DB: Commit
-  API-->>UI: 200 แสดงรีวิวที่แก้แล้ว
-```
+[ไฟล์ Mermaid](diagrams/task102-review-update.mmd)
 
 ถ้าเป็นรีวิวของคนอื่นตอบ 403 ถ้ารีวิวหายตอบ 404 แก้สำเร็จต้องได้ ID เดิม
 
 #### ลบรีวิว
 
-[ไฟล์ Mermaid](diagrams/task102-review-delete.mmd)
+![ลบรีวิว](../assets/task102-review-delete.png)
 
-```mermaid
-sequenceDiagram
-  participant UI
-  participant API as API / Service
-  participant DAO as ReviewDAO
-  participant DB as SQL Server
-  UI->>API: ส่งคำขอลบรีวิว
-  API->>DAO: เช็กล็อกอิน แล้วส่งคำขอลบ
-  DAO->>DB: อ่านผู้เขียนพร้อมล็อกรีวิว แล้ว DELETE เมื่อ Service อนุญาต
-  DB-->>DAO: ยืนยันว่าลบหนึ่งรายการ
-  DAO-->>API: ส่งผลกลับ
-  API->>DB: Commit
-  API-->>UI: 204 เอารีวิวออกจากรายการ
-```
+[ไฟล์ Mermaid](diagrams/task102-review-delete.mmd)
 
 ถ้าเป็นรีวิวของคนอื่นตอบ 403 ถ้ารีวิวหายตอบ 404 ลบสำเร็จแล้วรีวิวคนอื่นยังอยู่
 
-แผนทดสอบ
+## แผนทดสอบ
 
 ใช้ Guide 101 และ Summary 101 เป็นคนละผลงาน มีเจ้าของ P ผู้รีวิว R และผู้ใช้อื่น X ใช้คะแนนกับข้อความตาม fixture ของ Task94 และรันกรณีที่เกี่ยวข้องแยกทั้งสองชนิด
 
