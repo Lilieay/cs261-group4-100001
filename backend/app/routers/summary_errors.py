@@ -8,6 +8,12 @@ from fastapi.routing import APIRoute
 from starlette.exceptions import HTTPException
 
 from app.schemas.guides import ErrorDetailDTO, ErrorFieldDTO, ErrorResponseDTO
+from app.services.pdf_validator import PdfValidationError
+from app.services.summaries import (
+    SummaryCourseNotFound,
+    SummaryNotFound,
+    SummaryStorageUnavailable,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +52,19 @@ class SummaryApiRoute(APIRoute):
         async def handle(request: Request) -> Response:
             try:
                 response = await original_handler(request)
+            except SummaryCourseNotFound:
+                response = _error_response("COURSE_NOT_FOUND")
+            except SummaryNotFound:
+                response = _error_response("SUMMARY_NOT_FOUND")
+            except SummaryStorageUnavailable:
+                response = _error_response("STORAGE_UNAVAILABLE")
+            except PdfValidationError as error:
+                fields = (
+                    [ErrorFieldDTO(field="file", message=error.message)]
+                    if error.code in {"PDF_INVALID", "PDF_UNREADABLE", "PDF_TOO_LARGE"}
+                    else None
+                )
+                response = _error_response(error.code, fields=fields, message=error.message)
             except RequestValidationError as error:
                 fields = [
                     ErrorFieldDTO(
@@ -79,10 +98,11 @@ def _error_response(
     *,
     fields: list[ErrorFieldDTO] | None = None,
     headers: dict[str, str] | None = None,
+    message: str | None = None,
 ) -> JSONResponse:
-    status_code, message = ERRORS[code]
+    status_code, default_message = ERRORS[code]
     body = ErrorResponseDTO(
-        error=ErrorDetailDTO(code=code, message=message, fields=fields or [])
+        error=ErrorDetailDTO(code=code, message=message or default_message, fields=fields or [])
     )
     response = JSONResponse(
         status_code=status_code, content=body.model_dump(), headers=headers
