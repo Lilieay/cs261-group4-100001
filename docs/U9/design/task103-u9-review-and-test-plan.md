@@ -1,95 +1,79 @@
-# Task103 U9 จุดทดสอบและบันทึก review
+# Task103 U9 — Review และ Test Plan
 
-รุ่น 0.1 | วันที่ 13 พฤศจิกายน 2569 | สถานะ: ยังไม่รัน Unit, API หรือ Integration tests
+**รุ่น 0.2 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Test Plan — Not Run**
 
-ใช้คู่กับ [แบบ DAO](task103-u9-dao-design.md) และ [Sequence Diagram](task103-u9-sequences.md) การตรวจเอกสารไม่ใช่ผลทดสอบ implementation หรือการอนุมัติของทีม
+เอกสารนี้อัปเดตแผนทดสอบของ Task103 ให้ตรง Task94 API Contract v0.4 และการใช้ relation ร่วมกับ U10 ตาม Task104 v0.3 ไม่มีการอ้างว่ารัน Unit/API/Integration tests แล้ว
 
-## 1 ข้อมูลทดสอบ
+## 1. ข้อมูลตั้งต้น
 
-เตรียมบัญชีสมมติ A และ B ที่มี session ใช้งานได้, session หมดอายุ และคำขอไม่มี token เตรียม Guide G1 และ G2 ที่มีอยู่จริง, Summary PDF S1 และ S2 ที่มีอยู่จริง และ target ID ที่ไม่มีอยู่
+เตรียมบัญชี A และ B ที่ Login ได้, token ผิด/หมดอายุ/ไม่มี token, Guide G1/G2 ที่มีอยู่, Summary S1/S2 ที่มีอยู่ และ ID ที่ไม่มีอยู่ เตรียมคู่ Guide 101 กับ Summary 101 เพื่อพิสูจน์ว่า ID namespace แยกตามชนิด
 
-ควรเตรียม Guide กับ Summary ที่มีเลข ID เท่ากันอย่างน้อยหนึ่งคู่ เพื่อทดสอบการแยก namespace เช่น Guide 101 และ Summary 101 ต้องเป็นคนละ target เตรียมบัญชี A ที่บันทึก Guide 101 แล้ว และบัญชี B ที่ยังไม่ได้บันทึก Guide 101
+เตรียม bookmark เดิมใน `saved_guides` ของ A และ bookmark ใหม่ที่ U9 บันทึกเพิ่มภายหลัง พร้อมตรวจว่ารายการทั้งสองปรากฏใน U10 `GET /api/saved-items` โดยไม่ migrate หรือ copy ข้อมูลเดิม
 
-เตรียมข้อมูล legacy ใน `saved_guides` ก่อนทดสอบ และบันทึกจำนวน/ค่าอ้างอิงไว้เพื่อเปรียบเทียบหลัง migration/test ห้ามใช้ token จริงหรือข้อมูลส่วนบุคคลใน Git
+สำหรับ SQLAlchemy ให้ใช้ Session จริงใน Integration test และยืนยันว่าไม่มี SELECT เกิดก่อน `session.begin()` ใน save flow ใช้ SQL Server จริงสำหรับ FK/PK และ concurrent behavior ไม่ใช้ SQLite แทนหลักฐาน concurrency ของ SQL Server
 
-Unit ใช้ fake DAO เพื่อทดสอบ service logic; API ตรวจ HTTP boundary; Integration ใช้ SQL Server จริงเพื่อทดสอบ unique constraint, transaction และ concurrent request ไม่ใช้ SQLite แทนหลักฐาน concurrency ของ SQL Server
+## 2. Contract ที่ใช้เป็น oracle
 
-## 2 Mapping กับ U9-TC01 ถึง U9-TC05
+| Operation | Expected |
+|---|---|
+| PUT ครั้งแรก | `200 {"item_type":"guide","item_id":101,"saved":true}` |
+| PUT ซ้ำ | `200` body เดียวกันทุก field |
+| GET state มี bookmark | `200 saved:true` |
+| GET state ไม่มี bookmark แต่ target มี | `200 saved:false` |
+| DELETE | `200 saved:false` และลบเฉพาะ relation ของ current user |
+| DB read/write/commit error | `503 SAVED_ITEMS_UNAVAILABLE` |
+| target หาย | `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND` |
+| token ใช้ไม่ได้ | `401 AUTH_REQUIRED` |
+| type/ID ไม่ถูกต้อง | `422 INVALID_PARAMETERS` |
 
-| TC และผลคาดหวัง | Unit | API | Integration / UI |
-| --- | --- | --- | --- |
-| TC01 บันทึกผลงานสำเร็จ | service ระบุ user จาก auth และเรียก save ด้วยชนิด/ID ถูกต้อง | PUT target ที่มีอยู่ตอบ saved true ตาม DTO ที่อนุมัติ | SQL มี relation หนึ่ง row; reload/Login บัญชีเดิมยังเห็นสถานะ saved |
-| TC02 บันทึกผลงานที่ไม่มีเนื้อหา | ตรวจตามกติกาชนิดผลงานที่ PO ยืนยัน ไม่บังคับให้มี PDF/Guide content หาก requirement อนุญาต | target ที่มีอยู่แต่ไม่มี content ต้องบันทึกได้ตาม rule ที่อนุมัติ | ยืนยัน saved relation ถูกสร้างโดยไม่สร้าง content/target ใหม่ |
-| TC03 บันทึกซ้ำไม่เพิ่มรายการซ้ำ | duplicate path คืน already_saved โดยไม่ insert เพิ่ม | PUT ซ้ำแสดงข้อความ “ได้บันทึกการแบ่งปันนี้ไปแล้ว” | unique constraint ทำให้มีหนึ่ง row แม้ยิงพร้อมกัน |
-| TC04 ไม่มีสิทธิ์หรือ target ใช้ไม่ได้ | auth/validation/target existence ถูกตรวจตามลำดับ | no token/invalid token = 401; owner field spoof = 422; target missing = 404; type/id invalid = 422 | ไม่สร้าง saved row และไม่เปลี่ยนบัญชีอื่น |
-| TC05 บันทึกล้มเหลวต้องไม่แจ้งสำเร็จ | service แปลง DB failure เป็น error และไม่คืน success | response เป็น error ตาม Contract; ไม่ตอบ success ลวง | จำลอง insert/commit failure; เมื่อยืนยัน rollback แล้วไม่มี saved row; UI ไม่แสดง saved state |
+Duplicate message “ได้บันทึกการแบ่งปันนี้ไปแล้ว” เป็น UI behavior เท่านั้น: ถ้า UI รู้จาก state ก่อนกดว่า saved อยู่แล้ว ให้แสดงข้อความนี้ได้โดยไม่ต้องรอ response ที่มี `already_saved` เพราะ response PUT ทั้งครั้งแรก/ซ้ำเหมือนกัน
 
-**หมายเหตุ:** Task98 ระบุ TC01–TC05 เป็น Not Run ทั้งหมด ห้ามทำเครื่องหมาย Pass จนกว่าจะรันทดสอบและแนบหลักฐานจริง
+## 3. Test cases TC06–TC12 สำหรับส่วน DAO/API
 
-TC02 เดิมกล่าวถึงรายวิชาที่ไม่มีแนวข้อสอบหรือสรุป แต่ PO เปลี่ยนเป้าหมายเป็นการบันทึก Guide/Summary รายชิ้น จึงต้องให้ PO ยืนยันความหมายใหม่ของ “ไม่มีเนื้อหา” ก่อนใช้ TC02 เป็น acceptance test
+> หมายเหตุด้าน traceability: ไฟล์ Task98 ฉบับเต็มไม่ได้แนบมาในชุดไฟล์รอบนี้ จึงจัดทำรายละเอียด TC06–TC12 ด้านล่างจากข้อกำหนดแก้ไขที่ผู้มอบหมายระบุและ Contract v0.4 เพื่อใช้เป็นแผนทดสอบต่อ ต้องเทียบชื่อ/ข้อความ acceptance กับ Task98 ต้นฉบับก่อน merge ห้ามถือว่าเป็นการถอดข้อความต้นฉบับ Task98 แบบคำต่อคำ
 
-## 3 กรณีขยายสำหรับ DAO, API และ concurrency
+| TC | Scenario / ระดับ | ขั้นตอนหลัก | Expected result |
+|---|---|---|---|
+| **TC06** | PUT ครั้งแรก / API + Integration | A PUT `/api/saved-items/guide/101` เมื่อ target มีอยู่และยังไม่ saved | `200` และ body `{item_type:"guide", item_id:101, saved:true}`; มี relation ใน `saved_guides` เพียงหนึ่งแถว |
+| **TC07** | PUT ซ้ำ / API + UI | A PUT target เดิมอีกครั้ง; ตรวจ response และ UI ที่รู้ state ก่อนกด | `200` และ body เหมือน TC06 ทุก field; ไม่มี row ซ้ำ; UI แสดง duplicate message จาก pre-known state ไม่อ่าน `already_saved` |
+| **TC08** | Shared storage กับ U10 / Integration + API | บันทึก Guide และ Summary ผ่าน U9 แล้วเรียก U10 `GET /api/saved-items`; จากนั้น DELETE ผ่าน U10 | U10 เห็น bookmark ที่ U9 บันทึกจาก relation ชุดเดียวกัน; DELETE ทำให้ U9 GET state เป็น `saved:false`; Guide ใช้ `saved_guides`, Summary ใช้ `saved_summaries` |
+| **TC09** | ER / FK / uniqueness / Integration | ตรวจ FK ไป users และ target; insert duplicate pair; บันทึก Guide 101 และ Summary 101 ให้ user เดียวกัน | duplicate ใน relation ชนิดเดียวกันถูกปฏิเสธ/ทำ idempotent; Guide 101 และ Summary 101 อยู่ร่วมกันได้; PK เป็น `(user_id, guide_id)` และ `(user_id, summary_id)` |
+| **TC10** | Transaction ordering / Unit + Integration | instrument SQLAlchemy Session; เรียก PUT; ตรวจ event/order ของ transaction และ SELECT | `session.begin()` เกิดก่อน target SELECT; SELECT และ INSERT อยู่ใน transaction เดียว; ไม่มี autobegin conflict/InvalidRequestError |
+| **TC11** | Storage unavailable / API + Integration | จำลอง DB read failure, insert failure และ commit failure ใน GET/PUT/DELETE | ทุกกรณี saved-items ตอบ `503 SAVED_ITEMS_UNAVAILABLE`; ห้ามตอบ `saved:false` หรือ `200`; rollback เมื่อยืนยัน failure ก่อน commit และไม่มี success ลวง |
+| **TC12** | Concurrent PUT / SQL Server Integration | ส่ง PUT พร้อมกันหลาย request สำหรับ current user/type/id เดียวกัน | มี bookmark row เดียว; ทุก request ที่ผลยืนยันได้ตอบ `200 saved:true`; DB error อื่นที่ไม่ใช่ duplicate ต้องไม่ถูกกลบ; ถ้า timeout/ผลไม่แน่ชัด UI GET state ก่อน retry |
 
-| รหัส | เหตุการณ์ | ผลคาดหวังที่ต้องพิสูจน์ |
-| --- | --- | --- |
-| U9-D01 | A บันทึก Guide G1 ครั้งแรก | มี relation ของ A/G1 หนึ่งรายการ |
-| U9-D02 | A บันทึก Guide G1 ซ้ำ | ไม่เพิ่ม row และคืน duplicate message ตาม PO |
-| U9-D03 | A บันทึก Summary S1 ที่ ID เลขเดียวกับ Guide G1 | เก็บแยกกันตาม item_type |
-| U9-D04 | B อ่านสถานะ G1 ที่ A บันทึก | B ได้ saved=false; ไม่เห็นข้อมูลรายการส่วนตัวของ A |
-| U9-D05 | ไม่มี token / token ผิด / หมดอายุ | 401 AUTH_REQUIRED และ WWW-Authenticate: Bearer |
-| U9-D06 | ส่ง user_id หรือ owner_id จาก client | 422 INVALID_PARAMETERS และไม่เปลี่ยนข้อมูล |
-| U9-D07 | item_type ไม่รองรับ หรือ item_id ไม่ใช่จำนวนเต็มบวก | 422 INVALID_PARAMETERS |
-| U9-D08 | target ไม่มีอยู่จริง | 404 ตามชนิด; ห้ามสร้าง target ใหม่ |
-| U9-D09 | DB อ่านสถานะไม่ได้ | error ตาม Contract; ห้ามตอบ saved=false |
-| U9-D10 | DB insert ล้มเหลวก่อน commit และยืนยัน rollback | ไม่มี saved relation; UI ไม่แสดง success |
-| U9-D11 | PUT เดียวกันพร้อมกันหลาย request | SQL Server unique constraint ทำให้เหลือหนึ่ง relation |
-| U9-D12 | Guide 101 และ Summary 101 | state และ save ของแต่ละชนิดไม่ปะปน |
-| U9-D13 | ตรวจ legacy saved_guides ก่อน/หลัง | ไม่มีการ convert/delete อัตโนมัติจากงานนี้ |
-| U9-D14 | reload หรือ Login ใหม่ด้วยบัญชีเดิม | สถานะ saved ยังคงอยู่ |
-| U9-D15 | target ถูกลบหลัง save | behavior ต้องตรง deletion policy ที่ PO/Backend อนุมัติ; ห้ามปล่อย broken reference โดยไม่กำหนด |
+## 4. การทดสอบร่วมที่ยังต้องครอบคลุม
 
-## 4 ผลตรวจแบบและข้อจำกัดที่ต้องแก้ก่อน implementation
+| Case | สิ่งที่ต้องพิสูจน์ |
+|---|---|
+| Auth | no token / invalid / expired → `401 AUTH_REQUIRED` และ WWW-Authenticate |
+| Validation | unsupported type, ID 0, negative, float/string/bool, unknown query/body → `422 INVALID_PARAMETERS` |
+| Target missing | guide → `404 GUIDE_NOT_FOUND`; summary → `404 SUMMARY_NOT_FOUND`; ไม่มี relation ใหม่ |
+| Owner isolation | A save แล้ว B GET state เป็น false; B DELETE ไม่ลบ bookmark ของ A |
+| State durability | reload และ Login ใหม่บัญชีเดิมยังอ่าน saved state เดิม |
+| Empty list vs failure | ไม่มี bookmark = `200 {"items":[]}`; DB error = `503 SAVED_ITEMS_UNAVAILABLE` |
+| Legacy | bookmark เดิมใน `saved_guides` ยังคงอยู่; ไม่มี auto migration/copy/delete |
+| List consistency | U10 list เรียง course_code ASC, item_type ASC, item_id DESC และเปิด exact `open_path` |
+| Delete safety | ลบเฉพาะ relation; ไม่ลบ Guide/Summary/PDF/Course หรือ bookmark ของ user อื่น |
 
-| ข้อพบ | แนวทางในแบบ | จุดตรวจต่อ |
-| --- | --- | --- |
-| Task94 v0.2 มี `/api/saved-courses` แต่ PO U9 ให้บันทึก Guide/Summary | เสนอ endpoint ใหม่แบบ item_type + item_id | ปรับ Task94 และ review กับ Frontend/Backend/PO |
-| legacy `/api/saved-guides` ใช้ guide_id | ไม่แปลงข้อมูลเดิมอัตโนมัติ | ยืนยัน compatibility/deprecation แยก |
-| ID ของ Guide และ Summary อาจชนกัน | ใช้ item_type เป็นส่วนหนึ่งของ key | ตรวจ schema/unique constraint กับ Task100 |
-| เช็คก่อน insert อย่างเดียวไม่กัน race | unique constraint เป็น final guard | ทดสอบ concurrent request บน SQL Server |
-| Task98 ระบุข้อความ duplicate แต่ไม่ระบุ HTTP status/DTO | แสดงเป็น contract question | ให้ PO/Frontend/Backend ยืนยัน response |
-| TC02 อ้างวิชาที่ไม่มี content แต่ PO เปลี่ยนเป็น item saving | ระบุว่าต้องแก้ acceptance criteria | ให้ PO ยืนยันความหมายก่อนรันทดสอบ |
-| สิทธิ์บันทึกผลงานของตนเองยังไม่ชัด | ไม่สมมติคำตอบ | ขอ PO decision |
+## 5. Test levels และหลักฐานที่ต้องแนบ
 
-## 5 DoD และ review ที่ยังต้องมีหลักฐาน
+- **Unit:** DAO predicate, service dispatch, DTO mapping, UI pre-known state, transaction begin ordering (mock/session event).
+- **API:** auth, validation, status/body exact match, Cache-Control no-store, PUT duplicate response equality, 503 mapping.
+- **Integration (SQL Server):** composite PK/FK, shared relation visibility U9↔U10, rollback, concurrent PUT, target cleanup policy.
+- **UI:** saved/unsaved initial state, loading/error, duplicate message from state known before PUT, refresh after uncertain network outcome.
 
-| ข้อของ Task103/U9 | หลักฐานในชุดนี้ | สถานะ |
-| --- | --- | --- |
-| DAO input/output/errors | `task103-u9-dao-design.md` ส่วน 4–5 | จัดทำแล้ว รอทีมตรวจ |
-| Sequence อ่านสถานะและบันทึก | `task103-u9-sequences.md` และ `.mmd` 2 ไฟล์ | จัดทำแล้ว รอทีมตรวจ |
-| duplicate และ concurrent save | U9-D02/U9-D11 และ DAO unique guard | จัดทำแบบแล้ว รอ Backend review |
-| auth, invalid target, failure | U9-TC04/TC05 และ U9-D05–D10 | จัดทำแบบแล้ว รอ Contract alignment |
-| ทบทวน Requirement/TC กับ PO | Task98 มี PO decision บางข้อ แต่ TC02 และ policy บางเรื่องยังต้องยืนยัน | Pending |
-| จัดเก็บไฟล์แก้ไขได้ใน Repository | Markdown และ Mermaid source | พร้อมนำเข้า repo หลัง review |
+หลักฐานต่อ TC: test command, environment/database version, request/response หรือ assertion log, commit SHA, วันที่รัน, ผู้รัน และผล Pass/Fail/Blocked ห้ามทำเครื่องหมาย Pass จากการอ่านเอกสาร
 
-### Review record
+## 6. Review record
 
-| ผู้ตรวจตามบทบาท | ประเด็นที่ต้อง review | ผู้ตรวจ/วันที่/ผล |
-| --- | --- | --- |
-| Frontend | endpoint, DTO, duplicate message, saved/unsaved/loading/error states | Pending |
-| Backend / Task100 | table/column/FK, unique constraint, transaction, concurrency | Pending |
-| PO / ผู้ดูแล Task94/98 | item types, duplicate response, TC02, self-save policy, deletion policy | Pending |
+| Role | Review focus | Reviewer / date / outcome |
+|---|---|---|
+| Frontend | DTO เดียวทั้ง PUT ครั้งแรก/ซ้ำ; UI duplicate message จาก state | Pending |
+| Backend | DAO relation dispatch, Session transaction, duplicate conflict handling, 503 | Pending |
+| Data model / Task100 | saved_summaries PK/FK, saved_guides existing constraints, cleanup | Pending |
+| PO / Task98 | TC06–TC12 traceability, message behavior, acceptance | Pending |
 
-เมื่อมี review ให้บันทึกผู้ตรวจจริง วันที่ รุ่นเอกสาร ลิงก์ comment/PR ข้อพบและผลแก้ ไม่ใช้ self-review หรือการตรวจไฟล์แทนการยอมรับร่วม
+## 7. สถานะ
 
-### Definition of Done
-
-- [ ] ทบทวน U9 Requirement และ TC01–TC05 ร่วมกับ PO
-- [ ] ยืนยันการบันทึก Guide/Summary รายชิ้นและ item types
-- [ ] ยืนยัน duplicate behavior, response status/DTO และข้อความ UI
-- [ ] ยืนยัน auth, owner identity, target validation และ self-save policy
-- [ ] ยืนยัน DAO methods, unique constraint และ transaction กับ Backend/Task100
-- [ ] ตรวจ Sequence อ่านสถานะและบันทึกกับ Frontend/Backend
-- [ ] ปรับ Task94 API Contract และจัดเก็บ contract รุ่นที่ review แล้ว
-- [ ] รัน Unit, API และ Integration tests พร้อมหลักฐานจริง
-
-**สถานะปัจจุบัน:** Draft for Review; ยังไม่ implement, ยังไม่รัน tests และยังไม่ผ่าน DoD
+**Draft for Review — Not Implemented / Tests Not Run.** ต้อง review และแนบหลักฐานจริงก่อนเปลี่ยนสถานะ

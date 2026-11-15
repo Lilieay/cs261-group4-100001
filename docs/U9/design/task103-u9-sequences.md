@@ -1,92 +1,123 @@
-# Task103 U9 Sequence Diagram
+# Task103 U9 — Sequence Diagrams
 
-รุ่น 0.1 | วันที่ 13 พฤศจิกายน 2569 | แบบเสนอสำหรับ review ยังไม่ใช่ flow ที่ implement แล้ว
+**รุ่น 0.2 | 15 พฤศจิกายน 2569 | Draft for Review**
 
-แต่ละภาพแสดงเส้นทางสำเร็จเป็นหลัก รวม Router, DTO และ Service เป็นช่อง API เดียวเพื่อให้อ่านลำดับได้ง่าย DAO และ SQL Server แยกหน้าที่ชัดเจน กรณีผิดพลาดอยู่ในตารางใต้ภาพ เมื่อพบข้อผิดพลาดให้หยุดเส้นทางสำเร็จ ณ ขั้นที่เกี่ยวข้อง
+Sequence ที่ปรับตาม Task94 v0.4 และ Task104 U10 v0.3 โดยใช้ relation ร่วมกัน (`saved_guides`, `saved_summaries`) และ transaction เริ่มก่อน target SELECT
 
-อ่านคู่กับ [แบบ DAO](task103-u9-dao-design.md) และ [แผนทดสอบกับ review](task103-u9-review-and-test-plan.md) ไฟล์ `.mmd` เป็นต้นฉบับแก้ไขได้
-
-## 1 อ่านสถานะการบันทึก
-
-[ต้นฉบับ Mermaid](diagrams/task103-saved-state.mmd)
+## 1. อ่านสถานะ
 
 ```mermaid
 sequenceDiagram
     actor Student as นักศึกษา
-    participant UI as หน้ารายละเอียดผลงาน
-    participant API as API / DTO / Service
-    participant DAO as SavedItemsDAO
-    participant SQL as SQL Server
+    participant UI as Saved item detail UI
+    participant API as Router / DTO
+    participant SVC as SavedItemsService
+    participant DAO as SavedGuideDAO หรือ SavedSummaryDAO
+    participant DB as SQL Server
     Student->>UI: เปิดรายละเอียด Guide หรือ Summary
-    UI->>API: GET /api/saved-items/{item_type}/{item_id} + token
-    API->>API: ตรวจ Login และระบุ current user จาก session
-    API->>API: ตรวจ item_type และ item_id
-    API->>DAO: target_exists(item_type, item_id)
-    DAO->>SQL: SELECT target จากตารางตามชนิด
-    SQL-->>DAO: target record
-    DAO-->>API: target exists
-    API->>DAO: get_saved_state(user_id, item_type, item_id)
-    DAO->>SQL: SELECT saved relation ของ user ปัจจุบัน
-    SQL-->>DAO: saved / not saved
-    DAO-->>API: state
-    API-->>UI: 200 SavedItemState
-    UI-->>Student: แสดงสถานะบันทึกแล้ว / ยังไม่ได้บันทึก
+    UI->>API: GET /api/saved-items/{item_type}/{item_id} + Bearer
+    API->>API: ตรวจ token และ current_user
+    API->>API: validate item_type และ item_id
+    API->>SVC: get_state(current_user.id, item_type, item_id)
+    SVC->>DAO: target_exists(item_id)
+    DAO->>DB: SELECT target จากตารางตามชนิด
+    DB-->>DAO: target / no row
+    alt target ไม่พบ
+        DAO-->>SVC: TargetNotFound
+        SVC-->>API: GUIDE_NOT_FOUND หรือ SUMMARY_NOT_FOUND
+        API-->>UI: 404 ErrorResponseDTO
+    else target มีอยู่
+        SVC->>DAO: is_saved(current_user.id, item_id)
+        DAO->>DB: SELECT relation จาก saved_guides หรือ saved_summaries
+        DB-->>DAO: exists / absent
+        DAO-->>SVC: saved boolean
+        SVC-->>API: SavedItemState
+        API-->>UI: 200 {item_type,item_id,saved}
+        UI-->>Student: แสดง saved หรือ unsaved
+    end
 ```
 
-| กรณี | ผลลัพธ์ |
-| --- | --- |
-| ไม่มี token, token ผิดหรือหมดอายุ | 401 `AUTH_REQUIRED` พร้อม `WWW-Authenticate: Bearer` |
-| item_type หรือ item_id ผิดรูปแบบ | 422 `INVALID_PARAMETERS` |
-| target ไม่พบตามชนิดที่ระบุ | 404 ตาม error code ที่ Contract อนุมัติ |
-| ส่ง user_id/owner_id ที่ไม่อนุญาต | 422 `INVALID_PARAMETERS` |
-| DB อ่านไม่ได้ | 503 ตาม Contract; ห้ามแสดงเป็น `saved:false` |
-| target มีอยู่แต่ยังไม่ saved | 200 `saved:false` |
-
-## 2 บันทึกผลงานที่สนใจ
-
-[ต้นฉบับ Mermaid](diagrams/task103-save-item.mmd)
+## 2. บันทึกผลงาน
 
 ```mermaid
 sequenceDiagram
     actor Student as นักศึกษา
-    participant UI as หน้ารายละเอียดผลงาน
-    participant API as API / DTO / Service
-    participant DAO as SavedItemsDAO
-    participant SQL as SQL Server
-    Student->>UI: กดบันทึก Guide หรือ Summary
-    UI->>API: PUT /api/saved-items/{item_type}/{item_id} + token
-    API->>API: ตรวจ Login และระบุ current user จาก session
-    API->>API: ตรวจ item_type และ item_id
-    API->>DAO: target_exists(item_type, item_id)
-    DAO->>SQL: SELECT target จากตารางตามชนิด
-    SQL-->>DAO: target record
-    DAO-->>API: target exists
-    API->>SQL: BEGIN TRANSACTION
-    API->>DAO: insert_saved_if_absent(user_id, item_type, item_id)
-    DAO->>SQL: INSERT relation; unique constraint ป้องกันรายการซ้ำ
-    SQL-->>DAO: inserted หรือ already exists
-    DAO-->>API: save result
-    API->>SQL: COMMIT
-    SQL-->>API: ยืนยันผล commit
-    API-->>UI: 200 save result / duplicate result ตาม Contract
-    UI-->>Student: แจ้งบันทึกสำเร็จ หรือ “ได้บันทึกการแบ่งปันนี้ไปแล้ว”
+    participant UI as Saved item detail UI
+    participant API as Router / DTO
+    participant SVC as SavedItemsService
+    participant DAO as SavedGuideDAO หรือ SavedSummaryDAO
+    participant DB as SQL Server
+    Student->>UI: กดบันทึกผลงาน
+    UI->>API: PUT /api/saved-items/{item_type}/{item_id} + Bearer
+    API->>API: ตรวจ token, current_user, type และ ID
+    API->>SVC: save(current_user.id, item_type, item_id)
+    Note over SVC,DB: BEGIN ต้องเกิดก่อน SELECT เพื่อป้องกัน SQLAlchemy autobegin
+    SVC->>DB: session.begin()
+    SVC->>DAO: target_exists(session, item_id)
+    DAO->>DB: SELECT target ตามชนิด
+    DB-->>DAO: target record
+    alt target ไม่มี
+        DAO-->>SVC: TargetNotFound
+        SVC->>DB: ROLLBACK
+        SVC-->>API: GUIDE_NOT_FOUND หรือ SUMMARY_NOT_FOUND
+        API-->>UI: 404 ErrorResponseDTO
+    else target มี
+        SVC->>DAO: insert_if_absent(session, current_user.id, item_id)
+        DAO->>DB: INSERT relation โดย unique PK กันซ้ำ
+        DB-->>DAO: inserted หรือ duplicate key ของ relation เดิม
+        DAO-->>SVC: idempotent save result
+        SVC->>DB: COMMIT
+        DB-->>SVC: commit confirmed
+        SVC-->>API: SavedItemState(saved=true)
+        API-->>UI: 200 {item_type,item_id,saved:true}
+        UI-->>Student: แสดงบันทึกแล้ว; duplicate message ใช้ state ที่ UI รู้ก่อน PUT
+    end
+    Note over API,UI: DB read/write/commit failure = 503 SAVED_ITEMS_UNAVAILABLE
 ```
 
-| กรณี | ผลลัพธ์ |
-| --- | --- |
-| ไม่มี token, token ผิดหรือหมดอายุ | 401 `AUTH_REQUIRED` พร้อม `WWW-Authenticate: Bearer` |
-| item_type/item_id ผิดรูปแบบ | 422 `INVALID_PARAMETERS` |
-| ส่ง user_id/owner_id หรือ field เจ้าของที่ไม่อนุญาต | 422 `INVALID_PARAMETERS` |
-| target ไม่พบ | 404 ตามชนิด; ไม่สร้าง target ใหม่ |
-| บันทึกซ้ำ | คง saved relation เพียงหนึ่งรายการ และแจ้ง “ได้บันทึกการแบ่งปันนี้ไปแล้ว” |
-| คำขอพร้อมกัน | unique constraint ต้องทำให้เหลือหนึ่ง relation |
-| DB ล้มเหลวก่อน commit และยืนยัน rollback | error ตาม Contract; UI ไม่แสดง success |
-| ผล commit ไม่แน่ชัด/response timeout | UI อ่านสถานะใหม่ก่อน retry; ห้ามเดาว่าบันทึกไม่สำเร็จ |
+## 3. ดูรายการและนำออก (U10 shared relation)
 
-## 3 ข้อกำหนดที่ต้องยืนยันก่อนใช้ Sequence เป็น Contract
+```mermaid
+sequenceDiagram
+    actor Student as นักศึกษา
+    participant UI as Saved items UI
+    participant API as Router / DTO
+    participant SVC as SavedItemsService
+    participant GDAO as SavedGuideDAO
+    participant SDAO as SavedSummaryDAO
+    participant DB as SQL Server
+    Student->>UI: เปิดรายการที่บันทึก
+    UI->>API: GET /api/saved-items + Bearer
+    API->>API: current_user จาก token
+    API->>SVC: list_for_user(current_user.id)
+    SVC->>GDAO: list_by_user(user_id)
+    GDAO->>DB: SELECT saved_guides JOIN guides/courses
+    SVC->>SDAO: list_by_user(user_id)
+    SDAO->>DB: SELECT saved_summaries JOIN summaries/courses/files
+    alt DAO/DB error
+        DB-->>SVC: exception
+        SVC-->>API: SAVED_ITEMS_UNAVAILABLE
+        API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE
+    else success
+        SVC->>SVC: รวม DTO และเรียงตาม Contract
+        SVC-->>API: SavedItemListResponse
+        API-->>UI: 200 {items:[...]}
+        UI-->>Student: group ตาม Course แต่แสดงแต่ละ item แยกกัน
+    end
+    Student->>UI: กดนำ bookmark ออก
+    UI->>API: DELETE /api/saved-items/{item_type}/{item_id} + Bearer
+    API->>SVC: remove(current_user.id,item_type,item_id)
+    alt item_type = guide
+        SVC->>GDAO: remove(user_id, guide_id)
+        GDAO->>DB: DELETE saved_guides WHERE user_id AND guide_id
+    else item_type = summary
+        SVC->>SDAO: remove(user_id, summary_id)
+        SDAO->>DB: DELETE saved_summaries WHERE user_id AND summary_id
+    end
+    SVC->>DB: COMMIT
+    SVC-->>API: SavedItemState(saved=false)
+    API-->>UI: 200 {item_type,item_id,saved:false}
+    UI-->>Student: นำออกเฉพาะ bookmark นี้
+```
 
-- Path `/api/saved-items/{item_type}/{item_id}` เป็นข้อเสนอ ไม่ใช่ endpoint ที่อนุมัติแล้ว
-- Status code และ DTO ของ duplicate ต้องตกลงร่วมกัน; PO ยืนยันข้อความ UI แต่ Task98 ไม่ได้ระบุ status/body
-- ชื่อตาราง/คอลัมน์และกลไก unique ต้องตรงแบบ Task100
-- ไม่รวมการ migrate `saved_guides` เดิม
-- การบันทึกผลงานของตนเองได้หรือไม่ยังรอ PO
+ข้อผิดพลาด DB read/write/commit ของ saved-items ให้ตอบ `503 SAVED_ITEMS_UNAVAILABLE`; target missing ตอบ 404 ตามชนิด; validation 422; auth 401.
