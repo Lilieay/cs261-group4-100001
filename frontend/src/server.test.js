@@ -30,7 +30,7 @@ test('HTML pages in public/pages retain their original URLs and assets load from
   await withServer(async port => {
     const assets = new Set();
     for (const page of ['index', 'login', 'courses', 'choose-courses', 'read-courses',
-      'shared-courses', 'saved-courses', 'upload']) {
+      'shared-courses', 'saved-courses', 'upload', 'upload-summary', 'read-summary']) {
       const response = await request(port, `/${page}.html`);
       assert.equal(response.status, 200, page);
       assert.match(response.headers['content-type'], /text\/html/);
@@ -445,5 +445,55 @@ test('saved proxy pins paths, forwards the session, and preserves backend failur
     assert.equal((await request(port, '/api/saved-guides')).status, 401);
     global.fetch = async () => { throw new Error('offline'); };
     assert.equal((await request(port, '/api/saved-guides')).status, 502);
+  });
+});
+
+test('U6 proxy forwards a multipart upload and returns authenticated PDF bytes intact', async t => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  const calls = [];
+  const pdf = Buffer.from([37, 80, 68, 70, 45, 255, 0, 128]);
+  global.fetch = async (url, init) => {
+    calls.push({path: url.pathname, init});
+    if (url.pathname.endsWith('/file')) {
+      if (!init.headers.Authorization) {
+        return new Response('{"error":{"code":"AUTH_REQUIRED"}}', {status: 401});
+      }
+      return new Response(pdf, {headers: {'Content-Type': 'application/pdf'}});
+    }
+    return new Response('{"id":41}', {status: init.method === 'POST' ? 201 : 200});
+  };
+
+  await withServer(async port => {
+    const base = `http://127.0.0.1:${port}`;
+    const form = new FormData();
+    form.set('course_id', '7');
+    form.set('title', 'สรุปทดสอบ');
+    form.set('file', new Blob([pdf], {type: 'application/pdf'}), 'summary.pdf');
+    const headers = {Authorization: 'Bearer u6-test'};
+    const posted = await originalFetch(base + '/api/summaries', {method: 'POST', body: form, headers});
+    assert.equal(posted.status, 201);
+    assert.equal(posted.headers.get('cache-control'), 'no-store');
+    assert.equal(calls[0].path, '/api/summaries');
+    const upload = calls[0].init;
+    assert.equal(upload.headers.Authorization, headers.Authorization);
+    const decoded = await new Response(upload.body, {headers: upload.headers}).formData();
+    assert.equal(decoded.get('course_id'), '7');
+    assert.equal(decoded.get('title'), 'สรุปทดสอบ');
+    assert.deepEqual(Buffer.from(await decoded.get('file').arrayBuffer()), pdf);
+
+    const list = await originalFetch(base + '/api/courses/7/summaries', {headers});
+    assert.equal(list.status, 200);
+    assert.equal(calls.at(-1).path, '/api/courses/7/summaries');
+
+    const downloaded = await originalFetch(base + '/api/summaries/41/file', {headers});
+    assert.equal(downloaded.headers.get('content-type'), 'application/pdf');
+    assert.equal(downloaded.headers.get('cache-control'), 'no-store');
+    assert.equal(downloaded.headers.get('x-content-type-options'), 'nosniff');
+    assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()), pdf);
+    assert.equal(calls.at(-1).init.headers.Authorization, headers.Authorization);
+    const expired = await originalFetch(base + '/api/summaries/41/file');
+    assert.equal(expired.status, 401);
+    assert.equal((await expired.json()).error.code, 'AUTH_REQUIRED');
   });
 });

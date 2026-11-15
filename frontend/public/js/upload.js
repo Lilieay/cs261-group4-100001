@@ -194,9 +194,10 @@
       setupSelect(field('academicYear'), config.academicYears, 'เลือกปีการศึกษา', String, String);
       const code = new URL(window.location.href).searchParams.get('course');
       if (!field('course').value && catalog.some(row => row.code === code)) field('course').value = code;
-      $('#publish-mode').textContent = config.mode === 'preview'
-        ? 'โหมดทดลอง: ข้อมูลเก็บเฉพาะเบราว์เซอร์นี้ ยังไม่เผยแพร่ให้ผู้ใช้อื่น'
-        : 'เผยแพร่ด้วยบัญชีที่เข้าสู่ระบบ';
+      if (config.mode === 'preview') {
+        $('#publish-mode').textContent = 'โหมดทดลอง: ข้อมูลเก็บเฉพาะเบราว์เซอร์นี้ ยังไม่เผยแพร่ให้ผู้ใช้อื่น';
+        $('#publish-mode').hidden = false;
+      }
       ready = true;
       syncCounts();
       status('');
