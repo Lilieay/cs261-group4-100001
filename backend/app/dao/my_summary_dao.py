@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.summary import Summary, utc_now_naive
@@ -42,5 +42,11 @@ class MySummaryDAO:
                 description=metadata.description,
                 updated_at=utc_now_naive(),
             )
+        )
+        return self.session.execute(statement).rowcount == 1
+
+    def delete_owned(self, summary_id: int, owner_id: int) -> bool:
+        statement = delete(Summary).where(
+            Summary.id == summary_id, Summary.owner_id == owner_id
         )
         return self.session.execute(statement).rowcount == 1

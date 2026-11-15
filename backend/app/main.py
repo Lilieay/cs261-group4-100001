@@ -10,6 +10,7 @@ from app.routers.guides import router as guides_router
 from app.routers.my_guide_deletions import router as my_guide_deletions_router
 from app.routers.my_guide_updates import router as my_guide_updates_router
 from app.routers.my_guides import router as my_guides_router
+from app.routers.my_summaries import router as my_summaries_router
 from app.routers.saved_guides import router as saved_guides_router
 from app.routers.summaries import router as summaries_router
 from app.middleware.pdf_upload_limit import PdfUploadSizeLimitMiddleware
@@ -42,6 +43,7 @@ app.include_router(my_guide_updates_router)
 app.include_router(my_guides_router)
 app.include_router(saved_guides_router)
 app.include_router(summaries_router)
+app.include_router(my_summaries_router)
 
 
 app.add_middleware(
