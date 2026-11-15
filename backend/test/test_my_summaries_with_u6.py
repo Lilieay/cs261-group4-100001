@@ -81,15 +81,20 @@ def api(storage, monkeypatch):
         with sessions() as session:
             yield session
 
-    monkeypatch.setattr(app.state, "pdf_storage", storage)
     monkeypatch.setattr(app, "dependency_overrides", {
         get_db_session: session_dependency,
         get_auth_service: lambda: auth,
     })
     headers = [{"Authorization": f"Bearer {login.token}"} for login in (owner, other, empty)]
-    with TestClient(app) as client:
-        yield client, sessions, headers
-    engine.dispose()
+    # Starlette State stores attributes indirectly; pytest 9.2.0 can delete them on undo.
+    previous_storage = app.state.pdf_storage
+    app.state.pdf_storage = storage
+    try:
+        with TestClient(app) as client:
+            yield client, sessions, headers
+    finally:
+        app.state.pdf_storage = previous_storage
+        engine.dispose()
 
 
 def test_list_only_returns_owned_summaries_newest_first(api):
