@@ -9,7 +9,8 @@ Task116's original wording referred to saving a Course with `SavedCourse`. Task1
 - Added `SavedSummary` with composite primary key `(user_id, summary_id)` and foreign keys to `users.id` and `summaries.id`; deleting a Summary cascades only its saved-summary relation.
 - Added DAO target/state/insert operations for Guide and Summary. Guide bookmarks use the existing `saved_guides` relation; Summary bookmarks use `saved_summaries`.
 - Added `SavedItemsService` with a transaction started before target lookup. PUT is idempotent and returns the same state for first and repeated save. On a duplicate-key race, it rolls back and verifies the target and relation in a new transaction; target FK races are rechecked separately.
-- Added `PUT /api/saved-items/{item_type}/{item_id}` and `GET /api/saved-items/{item_type}/{item_id}`. Both require the existing `current_user`, accept only `guide` or `summary`, derive `user_id` from the authenticated principal, reject body/query parameters, and return `Cache-Control: no-store`.
+- Added `PUT /api/saved-items/{item_type}/{item_id}` and `GET /api/saved-items/{item_type}/{item_id}`. Both require the existing `current_user`, accept only `guide` or `summary`, derive `user_id` from the authenticated principal, reject body/query parameters, validate the raw path ID as ASCII decimal digits before integer conversion (so `1.0` and `+1` are rejected), and return `Cache-Control: no-store`.
+- Integrity recovery accepts only a duplicate matching the actual bookmark primary/unique key name and columns. SQL Server metadata is checked after rollback; SQLite's exact reported relation columns are checked. A named target FK is checked against FK metadata; an unnamed SQLite FK is resolved by rechecking the target after rollback. Other constraints fail with `503 SAVED_ITEMS_UNAVAILABLE` without treating an existing relation as duplicate success.
 - `backend/app/init_db.py` imports the new model before `Base.metadata.create_all`. Initialization adds the missing table without dropping or rewriting existing tables; no saved-guide conversion runs.
 
 ### API results
@@ -48,13 +49,13 @@ $env:TASK116_TEST_SQLSERVER = '1'
 
 | Test level | Test data / coverage | Actual result | Evidence |
 |---|---|---|---|
-| Unit | Guide/Summary dispatch, begin-before-SELECT, repeated save, unsaved state, missing target, duplicate recovery, FK target deletion race, DB errors | 9 passed | `test_saved_items_service.py` |
-| API | Guide/Summary save/state, same numeric ID in separate relations, current-user isolation, invalid type/ID/body/query, target not found, login errors, read/write failures, preserving legacy `saved_guides` | 11 passed | `test_saved_items_api.py` |
+| Unit | Guide/Summary dispatch, begin-before-SELECT, repeated save, unsaved state, missing target, exact duplicate constraint matching, unrelated unique constraint, FK target deletion race, DB errors | 14 passed across service and constraint tests | `test_saved_items_service.py`, `test_saved_item_constraints.py` |
+| API | Guide/Summary save/state, same numeric ID in separate relations, current-user isolation, raw path rejects `1.0`/`+1` for GET and PUT, invalid type/ID/body/query, target not found, login errors, read/write failures, preserving legacy `saved_guides` | 15 passed | `test_saved_items_api.py` |
 | SQL Server integration | Real SQL Server schema, PUT/GET for both target types, duplicate save leaves one relation | Not run; skipped unless `TASK116_TEST_SQLSERVER=1` | `test_saved_items_sqlserver_integration.py` |
 
-Latest focused run: **20 passed, 1 skipped, 1 warning**. The skip is the opt-in SQL Server integration because this run did not enable `TASK116_TEST_SQLSERVER`; the warning is Starlette's TestClient/httpx deprecation warning. No SQL Server integration result is claimed.
+Latest focused run: **29 passed, 1 warning**. The warning is Starlette's TestClient/httpx deprecation warning. This focused command excluded the SQL Server integration test; no SQL Server integration result is claimed.
 
-Latest full backend run: **415 passed, 4 skipped, 81 subtests passed, 1 warning**. The four skipped tests include SQL Server-only integration tests; no SQL Server integration result is claimed.
+Latest full backend run: **424 passed, 4 skipped, 81 subtests passed, 1 warning**. The four skipped tests include SQL Server-only integration tests; no SQL Server integration result is claimed.
 
 ## Review and completion
 

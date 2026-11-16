@@ -189,6 +189,24 @@ def test_invalid_item_type_or_id_is_a_contract_error(
     assert response.headers["cache-control"] == "no-store"
 
 
+@pytest.mark.parametrize("method", ["get", "put"])
+@pytest.mark.parametrize("raw_id", ["1.0", "+1"])
+def test_path_id_rejects_float_and_explicit_plus_without_coercion(
+    saved_item_client, method, raw_id
+):
+    client, session_factory, _engine, ids, _account = saved_item_client
+    valid_path = f"/api/saved-items/guide/{ids['guide']}"
+    assert client.put(valid_path).status_code == 200
+
+    response = getattr(client, method)(f"/api/saved-items/guide/{raw_id}")
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "INVALID_PARAMETERS"
+    assert response.headers["cache-control"] == "no-store"
+    with session_factory() as session:
+        assert session.get(SavedGuide, (ids["user_a"], ids["guide"])) is not None
+
+
 def test_query_or_body_parameters_are_rejected(saved_item_client):
     client, _session_factory, _engine, ids, _account = saved_item_client
     path = f"/api/saved-items/guide/{ids['guide']}"

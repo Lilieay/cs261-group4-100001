@@ -1,9 +1,13 @@
 from contextlib import contextmanager
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.dao.saved_item_constraints import (
+    IntegrityConflictKind,
+    classify_saved_item_integrity_error,
+)
 from app.schemas.saved_item import SavedItemState
 from app.services.saved_items import (
     SavedItemsService,
@@ -29,6 +33,9 @@ class FakeSession:
     def rollback(self):
         self.events.append("rollback")
 
+    def get_bind(self):
+        return object()
+
 
 def make_service(item_type="guide", *, target=True, saved=False):
     events = []
@@ -36,6 +43,9 @@ def make_service(item_type="guide", *, target=True, saved=False):
     guide_dao = Mock()
     summary_dao = Mock()
     selected = guide_dao if item_type == "guide" else summary_dao
+    selected.classify_integrity_error.return_value = (
+        IntegrityConflictKind.BOOKMARK_DUPLICATE
+    )
     selected.target_exists.side_effect = lambda _item_id: events.append(
         "target_exists"
     ) or target
@@ -126,6 +136,7 @@ def test_duplicate_insert_is_success_only_after_transactional_reread():
 
 def test_unclassified_integrity_error_returns_unavailable():
     service, dao, _events = make_service()
+    dao.classify_integrity_error.return_value = IntegrityConflictKind.OTHER
     dao.insert_if_absent.side_effect = IntegrityError(
         "insert", {}, Exception("unclassified check constraint")
     )
@@ -147,6 +158,9 @@ def test_target_deleted_during_insert_is_rechecked_after_rollback():
         raise IntegrityError("insert", {}, Exception("FOREIGN KEY constraint failed"))
 
     dao.target_exists.side_effect = target_exists
+    dao.classify_integrity_error.return_value = (
+        IntegrityConflictKind.UNNAMED_FOREIGN_KEY
+    )
     dao.insert_if_absent.side_effect = foreign_key_insert
 
     with pytest.raises(SavedTargetNotFound):
@@ -156,3 +170,46 @@ def test_target_deleted_during_insert_is_rechecked_after_rollback():
         "begin", "target_exists", "is_saved", "insert", "rollback",
         "rollback", "begin", "target_exists", "rollback",
     ]
+
+
+def test_unrelated_unique_constraint_stays_503_even_if_relation_would_recheck_true():
+    service, dao, _events = make_service()
+    dao.is_saved.side_effect = [False, True]
+    duplicate_error = IntegrityError(
+        "insert",
+        {},
+        Exception(
+            "Violation of UNIQUE constraint 'UQ_other'. "
+            "Cannot insert duplicate key in object 'dbo.saved_guides'. (2627)"
+        ),
+    )
+    dao.insert_if_absent.side_effect = duplicate_error
+    inspector = Mock()
+    inspector.get_pk_constraint.return_value = {
+        "name": "PK_saved_guides",
+        "constrained_columns": ["user_id", "guide_id"],
+    }
+    inspector.get_unique_constraints.return_value = [
+        {"name": "UQ_other", "column_names": ["guide_id"]}
+    ]
+    inspector.get_indexes.return_value = []
+
+    def classify(error):
+        return classify_saved_item_integrity_error(
+            error,
+            session=service.session,
+            relation_table="saved_guides",
+            bookmark_columns=("user_id", "guide_id"),
+            target_column="guide_id",
+            target_table="guides",
+        )
+
+    dao.classify_integrity_error.side_effect = classify
+
+    with patch("app.dao.saved_item_constraints.inspect", return_value=inspector):
+        with pytest.raises(SavedItemsUnavailable):
+            service.save(7, "guide", 12)
+
+    # The second is_saved result models a relation found by a recheck. It must
+    # not be consulted for an error that did not match the bookmark key.
+    dao.is_saved.assert_called_once_with(7, 12)

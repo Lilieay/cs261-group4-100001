@@ -1,8 +1,7 @@
-from enum import Enum
-
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.dao.saved_item_constraints import IntegrityConflictKind
 from app.dao.saved_guide_dao import SavedGuideDAO
 from app.dao.saved_items_dao import SavedSummaryDAO
 from app.schemas.saved_item import SavedItemState, SavedItemType
@@ -15,27 +14,6 @@ class SavedItemsUnavailable(Exception):
 class SavedTargetNotFound(Exception):
     def __init__(self, item_type: SavedItemType):
         self.item_type = item_type
-
-
-class _IntegrityKind(Enum):
-    DUPLICATE_BOOKMARK = "duplicate_bookmark"
-    FOREIGN_KEY = "foreign_key"
-    OTHER = "other"
-
-
-def _classify_integrity_error(error: IntegrityError) -> _IntegrityKind:
-    message = " ".join(str(part) for part in getattr(error.orig, "args", ()))
-    lowered = message.lower()
-    if (
-        "2627" in lowered
-        or "2601" in lowered
-        or "duplicate key" in lowered
-        or "unique constraint failed" in lowered
-    ):
-        return _IntegrityKind.DUPLICATE_BOOKMARK
-    if "547" in lowered or "foreign key constraint failed" in lowered:
-        return _IntegrityKind.FOREIGN_KEY
-    return _IntegrityKind.OTHER
 
 
 class SavedItemsService:
@@ -94,8 +72,8 @@ class SavedItemsService:
         item_id: int,
         dao,
     ) -> SavedItemState:
-        kind = _classify_integrity_error(error)
-        if kind is _IntegrityKind.OTHER:
+        kind = dao.classify_integrity_error(error)
+        if kind is IntegrityConflictKind.OTHER:
             raise SavedItemsUnavailable from error
 
         try:
@@ -104,10 +82,10 @@ class SavedItemsService:
                     raise SavedTargetNotFound(item_type)
                 saved = (
                     dao.is_saved(user_id, item_id)
-                    if kind is _IntegrityKind.DUPLICATE_BOOKMARK
+                    if kind is IntegrityConflictKind.BOOKMARK_DUPLICATE
                     else False
                 )
-            if kind is _IntegrityKind.DUPLICATE_BOOKMARK and saved:
+            if kind is IntegrityConflictKind.BOOKMARK_DUPLICATE and saved:
                 return SavedItemState(
                     item_type=item_type, item_id=item_id, saved=True
                 )

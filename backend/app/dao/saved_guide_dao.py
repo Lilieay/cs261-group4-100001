@@ -1,6 +1,11 @@
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
+from app.dao.saved_item_constraints import (
+    IntegrityConflictKind,
+    classify_saved_item_integrity_error,
+)
 from app.models.guide import Guide
 from app.models.saved_guide import SavedGuide
 
@@ -31,6 +36,18 @@ class SavedGuideDAO:
     def insert_if_absent(self, user_id: int, guide_id: int) -> None:
         self.session.add(SavedGuide(user_id=user_id, guide_id=guide_id))
         self.session.flush()
+
+    def classify_integrity_error(
+        self, error: IntegrityError
+    ) -> IntegrityConflictKind:
+        return classify_saved_item_integrity_error(
+            error,
+            session=self.session,
+            relation_table="saved_guides",
+            bookmark_columns=("user_id", "guide_id"),
+            target_column="guide_id",
+            target_table="guides",
+        )
 
     def add(self, user_id: int, guide_id: int) -> None:
         if not self.is_saved(user_id, guide_id):

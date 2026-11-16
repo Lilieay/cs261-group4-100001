@@ -1,4 +1,5 @@
 import logging
+import re
 from collections.abc import Awaitable, Callable
 
 from fastapi import APIRouter, Depends, Path, Request
@@ -36,6 +37,27 @@ def error_response(
         status_code=status_code,
         content=body.model_dump(),
         headers={**(headers or {}), "Cache-Control": "no-store"},
+    )
+
+
+def _parse_item_id(raw_item_id: str) -> int | None:
+    if re.fullmatch(r"[0-9]+", raw_item_id, flags=re.ASCII) is None:
+        return None
+    significant_digits = raw_item_id.lstrip("0")
+    if not significant_digits or len(significant_digits) > 10:
+        return None
+    item_id = int(significant_digits)
+    if not 1 <= item_id <= 2_147_483_647:
+        return None
+    return item_id
+
+
+def _invalid_item_id_response() -> JSONResponse:
+    return error_response(
+        422,
+        "INVALID_PARAMETERS",
+        "ข้อมูลสำหรับเรียก API ไม่ถูกต้อง",
+        [ErrorFieldDTO(field="item_id", message="กรุณาระบุเลขฐานสิบจำนวนเต็มบวก")],
     )
 
 
@@ -132,15 +154,18 @@ async def _reject_query_or_body(request: Request) -> JSONResponse | None:
 async def save_item(
     request: Request,
     item_type: SavedItemType,
-    item_id: int = Path(gt=0, le=2_147_483_647),
+    item_id: str = Path(),
     user_context: tuple[str, AuthenticatedUser] = Depends(current_user),
     service: SavedItemsService = Depends(get_saved_items_service),
 ):
+    parsed_item_id = _parse_item_id(item_id)
+    if parsed_item_id is None:
+        return _invalid_item_id_response()
     invalid_request = await _reject_query_or_body(request)
     if invalid_request is not None:
         return invalid_request
     return await run_in_threadpool(
-        service.save, user_context[1].id, item_type, item_id
+        service.save, user_context[1].id, item_type, parsed_item_id
     )
 
 
@@ -148,13 +173,16 @@ async def save_item(
 async def get_item_state(
     request: Request,
     item_type: SavedItemType,
-    item_id: int = Path(gt=0, le=2_147_483_647),
+    item_id: str = Path(),
     user_context: tuple[str, AuthenticatedUser] = Depends(current_user),
     service: SavedItemsService = Depends(get_saved_items_service),
 ):
+    parsed_item_id = _parse_item_id(item_id)
+    if parsed_item_id is None:
+        return _invalid_item_id_response()
     invalid_request = await _reject_query_or_body(request)
     if invalid_request is not None:
         return invalid_request
     return await run_in_threadpool(
-        service.state, user_context[1].id, item_type, item_id
+        service.state, user_context[1].id, item_type, parsed_item_id
     )
