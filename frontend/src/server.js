@@ -67,6 +67,9 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
     });
   }
 
+  const savedItemError = (res, status, code, message) => res.status(status).json({
+    error: {code, message, fields: []}
+  });
   app.all(['/api/saved-guides', '/api/saved-guides/:guideId'], (req, res) => {
     res.set('Cache-Control', 'no-store');
     const id = req.params.guideId;
@@ -260,8 +263,11 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
     return rejectUnusedParameters(req, res, next);
   }, (req, res) => {
     const {type, id} = req.params;
-    const target = id === undefined ? '/api/saved-items'
-      : `/api/saved-items/${['guide', 'summary'].includes(type) ? type : 'invalid'}/${/^[0-9]+$/.test(id) ? id : 'invalid'}`;
+    const itemId = id?.replace(/^0+/, '');
+    if (id !== undefined && (!['guide', 'summary'].includes(type) || !validId(itemId))) {
+      return savedItemError(res, 422, 'INVALID_PARAMETERS', 'ข้อมูลรายการที่บันทึกไม่ถูกต้อง');
+    }
+    const target = id === undefined ? '/api/saved-items' : `/api/saved-items/${type}/${itemId}`;
     return proxy(req, res, target, {
       errorCode: 'UPSTREAM_UNAVAILABLE', errorMessage: 'เชื่อมต่อบริการรายการที่บันทึกไม่สำเร็จ'
     });
@@ -269,6 +275,16 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   app.all(/^\/api\/saved-items(?:\/|$)/i, (req, res) => {
     return res.set('Cache-Control', 'no-store').status(404).json({
       error: {code: 'ROUTE_NOT_FOUND', message: 'ไม่พบเส้นทางรายการที่บันทึก', fields: []}
+    });
+  });
+
+  // This route matches saved-item open_path. The legacy route is handled below.
+  app.get('/api/guides/:guideId', rejectUnusedParameters, (req, res) => {
+    if (!validId(req.params.guideId)) {
+      return savedItemError(res, 422, 'INVALID_PARAMETERS', 'รหัสแนวข้อสอบไม่ถูกต้อง');
+    }
+    return proxy(req, res, `/guides/${req.params.guideId}`, {
+      errorMessage: 'เปิดแนวข้อสอบไม่สำเร็จ', errorCode: 'UPSTREAM_UNAVAILABLE'
     });
   });
 

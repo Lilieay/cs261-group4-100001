@@ -2,8 +2,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.summaries import SummaryCourseDTO
-
 
 SavedItemType = Literal["guide", "summary"]
 
@@ -16,10 +14,16 @@ class SavedItemState(BaseModel):
     saved: bool
 
 
+class SavedItemCourse(BaseModel):
+    id: int
+    course_code: str
+    course_name: str
+
+
 class SavedItemDTO(BaseModel):
     item_type: SavedItemType
     item_id: int
-    course: SummaryCourseDTO
+    course: SavedItemCourse
     title: str
     open_path: str
 

@@ -116,5 +116,9 @@
     }
   });
   load();
+  // Browser Back can restore this page without rerunning the initial load.
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) return load();
+  });
   window.addEventListener('focus', load);
 })();

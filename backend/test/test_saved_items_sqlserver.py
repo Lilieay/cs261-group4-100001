@@ -15,10 +15,12 @@ from app.dependencies import current_user, get_db_session
 from app.main import app
 from app.models.course import Course
 from app.models.guide import Guide
+from app.models.saved_guide import SavedGuide
+from app.models.saved_summary import SavedSummary
 from app.models.summary import Summary
 from app.models.user import User
 from app.services.auth import AuthenticatedUser
-from app.services.saved_items import SavedItemsService, TARGETS
+from app.services.saved_items import SavedItemsService
 
 
 @pytest.mark.skipif(os.getenv("U9_TEST_SQLSERVER") != "1", reason="Enable U9_TEST_SQLSERVER to test SQL Server")
@@ -26,8 +28,10 @@ from app.services.saved_items import SavedItemsService, TARGETS
 def test_concurrent_bookmark_put_and_target_deletion_on_sqlserver(kind):
     assert engine.dialect.name == "mssql"
     schema = f"u9_saved_test_{uuid4().hex}"
-    target, bookmark = TARGETS[kind]
-    tables = [model.__table__ for model in (User, Course, target, bookmark)]
+    target, bookmark = (Guide, SavedGuide) if kind == "guide" else (Summary, SavedSummary)
+    tables = [
+        model.__table__ for model in (User, Course, Guide, SavedGuide, Summary, SavedSummary)
+    ]
     isolated = engine.execution_options(schema_translate_map={None: schema})
     sessions = sessionmaker(bind=isolated)
     original = SavedItemsService._state
@@ -91,7 +95,15 @@ def test_concurrent_bookmark_put_and_target_deletion_on_sqlserver(kind):
             return saved
 
         with TestClient(app) as client:
+            collection = "guides" if kind == "guide" else "summaries"
+            listing = client.get("/api/saved-items")
+            assert listing.status_code == 200, listing.text
+            assert [
+                (item["item_type"], item["item_id"], item["open_path"])
+                for item in listing.json()["items"]
+            ] == [(kind, item_id, f"/api/{collection}/{item_id}")]
             assert client.delete(url).status_code == 200
+            assert client.get("/api/saved-items").json() == {"items": []}
             with patch.object(SavedItemsService, "_state", delete_after_state):
                 missing = client.put(url)
             assert missing.status_code == 404, missing.text

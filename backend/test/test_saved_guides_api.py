@@ -18,7 +18,7 @@ from app.models.saved_summary import SavedSummary
 from app.models.summary import Summary
 from app.models.user import User
 from app.services.auth import AuthenticatedUser as AuthUser
-from app.services.saved_items import SavedItemsService, SavedTargetNotFound, TARGETS
+from app.services.saved_items import SavedItemsService, SavedTargetNotFound
 
 
 @pytest.fixture
@@ -269,7 +269,7 @@ def test_u9_only_recovers_expected_bookmark_duplicate_and_target_fk(saved_client
     client, session, _ = saved_client
     session.add(Summary(id=1, course_id=1, owner_id=1, title="PDF"))
     session.commit()
-    target, bookmark = TARGETS[kind]
+    target, bookmark = (Guide, SavedGuide) if kind == "guide" else (Summary, SavedSummary)
     url = f"/api/saved-items/{kind}/1"
     assert client.put(url).status_code == 200
     with patch.object(SavedItemsService, "_state", side_effect=[False, True]) as state:

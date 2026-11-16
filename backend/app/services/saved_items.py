@@ -1,15 +1,9 @@
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.dao.saved_item_constraints import IntegrityConflictKind
 from app.dao.saved_guide_dao import SavedGuideDAO
 from app.dao.saved_items_dao import SavedSummaryDAO
-from app.models.course import Course
-from app.models.guide import Guide
-from app.models.saved_guide import SavedGuide
-from app.models.saved_summary import SavedSummary
-from app.models.summary import Summary
 from app.models.user import User
 from app.schemas.saved_item import (
     SavedItemDTO,
@@ -17,9 +11,6 @@ from app.schemas.saved_item import (
     SavedItemState,
     SavedItemType,
 )
-
-
-TARGETS = {"guide": (Guide, SavedGuide), "summary": (Summary, SavedSummary)}
 
 
 class SavedItemsUnavailable(Exception):
@@ -45,27 +36,25 @@ class SavedItemsService:
         self.session = session
         self.daos = {"guide": guide_dao, "summary": summary_dao}
 
-    def list(self, user_id: int) -> SavedItemListResponse:
+    def list_for_user(self, user_id: int) -> SavedItemListResponse:
         items = []
         try:
             with self.session.begin():
-                for item_type, (target, bookmark) in TARGETS.items():
-                    target_fk = getattr(bookmark, f"{item_type}_id")
+                for item_type, dao in self.daos.items():
                     collection = "guides" if item_type == "guide" else "summaries"
-                    statement = (
-                        select(target.id, target.title, Course.id, Course.course_code, Course.course_name)
-                        .join_from(bookmark, target, target_fk == target.id)
-                        .join(Course, target.course_id == Course.id)
-                        .where(bookmark.user_id == user_id)
-                    )
-                    for item_id, title, course_id, code, name in self.session.execute(statement):
+                    for target in dao.list_by_user(user_id):
+                        course = target.course
                         items.append(
                             SavedItemDTO(
                                 item_type=item_type,
-                                item_id=item_id,
-                                course={"id": course_id, "course_code": code, "course_name": name},
-                                title=title,
-                                open_path=f"/api/{collection}/{item_id}",
+                                item_id=target.id,
+                                course={
+                                    "id": course.id,
+                                    "course_code": course.course_code,
+                                    "course_name": course.course_name,
+                                },
+                                title=target.title,
+                                open_path=f"/api/{collection}/{target.id}",
                             )
                         )
         except SQLAlchemyError as error:
@@ -128,6 +117,7 @@ class SavedItemsService:
         self, user_id: int, item_type: SavedItemType, item_id: int
     ) -> SavedItemState:
         try:
+            self.session.begin()
             self.daos[item_type].remove(user_id, item_id)
         except SQLAlchemyError as error:
             self._rollback()

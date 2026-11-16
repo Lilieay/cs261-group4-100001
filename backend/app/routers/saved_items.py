@@ -187,7 +187,7 @@ async def list_saved_items(
     invalid_request = await _reject_query_or_body(request)
     if invalid_request is not None:
         return invalid_request
-    return await run_in_threadpool(service.list, user_context[1].id)
+    return await run_in_threadpool(service.list_for_user, user_context[1].id)
 
 
 @router.put("/{item_type}/{item_id}", response_model=SavedItemState)

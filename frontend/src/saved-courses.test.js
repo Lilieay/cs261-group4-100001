@@ -5,21 +5,25 @@ const vm = require('node:vm');
 const path = require('node:path');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-function page({saved = async () => [], savedState = async () => false} = {}) {
+function runPage(file, services) {
   const elements = new Map(), events = {};
   const get = selector => {
     if (!elements.has(selector)) elements.set(selector, {
-      value: '', dataset: {}, listeners: {}, setAttribute() {}, focus() {},
+      value: '', dataset: {}, listeners: {}, classList: {toggle() {}}, setAttribute() {}, focus() {},
       addEventListener(type, callback) { this.listeners[type] = callback; }
     });
     return elements.get(selector);
   };
-  const window = {SavedItems: {list: saved, state: savedState},
+  const window = {...services,
     UiUtils: {escapeHtml: value => String(value).replaceAll('<', '&lt;')},
     addEventListener: (type, callback) => { events[type] = callback; }};
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/saved-courses.js'), 'utf8'),
-    {window, document: {querySelector: get}, URLSearchParams});
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8'),
+    {window, document: {querySelector: get, getElementById: get}, URL, URLSearchParams, AbortController});
   return {get, events};
+}
+
+function page({saved = async () => [], savedState = async () => false} = {}) {
+  return runPage('saved-courses.js', {SavedItems: {list: saved, state: savedState}});
 }
 
 const course = {id: 4, course_code: 'CS261', course_name: 'Software Engineering'};
@@ -100,3 +104,59 @@ test('U9 keeps an uncertain DELETE message after refreshing the list and finding
   assert.equal(get('#saved-status').textContent, issue);
   assert.match(get('#saved-list').innerHTML, /ยังไม่มีรายการที่บันทึก/);
 });
+
+for (const missingAt of ['guide', 'summary', 'pdf-file']) {
+  test(`U9 reloads a restored saved list after opening a missing ${missingAt}`, async () => {
+    const isGuide = missingAt === 'guide';
+    const remaining = isGuide ? summary : row;
+    let items = [row, summary];
+    let listReads = 0;
+    const {get, events} = page({saved: async () => { listReads++; return items; }});
+    await tick();
+    events.pageshow({persisted: false});
+    assert.equal(listReads, 1);
+    const readerPath = isGuide ? 'read-courses' : 'read-summary';
+    const link = [...get('#saved-list').innerHTML.matchAll(/href="([^"]+)"/g)]
+      .find(([, href]) => href.startsWith(readerPath));
+    assert.ok(link);
+    assert.equal(get('#saved-count').textContent, 'บันทึกไว้ 2 รายการ');
+
+    items = [remaining]; // The shared document was deleted while the saved page was open.
+    const url = new URL(link[1], 'http://frontend/');
+    const requests = [];
+    const missing = async id => {
+      requests.push(id);
+      throw Object.assign(new Error('รายการถูกลบแล้ว'), {status: 404});
+    };
+    const reader = runPage(`${readerPath}.js`, {
+      location: url,
+      CourseData: {escapeHtml: String},
+      CourseApi: {getCourse: async () => ({id: 4, code: 'CS261'})},
+      GuideApi: {read: missing},
+      SummaryApi: {
+        read: missingAt === 'summary' ? missing : async () => ({
+          id: 12, title: 'Saved summary', owner: {display_name: 'Owner'}, course: {id: 4}
+        }),
+        openFile: missing
+      },
+      SavedItems: {state: async () => false}
+    });
+    await tick();
+    assert.deepEqual(requests, [missingAt === 'pdf-file' ? 12 : '12']);
+    if (isGuide) {
+      assert.match(reader.get('#readingContent').innerHTML, /ไม่พบแนวข้อสอบ/);
+      assert.equal(reader.get('#readingBack').href, 'saved-courses.html');
+    } else {
+      const error = reader.get(missingAt === 'summary' ? 'summary-read-status' : 'summary-file-alert');
+      assert.match(error.textContent, /รายการถูกลบแล้ว/);
+      assert.equal(reader.get('summary-back').href, 'saved-courses.html');
+    }
+
+    // Browser Back restores the original page without triggering its initial load.
+    await events.pageshow({persisted: true});
+    assert.equal(listReads, 2);
+    assert.equal(get('#saved-count').textContent, 'บันทึกไว้ 1 รายการ');
+    assert.match(get('#saved-list').innerHTML, isGuide ? /Saved summary/ : /Saved title/);
+    assert.doesNotMatch(get('#saved-list').innerHTML, isGuide ? /Saved title/ : /Saved summary/);
+  });
+}
