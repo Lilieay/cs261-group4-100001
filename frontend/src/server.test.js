@@ -650,3 +650,38 @@ test('U8 review proxy responds with structured errors for unsupported requests a
     assert.equal(forwards, 1);
   });
 });
+
+test('U8 forwards the backend authentication challenge for expired tokens', async t => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  const payload = {error: {code: 'AUTH_REQUIRED', message: 'กรุณาเข้าสู่ระบบ', fields: []}};
+  global.fetch = async () => new Response(JSON.stringify(payload), {
+    status: 401,
+    headers: {'Content-Type': 'application/json', 'WWW-Authenticate': 'Bearer'}
+  });
+  await withServer(async port => {
+    const reply = await request(port, '/api/summaries/12/reviews', 'GET', {Authorization: 'Bearer expired'});
+    assert.equal(reply.status, 401);
+    assert.equal(reply.headers['www-authenticate'], 'Bearer');
+    assert.equal(reply.headers['cache-control'], 'no-store');
+    assert.deepEqual(JSON.parse(reply.body), payload);
+  });
+});
+
+test('U8 unknown review routes return a JSON 404 without forwarding upstream', async t => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  let forwards = 0;
+  global.fetch = async () => { forwards++; throw new Error('unexpected backend request'); };
+  await withServer(async port => {
+    for (const reviewPath of ['/api/reviews', '/api/reviews/1/unknown', '/api/guides/12/reviews/unknown',
+      '/api/summaries/12/reviews/unknown']) {
+      const reply = await request(port, reviewPath);
+      assert.equal(reply.status, 404, reviewPath);
+      assert.match(reply.headers['content-type'], /^application\/json/);
+      assert.equal(reply.headers['cache-control'], 'no-store');
+      assert.equal(JSON.parse(reply.body).error.code, 'ROUTE_NOT_FOUND');
+    }
+    assert.equal(forwards, 0);
+  });
+});

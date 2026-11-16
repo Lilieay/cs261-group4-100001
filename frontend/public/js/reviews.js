@@ -165,6 +165,7 @@
 
   function renderList(state, notice = '') {
     action('reload').hidden = true;
+    action('retry-profile').hidden = true;
     const ready = Boolean(state.items);
     if (ready) {
       const {count, average} = totals(state.items);
@@ -199,24 +200,45 @@
 
   async function reloadList(state) {
     state.items = null;
+    state.user = null;
+    state.owner = false;
     renderList(state, 'กำลังโหลดรีวิว…');
     try {
-      const [items, user] = await Promise.all([read(state.target, true), window.currentUserReady]);
-      if (active !== state) return;
-      state.user = user;
-      if (user && state.target.type === 'guide') {
-        const mine = await window.GuideApi.mine().catch(() => []);
-        if (active !== state) return;
-        state.owner = mine.some(row => Number(row.id) === Number(state.target.id));
-      } else {
-        state.owner = Boolean(user && Number(state.target.ownerId) === user.id);
-      }
+      const items = await read(state.target, true);
+      if (active !== state || !dialog.open) return;
       updateItems(state, items);
-      renderList(state, user ? '' : 'กรุณาเข้าสู่ระบบใหม่เพื่อจัดการรีวิว');
+      renderList(state);
+      verifyReviewer(state);
     } catch (error) {
-      if (active !== state) return;
+      if (active !== state || !dialog.open) return;
       message(error.message || 'โหลดรีวิวไม่สำเร็จ');
       action('reload').hidden = false;
+    }
+  }
+
+  async function verifyReviewer(state, retry = false) {
+    action('retry-profile').hidden = true;
+    message('กำลังตรวจสอบบัญชีสำหรับจัดการรีวิว…');
+    try {
+      const user = await (retry ? window.refreshCurrentUser() : window.currentUserReady);
+      if (active !== state || !dialog.open) return;
+      if (!user) {
+        message('กรุณาเข้าสู่ระบบใหม่เพื่อจัดการรีวิว');
+        return;
+      }
+      if (!Number.isInteger(user.id) || !validId(user.id)) throw invalidResponse();
+      const owner = state.target.type === 'guide'
+        ? (await window.GuideApi.mine()).some(row => Number(row.id) === Number(state.target.id))
+        : Number(state.target.ownerId) === user.id;
+      if (active !== state || !dialog.open) return;
+      state.user = user;
+      state.owner = owner;
+      updateItems(state, state.items);
+      renderList(state);
+    } catch (_) {
+      if (active !== state || !dialog.open) return;
+      message('โหลดข้อมูลบัญชีไม่สำเร็จ คุณยังอ่านรีวิวได้');
+      action('retry-profile').hidden = false;
     }
   }
 
@@ -299,12 +321,17 @@
     try {
       updateItems(state, await read(state.target, true));
       const current = state.own;
-      const applied = method === 'DELETE' ? !current : current?.rating === payload.rating && current.comment === payload.comment;
+      const sameReview = current?.id === previous?.id;
+      const unchanged = sameReview && current?.rating === previous?.rating && current?.comment === previous?.comment;
+      const matchesRequest = method !== 'DELETE' && current?.rating === payload.rating && current.comment === payload.comment;
+      const applied = method === 'DELETE' ? !current : matchesRequest && (method === 'POST' || (sameReview && !unchanged));
       state.pending = null;
       if (applied) {
         renderList(state, method === 'DELETE' ? 'รีวิวของคุณถูกลบแล้ว' : 'บันทึกรีวิวแล้ว');
-      } else if (current?.id !== previous?.id || current?.rating !== previous?.rating || current?.comment !== previous?.comment) {
+      } else if (!unchanged) {
         renderList(state, 'รีวิวของคุณมีการเปลี่ยนแปลง กรุณาตรวจสอบก่อนทำรายการอีกครั้ง');
+      } else if (matchesRequest) {
+        message('โหลดข้อมูลล่าสุดแล้ว ยังยืนยันผลการบันทึกครั้งนี้ไม่ได้');
       } else {
         message('ตรวจสอบข้อมูลล่าสุดแล้ว ยังไม่พบการเปลี่ยนแปลง กรุณาลองอีกครั้ง');
       }
@@ -379,6 +406,7 @@
         switch (button.dataset.reviewAction) {
           case 'close': dialog.close(); break;
           case 'reload': reloadList(state); break;
+          case 'retry-profile': verifyReviewer(state, true); break;
           case 'add': renderEditor(state, 'create'); break;
           case 'edit': renderEditor(state, 'edit'); break;
           case 'cancel-editor': cancelEditor(state); break;

@@ -26,6 +26,8 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
       });
       if (onResponse) return await onResponse(response);
       const text = await response.text();
+      const challenge = response.status === 401 && response.headers.get('www-authenticate');
+      if (challenge) res.set('WWW-Authenticate', challenge);
       if (response.headers.get('content-type')) res.set('Content-Type', response.headers.get('content-type'));
       return res.status(response.status).send(text);
     } catch (_) {
@@ -238,6 +240,9 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
     if (error.status === 413) return reviewError(res, 413, 'REQUEST_TOO_LARGE', 'คำขอมีขนาดเกินกำหนด');
     if (error.status === 415) return reviewError(res, 415, 'UNSUPPORTED_MEDIA_TYPE', 'รูปแบบคำขอไม่ถูกต้อง');
     return reviewError(res, 400, 'MALFORMED_REQUEST', 'ข้อมูลคำขอไม่ถูกต้อง');
+  });
+  app.all(/^\/api\/(?:reviews|(?:guides|summaries)\/[^/]+\/reviews)(?:\/|$)/i, (req, res) => {
+    return reviewError(res, 404, 'ROUTE_NOT_FOUND', 'ไม่พบเส้นทางรีวิว');
   });
 
   app.use('/api/guides', express.json({limit: '16kb'}));
