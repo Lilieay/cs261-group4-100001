@@ -315,7 +315,8 @@ test('read bookmark waits for API state, prevents duplicate writes, and toggles 
   await pending;
   assert.match(get('#readingContent').innerHTML, /aria-pressed="true"/);
   assert.match(get('#reading-status').textContent, /เพิ่มในรายวิชาที่บันทึกแล้ว/);
-  assert.match(get('#readingContent').innerHTML, /review-button" type="button" disabled/);
+  assert.match(get('#readingContent').innerHTML, /review-button" type="button"/);
+  assert.doesNotMatch(get('#readingContent').innerHTML, /review-button"[^>]*disabled/);
 });
 
 test('an older filter response cannot overwrite rows later rendered by sorting', async () => {

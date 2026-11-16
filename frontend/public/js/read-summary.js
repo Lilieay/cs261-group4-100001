@@ -13,6 +13,8 @@
   const fileError = $('summary-file-alert');
   const retry = $('summary-read-retry');
   const retryDetail = $('summary-detail-retry');
+  const review = $('summary-review');
+  if (review) window.Reviews?.mountStarIcons(review);
   const api = window.SummaryApi;
   let summary;
   let pdfUrl;
@@ -98,6 +100,7 @@
         $('summary-back').setAttribute('aria-label', 'กลับรายการสรุปในรายวิชา');
       }
       $('summary-detail').hidden = false;
+      if (review) review.disabled = false;
       loadInstructor(summary.course.id);
       await loadFile();
     } catch (error) {
@@ -113,6 +116,12 @@
   });
   retry.addEventListener('click', loadFile);
   retryDetail.addEventListener('click', start);
+  review?.addEventListener('click', () => {
+    if (!summary) return;
+    window.Reviews.open({id: summary.id, type: 'summary', title: summary.title,
+      courseCode: summary.course.course_code, courseName: summary.course.course_name,
+      ownerId: summary.owner.id}, review);
+  });
   if (document.fullscreenEnabled && viewer.requestFullscreen) {
     fullscreen.hidden = false;
     fullscreen.addEventListener('click', async () => {

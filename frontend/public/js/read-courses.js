@@ -43,9 +43,8 @@
       `<section class="info-card format-card"><h2>รูปแบบแนวข้อสอบ — ${e(format)}</h2><div class="format-grid"><div>ปรนัย : <strong>${e(count(counts.objective))}</strong></div><div>อัตนัย : <strong>${e(count(counts.essay))}</strong></div></div></section>`,
       `<section class="info-card advice-card"><h2>คำแนะนำเพิ่มเติม</h2><p class="reading-text">${e(String(row.notes || '').trim() || 'ไม่ระบุ')}</p></section>`,
       `${apiMode ? '' : '<p class="reading-preview">ข้อมูลตัวอย่างร่วมกับหน้ารายวิชาที่แบ่งปัน</p>'}`,
-      `<div class="actions"><button class="save-button" type="button" aria-pressed="${Boolean(row.saved)}" ${apiMode && (!savedKnown || saving) ? 'disabled' : ''} aria-busy="${saving}"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg> ${row.saved ? 'บันทึกแล้ว' : 'บันทึก'}</button><button class="review-button" type="button" disabled title="เปิดใช้งานใน Sprint 2"><span aria-hidden="true">★</span> รีวิว</button></div>`,
-      `${savedError ? `<p role="alert">${e(savedError)}</p><button type="button" class="saved-retry-button">ลองโหลดสถานะบันทึกอีกครั้ง</button>` : ''}`,
-      `<p class="sprint-note">ระบบรีวิวคะแนนเปิดใช้งานใน Sprint 2</p>`
+      `<div class="actions"><button class="save-button" type="button" aria-pressed="${Boolean(row.saved)}" ${apiMode && (!savedKnown || saving) ? 'disabled' : ''} aria-busy="${saving}"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg> ${row.saved ? 'บันทึกแล้ว' : 'บันทึก'}</button><button class="review-button" type="button" ${apiMode ? '' : 'disabled'}><span class="review-open-icon" data-review-star-icon aria-hidden="true"></span> รีวิว</button></div>`,
+      `${savedError ? `<p role="alert">${e(savedError)}</p><button type="button" class="saved-retry-button">ลองโหลดสถานะบันทึกอีกครั้ง</button>` : ''}`
     ].join('');
   }
 
@@ -69,8 +68,15 @@
     }
     document.title = `${row.title} | อ่านแนวข้อสอบ`;
     content.innerHTML = renderGuide(row);
+    window.Reviews?.mountStarIcons(content);
   }
   content.addEventListener('click', async event => {
+    const review = event.target.closest('.review-button');
+    if (review && apiMode && apiRow) {
+      window.Reviews.open({id: apiRow.id, type: 'guide', title: apiRow.title,
+        courseCode: course.code, courseName: course.name}, review);
+      return;
+    }
     if (apiMode && event.target.closest('.reading-retry-button, .saved-retry-button')) {
       loadApiDetail();
       return;
