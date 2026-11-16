@@ -36,7 +36,8 @@ function runPage(file, {url, api, summaryApi, guideApi = {}, data = {}}) {
   };
   const window = {
     location: {href: url}, history: {replaceState() {}}, addEventListener() {},
-    CourseApi: api, SummaryApi: summaryApi, GuideApi: {savedState: async () => false, ...guideApi}, CourseData: data
+    CourseApi: api, SummaryApi: summaryApi, GuideApi: {savedState: async () => false, ...guideApi}, CourseData: data,
+    SavedItems: {state: (_type, id, desired) => (guideApi.savedState || (async () => false))(id, desired)}
   };
   const source = fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8');
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/ui-utils.js'), 'utf8'), {window});
@@ -292,7 +293,7 @@ test('course search page renders a Thai API result even when it is absent from t
 });
 
 
-test('read bookmark waits for API state, prevents duplicate writes, and toggles persisted state', async () => {
+test('read bookmark waits for API state and keeps a saved item when pressed again', async () => {
   const state = deferred(), write = deferred();
   const calls = [];
   const {get} = runPage('read-courses.js', {
@@ -315,6 +316,9 @@ test('read bookmark waits for API state, prevents duplicate writes, and toggles 
   await pending;
   assert.match(get('#readingContent').innerHTML, /aria-pressed="true"/);
   assert.match(get('#reading-status').textContent, /เพิ่มในรายวิชาที่บันทึกแล้ว/);
+  await get('#readingContent').listeners.click(click);
+  assert.equal(calls.length, 2);
+  assert.match(get('#reading-status').textContent, /ได้บันทึกการแบ่งปันนี้ไปแล้ว/);
   assert.match(get('#readingContent').innerHTML, /review-button" type="button"/);
   assert.doesNotMatch(get('#readingContent').innerHTML, /review-button"[^>]*disabled/);
 });

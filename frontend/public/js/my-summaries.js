@@ -71,6 +71,7 @@
       </div>
       <div class="card-side">
         <div class="card-actions">
+          <div class="compact-review-score" data-review-score-id="${e(summary.id)}" data-review-score-type="summary" hidden></div>
           <a class="open" href="read-summary.html?${e(query.toString())}">${icon('openbook')}เปิดอ่านสรุปเนื้อหา</a>
           <button type="button" data-summary-action="edit" data-summary-id="${e(summary.id)}">${icon('edit')}แก้ไขข้อมูล</button>
           <button type="button" class="delete" data-summary-action="delete" data-summary-id="${e(summary.id)}">${icon('trash')}ลบรายการ</button>
@@ -100,6 +101,7 @@
       && `${row.course.course_code} ${row.course.course_name} ${row.title}`.toLocaleLowerCase().includes(term));
     list.innerHTML = filtered.length ? filtered.map(card).join('')
       : '<div class="empty"><h3>ไม่พบสรุปที่ตรงกับการค้นหา</h3><button type="button" class="primary" data-summary-action="clear">ล้างการค้นหาและตัวกรอง</button></div>';
+    window.Reviews?.connectScores(list);
   }
 
   function refreshFilters() {

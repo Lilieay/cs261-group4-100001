@@ -19,6 +19,7 @@
   <script src="/js/course-api.js" defer></script>
   <script src="/js/summary-api.js" defer></script>
   <script src="/js/reviews.js" defer></script>
+  <script src="/js/saved-items.js" defer></script>
   <script src="/js/read-summary.js" defer></script>
 </head>
 <body>
@@ -67,9 +68,11 @@
         <p id="summary-reading-description"></p>
       </section>
       <div class="summary-actions">
-        <button type="button" class="summary-button" disabled><svg class="icon" aria-hidden="true"><use href="/assets/icons/navbar.svg#i-bookmark"/></svg>บันทึก</button>
+        <button type="button" class="summary-button" id="summary-save" aria-pressed="false" disabled><svg class="icon" aria-hidden="true"><use href="/assets/icons/navbar.svg#i-bookmark"/></svg><span id="summary-save-label">บันทึก</span></button>
         <button type="button" class="summary-button summary-primary" id="summary-review" disabled><span class="review-open-icon" data-review-star-icon aria-hidden="true"></span> รีวิว</button>
       </div>
+      <p id="summary-save-status" class="summary-status" role="status" hidden></p>
+      <button type="button" id="summary-save-retry" hidden>ลองโหลดสถานะบันทึกอีกครั้ง</button>
     </article>
   </main>
   <footer>

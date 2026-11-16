@@ -102,7 +102,7 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
     errorCode: 'UPSTREAM_UNAVAILABLE', errorMessage: 'เชื่อมต่อบริการสรุป PDF ไม่สำเร็จ', ...options
   });
 
-  async function rejectSummaryParameters(req, res, next) {
+  async function rejectUnusedParameters(req, res, next) {
     res.set('Cache-Control', 'no-store');
     const reject = () => summaryError(res, 422, 'INVALID_PARAMETERS', 'เส้นทางนี้ไม่รับ query หรือ body');
     if (hasSummaryQuery(req) || Number(req.get('content-length')) > 0) return reject();
@@ -137,9 +137,9 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   app.post('/api/summaries', summaryMultipart, writeSummary);
   app.put('/api/summaries/:summaryId', summaryMultipart, writeSummary);
 
-  app.get('/api/my-summaries', rejectSummaryParameters, (req, res) => proxySummary(req, res, '/api/my-summaries'));
+  app.get('/api/my-summaries', rejectUnusedParameters, (req, res) => proxySummary(req, res, '/api/my-summaries'));
 
-  app.delete('/api/summaries/:summaryId', rejectSummaryParameters, (req, res) => {
+  app.delete('/api/summaries/:summaryId', rejectUnusedParameters, (req, res) => {
     const id = req.params.summaryId;
     if (!validId(id)) {
       return summaryError(res, 422, 'INVALID_PARAMETERS', 'ข้อมูลที่ใช้ลบสรุปไม่ถูกต้อง');
@@ -243,6 +243,33 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   });
   app.all(/^\/api\/(?:reviews|(?:guides|summaries)\/[^/]+\/reviews)(?:\/|$)/i, (req, res) => {
     return reviewError(res, 404, 'ROUTE_NOT_FOUND', 'ไม่พบเส้นทางรีวิว');
+  });
+
+  app.all(['/api/saved-items', '/api/saved-items/:type/:id'], (req, res, next) => {
+    const methods = req.params.id === undefined ? ['GET'] : ['GET', 'PUT', 'DELETE'];
+    if (!methods.includes(req.method)) {
+      res.set('Allow', methods.join(', '));
+      return res.set('Cache-Control', 'no-store').status(405).json({
+        error: {code: 'METHOD_NOT_ALLOWED', message: 'ไม่รองรับคำขอนี้', fields: []}
+      });
+    }
+    if (!/^Bearer\s+\S+$/i.test(req.get('authorization') || '')) {
+      res.set({'Cache-Control': 'no-store', 'WWW-Authenticate': 'Bearer'});
+      return res.status(401).json({error: {code: 'AUTH_REQUIRED', message: 'กรุณาเข้าสู่ระบบ', fields: []}});
+    }
+    return rejectUnusedParameters(req, res, next);
+  }, (req, res) => {
+    const {type, id} = req.params;
+    const target = id === undefined ? '/api/saved-items'
+      : `/api/saved-items/${['guide', 'summary'].includes(type) ? type : 'invalid'}/${/^[0-9]+$/.test(id) ? id : 'invalid'}`;
+    return proxy(req, res, target, {
+      errorCode: 'UPSTREAM_UNAVAILABLE', errorMessage: 'เชื่อมต่อบริการรายการที่บันทึกไม่สำเร็จ'
+    });
+  });
+  app.all(/^\/api\/saved-items(?:\/|$)/i, (req, res) => {
+    return res.set('Cache-Control', 'no-store').status(404).json({
+      error: {code: 'ROUTE_NOT_FOUND', message: 'ไม่พบเส้นทางรายการที่บันทึก', fields: []}
+    });
   });
 
   app.use('/api/guides', express.json({limit: '16kb'}));

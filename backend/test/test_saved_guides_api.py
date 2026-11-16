@@ -14,6 +14,7 @@ from app.main import app
 from app.models.course import Course
 from app.models.guide import Guide
 from app.models.saved_guide import SavedGuide
+from app.models.summary import Summary
 from app.models.user import User
 from app.services.auth import AuthenticatedUser as AuthUser
 
@@ -146,3 +147,58 @@ def test_saved_duplicate_recheck_failure_returns_unavailable(saved_client):
         response = client.put("/api/saved-guides/1")
     assert response.status_code == 503
     assert response.json() == {"detail": "SAVED_GUIDES_UNAVAILABLE"}
+
+def test_u9_combines_legacy_guides_with_saved_summaries_and_preserves_item_identity(saved_client):
+    client, session, account = saved_client
+    session.add(Summary(id=1, course_id=1, owner_id=1, title="PDF"))
+    session.commit()
+    assert client.put("/api/saved-guides/1").status_code == 200
+    assert client.get("/api/saved-items/summary/1").json()["saved"] is False
+    for _ in range(2):
+        assert client.put("/api/saved-items/summary/1").json() == {
+            "item_type": "summary", "item_id": 1, "saved": True
+        }
+        assert client.put("/api/saved-items/guide/1").json()["saved"] is True
+    response = client.get("/api/saved-items")
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    items = response.json()["items"]
+    assert [(item["item_type"], item["item_id"], item["open_path"]) for item in items] == [
+        ("guide", 1, "/api/guides/1"), ("summary", 1, "/api/summaries/1")
+    ]
+    assert all(item["course"]["course_code"] == "CS261" for item in items)
+    account["id"] = 2
+    assert client.get("/api/saved-items").json() == {"items": []}
+    assert client.put("/api/saved-items/summary/1").json()["saved"] is True
+    account["id"] = 1
+    assert client.delete("/api/saved-items/summary/1").json()["saved"] is False
+    assert client.get("/api/saved-items/guide/1").json()["saved"] is True
+    account["id"] = 2
+    assert client.get("/api/saved-items/summary/1").json()["saved"] is True
+    session.delete(session.get(Summary, 1))
+    session.commit()
+    assert client.get("/api/saved-items").json() == {"items": []}
+    assert client.get("/api/saved-items/summary/1").json()["error"]["code"] == "SUMMARY_NOT_FOUND"
+    assert client.delete("/api/saved-items/summary/1").json()["saved"] is False
+
+
+@pytest.mark.parametrize("kind", ["guide", "summary"])
+def test_u9_validation_auth_and_rollback(saved_client, kind):
+    client, session, _ = saved_client
+    session.add(Summary(id=1, course_id=1, owner_id=1, title="PDF"))
+    session.commit()
+    url = f"/api/saved-items/{kind}/1"
+    assert client.put(url + "?user_id=2").json()["error"]["code"] == "INVALID_PARAMETERS"
+    assert client.put(url, json={"user_id": 2}).status_code == 422
+    assert client.put(url.replace(kind, "course")).status_code == 422
+    assert client.put(url[:-1] + "2147483648").status_code == 422
+    with patch.object(session, "commit", side_effect=SQLAlchemyError("write failed")):
+        failed = client.put(url)
+    assert failed.status_code == 503
+    assert failed.json()["error"]["code"] == "SAVED_ITEMS_UNAVAILABLE"
+    assert client.get(url).json()["saved"] is False
+    app.dependency_overrides.pop(current_user)
+    denied = client.put(url)
+    assert denied.status_code == 401
+    assert denied.headers["www-authenticate"] == "Bearer"
+    assert denied.json()["error"]["code"] == "AUTH_REQUIRED"

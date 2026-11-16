@@ -685,3 +685,29 @@ test('U8 unknown review routes return a JSON 404 without forwarding upstream', a
     assert.equal(forwards, 0);
   });
 });
+
+test('U9 forwards typed bookmarks and rejects unexpected body and query parameters', async t => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  const calls = [];
+  global.fetch = async (url, options) => {
+    calls.push([url.pathname, options.method, options.headers.Authorization, options.body]);
+    return new Response('{"item_type":"summary","item_id":41,"saved":true}', {
+      status: 200, headers: {'Content-Type': 'application/json'}
+    });
+  };
+  await withServer(async port => {
+    const auth = {Authorization: 'Bearer mock-session'};
+    const saved = '/api/saved-items/summary/41';
+    assert.equal((await request(port, saved, 'PUT', auth)).status, 200);
+    assert.deepEqual(calls, [[saved, 'PUT', auth.Authorization, undefined]]);
+    const invalidQuery = await request(port, saved + '?user_id=2', 'PUT', auth);
+    assert.equal(invalidQuery.status, 422);
+    assert.equal(JSON.parse(invalidQuery.body).error.code, 'INVALID_PARAMETERS');
+    const invalidBody = await request(port, saved, 'PUT', {...auth, 'Content-Length': 2}, '{}');
+    assert.equal(invalidBody.status, 422);
+    assert.equal((await request(port, saved, 'PUT')).headers['www-authenticate'], 'Bearer');
+    assert.equal((await request(port, saved + '/unknown')).status, 404);
+    assert.equal(calls.length, 1);
+  });
+});

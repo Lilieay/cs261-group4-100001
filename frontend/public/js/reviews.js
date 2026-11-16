@@ -86,6 +86,20 @@
     });
   }
 
+  function connectScores(container) {
+    container.querySelectorAll('[data-review-score-id]').forEach(element => {
+      const {reviewScoreId: id, reviewScoreType: type} = element.dataset;
+      read({id, type}).then(items => {
+        if (!element.isConnected) return;
+        const {average, count} = totals(items);
+        element.replaceChildren(...(count ? [starIcon(1), `${average} · ${count} รีวิว`] : ['0 รีวิว']));
+        element.hidden = false;
+      }).catch(() => {
+        // The reading action remains available when scores cannot be loaded.
+      });
+    });
+  }
+
   let templates;
   function loadTemplates() {
     if (!templates) {
@@ -457,5 +471,5 @@
     });
   }
 
-  window.Reviews = Object.freeze({open, connectCards, mountStarIcons});
+  window.Reviews = Object.freeze({open, connectCards, connectScores, mountStarIcons});
 })();

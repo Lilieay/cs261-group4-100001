@@ -85,18 +85,23 @@
     const status = document.querySelector('#reading-status');
     if (apiMode) {
       if (!apiRow || !savedKnown) return;
+      if (apiRow.saved) {
+        status.textContent = 'ได้บันทึกการแบ่งปันนี้ไปแล้ว';
+        status.dataset.kind = 'success';
+        return;
+      }
       saving = true;
       render();
       status.textContent = 'กำลังบันทึก…';
       try {
-        apiRow.saved = await window.GuideApi.savedState(guideId, !apiRow.saved);
-        status.textContent = apiRow.saved ? 'เพิ่มในรายวิชาที่บันทึกแล้ว' : 'นำออกจากรายวิชาที่บันทึกแล้ว';
+        apiRow.saved = await window.SavedItems.state('guide', guideId, true);
+        status.textContent = 'เพิ่มในรายวิชาที่บันทึกแล้ว';
         status.dataset.kind = 'success';
       } catch (error) {
         status.textContent = error.message || 'บันทึกรายการไม่สำเร็จ';
         status.dataset.kind = 'error';
         // Reconcile a timed out mutation before another toggle.
-        try { apiRow.saved = await window.GuideApi.savedState(guideId); }
+        try { apiRow.saved = await window.SavedItems.state('guide', guideId); }
         catch (_) { savedKnown = false; savedError = 'ตรวจสอบสถานะบันทึกไม่ได้ กรุณาลองอีกครั้ง'; }
       } finally {
         saving = false;
@@ -148,7 +153,7 @@
       apiRow = window.GuideApi.toPreviewRow(response);
       render();
       try {
-        const saved = await window.GuideApi.savedState(guideId);
+        const saved = await window.SavedItems.state('guide', guideId);
         if (version !== loadVersion) return;
         apiRow.saved = saved;
         savedKnown = true;

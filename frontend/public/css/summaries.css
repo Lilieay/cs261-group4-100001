@@ -168,6 +168,12 @@
   background: var(--summary-red);
 }
 
+#summary-save[aria-pressed="true"] {
+  background: #f0f3ff;
+  border-color: #354a82;
+  color: #2d4279;
+}
+
 .summary-secondary {
   border-color: var(--summary-border);
   color: #344d7b;

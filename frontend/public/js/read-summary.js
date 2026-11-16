@@ -5,6 +5,7 @@
   const params = new URLSearchParams(window.location.search);
   const summaryId = params.get('summary');
   const fromMySummaries = params.get('source') === 'my-summaries';
+  const fromSaved = params.get('source') === 'saved';
   const status = $('summary-read-status');
   const viewer = $('summary-viewer');
   const frame = $('summary-pdf');
@@ -14,16 +15,83 @@
   const retry = $('summary-read-retry');
   const retryDetail = $('summary-detail-retry');
   const review = $('summary-review');
+  const save = $('summary-save');
+  const saveStatus = $('summary-save-status');
+  const saveRetry = $('summary-save-retry');
   if (review) window.Reviews?.mountStarIcons(review);
   const api = window.SummaryApi;
   let summary;
   let pdfUrl;
   let fileRequest;
+  let saved;
+  let saving = false;
 
   if (fromMySummaries) {
     $('summary-back').href = 'shared-courses.html?type=summaries';
     $('summary-back').setAttribute('aria-label', 'กลับหน้าสรุปของฉัน');
   }
+  if (fromSaved) {
+    $('summary-back').href = 'saved-courses.html';
+    $('summary-back').setAttribute('aria-label', 'กลับรายการที่บันทึก');
+  }
+
+  function updateBookmark(message = '', isError = false) {
+    save.disabled = saving || saved === undefined;
+    save.setAttribute('aria-pressed', String(saved === true));
+    save.setAttribute('aria-busy', String(saving));
+    $('summary-save-label').textContent = saved ? 'บันทึกแล้ว' : 'บันทึก';
+    saveStatus.textContent = message;
+    saveStatus.hidden = !message;
+    saveStatus.classList.toggle('summary-error', isError);
+    saveRetry.hidden = saving || saved !== undefined;
+  }
+
+  async function readBookmark() {
+    if (!summary || saving) return;
+    saving = true;
+    updateBookmark('กำลังโหลดสถานะบันทึก…');
+    let problem = '';
+    try {
+      saved = await window.SavedItems.state('summary', summary.id);
+    } catch (error) {
+      saved = undefined;
+      problem = error.message || 'โหลดสถานะบันทึกไม่สำเร็จ';
+    } finally {
+      saving = false;
+      updateBookmark(problem, Boolean(problem));
+    }
+  }
+
+  saveRetry.addEventListener('click', readBookmark);
+  save.addEventListener('click', async () => {
+    if (!summary || saving || saved === undefined) return;
+    if (saved) {
+      updateBookmark('ได้บันทึกการแบ่งปันนี้ไปแล้ว');
+      return;
+    }
+    saving = true;
+    updateBookmark('กำลังบันทึก…');
+    let message = 'เพิ่มในรายวิชาที่บันทึกแล้ว';
+    let failed = false;
+    try {
+      saved = await window.SavedItems.state('summary', summary.id, true);
+    } catch (error) {
+      failed = true;
+      message = error.message || 'บันทึกรายการไม่สำเร็จ';
+      if (!error.status || error.status >= 500) {
+        try {
+          saved = await window.SavedItems.state('summary', summary.id);
+        } catch (_) {
+          saved = undefined;
+          message = 'ตรวจสอบสถานะบันทึกไม่ได้ กรุณาลองโหลดสถานะล่าสุด';
+        }
+      }
+    } finally {
+      saving = false;
+      updateBookmark(message, failed);
+      (save.disabled && !saveRetry.hidden ? saveRetry : save).focus();
+    }
+  });
 
   function releaseFile() {
     fileRequest?.abort();
@@ -89,7 +157,7 @@
         $('summary-reading-description').textContent = summary.description;
         $('summary-description-box').hidden = false;
       }
-      if (!fromMySummaries) {
+      if (!fromMySummaries && !fromSaved) {
         const back = new URL(api.courseUrl(summary.course), window.location.href);
         if (/^[1-9]\d*$/.test(params.get('page'))) back.searchParams.set('page', params.get('page'));
         if (['oldest', 'title'].includes(params.get('sort'))) back.searchParams.set('sort', params.get('sort'));
@@ -101,6 +169,7 @@
       }
       $('summary-detail').hidden = false;
       if (review) review.disabled = false;
+      readBookmark();
       loadInstructor(summary.course.id);
       await loadFile();
     } catch (error) {
@@ -112,7 +181,10 @@
   // Keep the file out of browser history and require a fresh authorized request on return.
   window.addEventListener('pagehide', releaseFile);
   window.addEventListener('pageshow', event => {
-    if (event.persisted && summary) loadFile();
+    if (event.persisted && summary) {
+      loadFile();
+      readBookmark();
+    }
   });
   retry.addEventListener('click', loadFile);
   retryDetail.addEventListener('click', start);
