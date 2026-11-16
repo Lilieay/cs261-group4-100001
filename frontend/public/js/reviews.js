@@ -22,9 +22,12 @@
       throw Object.assign(new Error('เชื่อมต่อบริการรีวิวไม่สำเร็จ'), {status: 0});
     }
     const {response, payload} = result;
-    if (!response.ok) throw Object.assign(new Error(payload?.error?.message || 'ทำรายการรีวิวไม่สำเร็จ'), {
-      status: response.status, code: payload?.error?.code
-    });
+    if (!response.ok) {
+      const serverMessage = payload?.error?.message;
+      const message = typeof serverMessage === 'string' ? serverMessage.trim() : '';
+      const fallback = response.status === 503 ? '' : 'ทำรายการรีวิวไม่สำเร็จ';
+      throw Object.assign(new Error(message || fallback), {status: response.status, code: payload?.error?.code});
+    }
     if (response.status !== ({GET: 200, POST: 201, PUT: 200, DELETE: 204})[method]) throw invalidResponse();
     return payload;
   }
@@ -322,9 +325,7 @@
   }
 
   async function reconcile(state) {
-    const {method, previous, failed} = state.pending;
-    const operation = method === 'DELETE' ? 'ลบรีวิว' : 'บันทึกรีวิว';
-    const outcome = failed ? `คำขอนี้${operation}ไม่สำเร็จ` : `ยังยืนยันผลการ${operation}ครั้งนี้ไม่ได้`;
+    const {previous, outcome} = state.pending;
     try {
       updateItems(state, await read(state.target, true));
       const current = state.own;
@@ -359,7 +360,9 @@
     } catch (error) {
       if (error.status === 0 || error.status >= 500) {
         reads.delete(pathFor(state.target));
-        state.pending = {method, previous, failed: error.status === 503};
+        const operation = method === 'DELETE' ? 'ลบรีวิว' : 'บันทึกรีวิว';
+        const outcome = (error.status === 503 && error.message) || `ยังยืนยันผลการ${operation}ครั้งนี้ไม่ได้`;
+        state.pending = {previous, outcome};
         await reconcile(state);
       } else if (error.code === 'SELF_REVIEW_FORBIDDEN') {
         state.owner = true;

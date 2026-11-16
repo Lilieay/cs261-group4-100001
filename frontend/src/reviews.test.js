@@ -36,7 +36,13 @@ class Element {
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const currentUser = {id: 7, username: 'student', display_name: 'Student'};
 const ok = payload => ({response: {ok: true, status: 200}, payload});
-const unavailable = {response: {ok: false, status: 503}, payload: {error: {code: 'STORAGE_UNAVAILABLE'}}};
+const storageMessage = 'ไม่สามารถอ่านหรือบันทึกรีวิวได้ กรุณาโหลดข้อมูลล่าสุด';
+const uncertainMessage = 'ไม่ทราบผลบันทึก กรุณาโหลดข้อมูลล่าสุดก่อนลองใหม่';
+const storageUnavailable = message => ({
+  response: {ok: false, status: 503},
+  payload: {error: {code: 'STORAGE_UNAVAILABLE', message}}
+});
+const unavailable = storageUnavailable(storageMessage);
 
 function reviewPage({type, profile, items, write = () => unavailable}) {
   const dialog = new Element();
@@ -105,7 +111,7 @@ for (const type of ['guide', 'summary']) {
     await page.click('edit');
     page.submit(row.rating, row.comment);
     await tick();
-    assert.match(page.notice(), /คำขอนี้บันทึกรีวิวไม่สำเร็จ โหลดข้อมูลล่าสุดแล้ว/);
+    assert.equal(page.notice(), `${storageMessage} โหลดข้อมูลล่าสุดแล้ว`);
     assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, false);
     assert.equal(page.dialog.querySelector('[data-review-average]').textContent, '3.0');
     assert.deepEqual(page.calls.filter(([, method]) => method === 'PUT'),
@@ -146,13 +152,15 @@ test('U8 does not confirm an uncertain edit using a different review ID with mat
   await page.click('edit');
   page.submit(replacement.rating, replacement.comment);
   await tick();
-  assert.match(page.notice(), /คำขอนี้บันทึกรีวิวไม่สำเร็จ โหลดข้อมูลล่าสุดแล้ว/);
+  assert.equal(page.notice(), `${storageMessage} โหลดข้อมูลล่าสุดแล้ว`);
   assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, true);
 });
 
 for (const [name, write, notice] of [
-  ['a 503', () => unavailable, /คำขอนี้บันทึกรีวิวไม่สำเร็จ โหลดข้อมูลล่าสุดแล้ว/],
-  ['a lost connection', () => { throw new Error('offline'); }, /ยังยืนยันผลการบันทึกรีวิวครั้งนี้ไม่ได้ โหลดข้อมูลล่าสุดแล้ว/]
+  ['a storage failure', () => unavailable, storageMessage],
+  ['an uncertain storage outcome', () => storageUnavailable(uncertainMessage), uncertainMessage],
+  ['a 503 without a usable message', () => storageUnavailable('  '), 'ยังยืนยันผลการบันทึกรีวิวครั้งนี้ไม่ได้'],
+  ['a lost connection', () => { throw new Error('offline'); }, 'ยังยืนยันผลการบันทึกรีวิวครั้งนี้ไม่ได้']
 ]) {
   test(`U8 reports the request outcome after ${name} even when the same review now matches the edit`, async () => {
     const original = ownReview('summary');
@@ -165,8 +173,8 @@ for (const [name, write, notice] of [
     await page.click('edit');
     page.submit(updated.rating, updated.comment);
     await tick();
-    assert.match(page.notice(), notice);
-    assert.doesNotMatch(page.notice(), /บันทึกรีวิวแล้ว/);
+    assert.equal(page.notice(), `${notice} โหลดข้อมูลล่าสุดแล้ว`);
+    assert.doesNotMatch(page.notice(), /บันทึกรีวิวแล้ว|คำขอนี้บันทึกรีวิวไม่สำเร็จ/);
     assert.equal(page.dialog.querySelector('[data-review-average]').textContent, '5.0');
     assert.equal(page.dialog.querySelector('[data-review-own-review]').hidden, false);
     assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, true);
