@@ -87,3 +87,16 @@ test('saved page provides retry on API failure', async () => {
   assert.match(failed.get('#saved-list').innerHTML, /API unavailable/);
   assert.match(failed.get('#saved-list').innerHTML, /saved-retry/);
 });
+
+test('U9 keeps an uncertain DELETE message after refreshing the list and finding the bookmark gone', async () => {
+  let reads = 0;
+  const issue = 'ยังยืนยันผลไม่ได้ กรุณาโหลดสถานะล่าสุด';
+  const {get} = page({saved: async () => ++reads === 1 ? [summary] : [],
+    savedState: async () => { throw Object.assign(new Error(issue), {status: 503}); }});
+  await tick();
+  await get('#saved-list').listeners.click({target: {closest: selector =>
+    selector === '[data-unsave]' ? {dataset: {unsave: '12', itemType: 'summary'}} : null}});
+  assert.equal(reads, 2);
+  assert.equal(get('#saved-status').textContent, issue);
+  assert.match(get('#saved-list').innerHTML, /ยังไม่มีรายการที่บันทึก/);
+});

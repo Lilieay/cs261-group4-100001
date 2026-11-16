@@ -25,6 +25,7 @@
   let fileRequest;
   let saved;
   let saving = false;
+  let writeIssue = '';
 
   if (fromMySummaries) {
     $('summary-back').href = 'shared-courses.html?type=summaries';
@@ -49,7 +50,7 @@
   async function readBookmark() {
     if (!summary || saving) return;
     saving = true;
-    updateBookmark('กำลังโหลดสถานะบันทึก…');
+    updateBookmark(writeIssue || 'กำลังโหลดสถานะบันทึก…', Boolean(writeIssue));
     let problem = '';
     try {
       saved = await window.SavedItems.state('summary', summary.id);
@@ -58,7 +59,7 @@
       problem = error.message || 'โหลดสถานะบันทึกไม่สำเร็จ';
     } finally {
       saving = false;
-      updateBookmark(problem, Boolean(problem));
+      updateBookmark([writeIssue, problem].filter(Boolean).join(' '), Boolean(writeIssue || problem));
     }
   }
 
@@ -70,6 +71,7 @@
       return;
     }
     saving = true;
+    writeIssue = '';
     updateBookmark('กำลังบันทึก…');
     let message = 'เพิ่มในรายวิชาที่บันทึกแล้ว';
     let failed = false;
@@ -77,13 +79,14 @@
       saved = await window.SavedItems.state('summary', summary.id, true);
     } catch (error) {
       failed = true;
-      message = error.message || 'บันทึกรายการไม่สำเร็จ';
+      writeIssue = error.message || 'บันทึกรายการไม่สำเร็จ';
+      message = writeIssue;
       if (!error.status || error.status >= 500) {
         try {
           saved = await window.SavedItems.state('summary', summary.id);
         } catch (_) {
           saved = undefined;
-          message = 'ตรวจสอบสถานะบันทึกไม่ได้ กรุณาลองโหลดสถานะล่าสุด';
+          message += ' ตรวจสอบสถานะบันทึกไม่ได้ กรุณาลองโหลดสถานะล่าสุด';
         }
       }
     } finally {
@@ -180,6 +183,7 @@
 
   // Keep the file out of browser history and require a fresh authorized request on return.
   window.addEventListener('pagehide', releaseFile);
+  window.addEventListener('focus', readBookmark);
   window.addEventListener('pageshow', event => {
     if (event.persisted && summary) {
       loadFile();

@@ -100,7 +100,7 @@
       } catch (error) {
         status.textContent = error.message || 'บันทึกรายการไม่สำเร็จ';
         status.dataset.kind = 'error';
-        // Reconcile a timed out mutation before another toggle.
+        // Keep the write outcome visible while refreshing the current status.
         try { apiRow.saved = await window.SavedItems.state('guide', guideId); }
         catch (_) { savedKnown = false; savedError = 'ตรวจสอบสถานะบันทึกไม่ได้ กรุณาลองอีกครั้ง'; }
       } finally {

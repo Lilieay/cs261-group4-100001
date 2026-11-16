@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.dependencies import current_user, get_db_session
 from app.schemas.saved_items import SavedItemListResponse, SavedItemState
 from app.services.auth import AuthenticatedUser
-from app.services.saved_items import SavedItemNotFound, SavedItemsService, TARGETS
+from app.services.saved_items import SavedItemCommitUnknown, SavedItemNotFound, SavedItemsService, TARGETS
 
 
 def saved_item_error(status, code, message, *, headers=None, fields=None):
@@ -72,12 +72,17 @@ def run_operation(session, operation, kind=None):
         return operation()
     except SavedItemNotFound:
         return saved_item_error(404, f"{kind.upper()}_NOT_FOUND", "ไม่พบเอกสาร")
-    except SQLAlchemyError:
+    except (SavedItemCommitUnknown, SQLAlchemyError) as error:
         try:
             session.rollback()
         except SQLAlchemyError:
             pass
-        return saved_item_error(503, "SAVED_ITEMS_UNAVAILABLE", "จัดการรายการที่บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง")
+        message = (
+            "ยังยืนยันผลไม่ได้ กรุณาโหลดสถานะล่าสุด"
+            if isinstance(error, SavedItemCommitUnknown)
+            else "จัดการรายการที่บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง"
+        )
+        return saved_item_error(503, "SAVED_ITEMS_UNAVAILABLE", message)
 
 
 @router.get("", response_model=SavedItemListResponse)

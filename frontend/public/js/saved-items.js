@@ -5,6 +5,7 @@
   const idValid = value => /^[1-9][0-9]*$/.test(String(value)) && Number(value) <= 2147483647;
   const typeValid = type => type === 'guide' || type === 'summary';
   const failure = (message, status = 0) => Object.assign(new Error(message), {status});
+  const unknownWrite = 'ยังยืนยันผลไม่ได้ กรุณาโหลดสถานะล่าสุด';
 
   function itemPath(type, id) {
     if (!typeValid(type) || !idValid(id)) throw failure('รหัสเอกสารไม่ถูกต้อง', 422);
@@ -21,7 +22,7 @@
     try {
       result = await window.HttpClient.request(path, {method, token, timeoutMs: 15_000});
     } catch (_) {
-      throw failure('เชื่อมต่อบริการรายการที่บันทึกไม่สำเร็จ');
+      throw failure(method === 'GET' ? 'เชื่อมต่อบริการรายการที่บันทึกไม่สำเร็จ' : unknownWrite);
     }
     const {response, payload} = result;
     if (response.status === 401) {
@@ -29,7 +30,10 @@
       window.location.replace('login.html');
     }
     if (!response.ok) {
-      throw failure(payload?.error?.message || 'จัดการรายการที่บันทึกไม่สำเร็จ', response.status);
+      const rawMessage = payload?.error?.message;
+      const message = typeof rawMessage === 'string' ? rawMessage.trim() : '';
+      const uncertain = method !== 'GET' && response.status >= 500 && (response.status !== 503 || !message);
+      throw failure(uncertain ? unknownWrite : message || 'จัดการรายการที่บันทึกไม่สำเร็จ', response.status);
     }
     return payload;
   }
@@ -51,7 +55,7 @@
     const result = await request(itemPath(type, id), method);
     if (result?.item_type !== type || result.item_id !== Number(id) || typeof result.saved !== 'boolean'
       || (desired !== undefined && result.saved !== desired)) {
-      throw failure('ยืนยันสถานะบันทึกจากระบบไม่ได้', 502);
+      throw failure(desired === undefined ? 'ยืนยันสถานะบันทึกจากระบบไม่ได้' : unknownWrite, 502);
     }
     return result.saved;
   }
