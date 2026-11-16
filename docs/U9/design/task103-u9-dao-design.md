@@ -154,29 +154,7 @@ DAO ใช้ SQLAlchemy Session ที่ Service ส่งให้ ไม่ 
 
 **ข้อห้าม SQLAlchemy:** ห้ามเรียก SELECT ด้วย Session ก่อน `session.begin()` เพราะ SQLAlchemy Session อาจ autobegin transaction ตั้งแต่ query แรก แล้ว `begin()` ภายหลังอาจ raise `InvalidRequestError` ว่ามี transaction อยู่แล้ว ห้ามใช้ `session.begin()` ซ้อน transaction โดยไม่ตั้งใจ
 
-ตัวอย่าง pseudo-code (แสดง transaction boundary; การจำแนก constraint ต้องตรวจชื่อ/รหัส unique constraint ของ DB จริง):
-
-```python
-def save_item(session, current_user_id, item_type, item_id):
-    dao = dao_for(item_type)  # enum allowlist only
-    try:
-        with session.begin():  # BEGIN ก่อน SELECT target
-            target = dao.target_exists(session, item_id)
-            if target is None:
-                raise TargetNotFound(item_type, item_id)
-            dao.insert(session, current_user_id, item_id)
-        # INSERT + COMMIT สำเร็จ
-        return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
-    except IntegrityError as exc:
-        if not is_expected_bookmark_unique_conflict(exc):
-            raise
-        session.rollback()  # ต้อง rollback transaction ที่ failed ก่อน query
-        with session.begin():  # transaction ใหม่สำหรับ read-after-conflict
-            exists = dao.is_saved(session, current_user_id, item_id)
-        if not exists:
-            raise SavedItemConflictNotConfirmed()
-        return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
-```
+หลัง duplicate-key และ rollback แล้ว T2 ต้องตรวจ `target_exists` ก่อน `is_saved` เสมอ: หาก target หายให้ `TargetNotFound` (404 ตามชนิด), หาก target ยังอยู่และ relation พบจึงตอบ `200 saved:true`; หาก target ยังอยู่แต่ relation ไม่พบ หรือการอ่านฐานข้อมูลล้มเหลว ให้ตอบ `503 SAVED_ITEMS_UNAVAILABLE` ไม่ใช่ยืนยันว่า save สำเร็จ
 
 `insert_if_absent` ต้องจัดการเฉพาะ unique conflict ที่เป็น duplicate ของ key นี้เท่านั้น ห้ามกลบ DB exception ประเภทอื่นเป็น duplicate หากใช้ dialect-specific insert-on-conflict ให้ตรวจ semantics ของ SQL Server ที่ใช้งานจริงก่อนเลือก implementation
 
