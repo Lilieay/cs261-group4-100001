@@ -6,6 +6,7 @@ const {createHash} = require('node:crypto');
 const {mkdirSync, writeFileSync} = require('node:fs');
 const path = require('node:path');
 const {chromium} = require(process.env.TASK124_PLAYWRIGHT || 'playwright-core');
+const {validateStack, OwnedDeleteTrigger} = require('./task124-guards.cjs');
 const project = process.env.TASK124_PROJECT;
 assert.match(project || '', /^cs261-task124-[a-z0-9-]+$/);
 const evidence = process.env.TASK124_EVIDENCE;
@@ -19,11 +20,20 @@ const digest = value => createHash('sha256').update(value).digest('hex');
 const report = (name, detail = {}) => { results.push({name, ...detail}); console.log(`PASS ${name}`); };
 function docker(...args) { return execFileSync('docker', args, {encoding:'utf8', timeout:30000}).trim(); }
 function py(input) { return execFileSync('docker', ['exec','-i',backend,'python','-'], {input,encoding:'utf8',timeout:30000}).trim(); }
-assert.equal(docker('inspect','--format','{{ index .Config.Labels "com.docker.compose.project" }}',backend), project);
-for (const container of [backend, `${project}-backend-b-1`]) assert.equal(docker('exec',container,'printenv','TU_API_MODE'), 'mock');
+// Capture only nonsecret fields needed for preflight; never inspect credentials.
+const inspectFormat = '{"project":{{json (index .Config.Labels "com.docker.compose.project")}},'
+  + '"service":{{json (index .Config.Labels "com.docker.compose.service")}},"running":{{json .State.Running}},'
+  + '"ports":{{json .NetworkSettings.Ports}},"networks":{{json .NetworkSettings.Networks}},'
+  + '"proxy":[{{range .Config.Env}}{{if eq (index (split . "=") 0) "BACKEND_URL"}}{{json .}}{{end}}{{end}}],'
+  + '"mode":[{{range .Config.Env}}{{if eq (index (split . "=") 0) "TU_API_MODE"}}{{json .}}{{end}}{{end}}]}';
+const records = Object.fromEntries(['frontend','frontend-b','backend','backend-b'].map(service =>
+  [service, JSON.parse(docker('inspect','--format',inspectFormat,`${project}-${service}-1`))]));
+validateStack(project, records, urls); // Must finish before browser/Login/fixtures.
+report('preflight verifies frontend port owners and A/B proxies on the selected Compose project', {project,urls});
 function sql(statement) {
   py(`from app.db import engine\nwith engine.begin() as c:\n    c.exec_driver_sql(${JSON.stringify(statement)})`);
 }
+const ownedTrigger = new OwnedDeleteTrigger(sql);
 function snapshot() {
   return JSON.parse(py(`import json, hashlib
 from pathlib import Path
@@ -52,10 +62,10 @@ function deleteFault(t, user, active) {
   assert(Number.isSafeInteger(user));
   // Validate the target even when disabling the trigger.
   assert(['guide','summary'].includes(t.kind) && Number.isSafeInteger(t.id) && t.id > 0);
-  sql(active ? `CREATE TRIGGER dbo.task124_delete_failure ON dbo.saved_${t.kind === 'guide' ? 'guides' : 'summaries'} AFTER DELETE AS
+  if (active) ownedTrigger.create(`CREATE TRIGGER dbo.task124_delete_failure ON dbo.saved_${t.kind === 'guide' ? 'guides' : 'summaries'} AFTER DELETE AS
     BEGIN SET NOCOUNT ON; IF EXISTS (SELECT 1 FROM deleted WHERE ${t.kind}_id=${t.id} AND user_id=${user})
-    BEGIN ;THROW 51024, 'Task124 scoped DELETE failure', 1; END END`
-    : 'DROP TRIGGER IF EXISTS dbo.task124_delete_failure');
+    BEGIN ;THROW 51024, 'Task124 scoped DELETE failure', 1; END END`);
+  else ownedTrigger.cleanup();
 }
 async function login(page, index) {
   await page.goto(urls[index]+'/login.html');
@@ -125,18 +135,27 @@ async function checkOpen(page,t) {
   } else {
     await page.locator('#summary-reading-title').getByText(t.title,{exact:true}).waitFor();
     await page.locator('#summary-pdf[src^="blob:"]').waitFor({state:'visible'});
-    const bytes=await page.evaluate(async id=>{
-      const r=await fetch(`/api/summaries/${id}/file`,{headers:{Authorization:'Bearer '+sessionStorage.getItem('access_token')}});
-      if(!r.ok)throw Error('PDF read failed');return [...new Uint8Array(await r.arrayBuffer())];
-    },t.id);
-    assert.equal(digest(Buffer.from(bytes)),t.sha256);
+    // Read the exact blob URL attached to the viewer, not an independent API GET.
+    const bytes=await page.locator('#summary-pdf').evaluate(async frame=>{
+      const r=await fetch(frame.src.split('#')[0]);
+      if(!r.ok)throw Error('Viewer PDF read failed');return [...new Uint8Array(await r.arrayBuffer())];
+    });
+    const viewerSha256=digest(Buffer.from(bytes));
+    assert.equal(viewerSha256,t.sha256);
+    report('PDF reader blob matches selected fixture', {id:t.id,viewerSha256,fixtureSha256:t.sha256});
     assert.equal(new URL(page.url()).searchParams.get('summary'),String(t.id));
   }
   const back=page.locator(t.kind==='guide'?'#readingBack':'#summary-back');
   assert.equal(new URL(await back.getAttribute('href'),page.url()).pathname,'/saved-courses.html');
-  await shot(page,`02-open-${t.kind}-${t.id}`);await back.click();await readyList(page);
+  const label=t.kind==='guide'?'guide':`summary-${fixtures.filter(row=>row.kind==='summary').findIndex(row=>row.id===t.id)+1}`;
+  await shot(page,`02-open-${label}`);await back.click();await readyList(page);
 }
 async function main() {
+  const preexistingTrigger = JSON.parse(py(`import json
+from app.db import engine
+with engine.connect() as c:
+    print(json.dumps(c.exec_driver_sql("SELECT OBJECT_ID('dbo.task124_delete_failure','TR')").scalar()))`));
+  assert.equal(preexistingTrigger, null, 'A preexisting test trigger must be reviewed, not deleted');
   const browser=await chromium.launch({channel:process.env.TASK124_BROWSER||'chrome',headless:true});
   const contexts=await Promise.all([browser.newContext({viewport:{width:1440,height:1000}}),browser.newContext({viewport:{width:1440,height:1000}})]);
   const pages=await Promise.all(contexts.map(c=>c.newPage()));
@@ -164,6 +183,9 @@ async function main() {
     await shot(pages[0],'02-grouped-list');
     const courseLink=pages[0].locator('.saved-course-group h2 a');
     await courseLink.click();assert.equal(new URL(pages[0].url()).searchParams.get('courseId'),String(course.id));
+    await pages[0].locator('#courseHeading').getByText(`ชีตสรุปและแนวข้อสอบ ${course.course_code}`, {exact:true}).waitFor();
+    assert.equal(await pages[0].locator('#courseName').innerText(), `${course.course_code} ${course.course_name}`);
+    report('course page displays selected course code and name', {code:course.course_code,name:course.course_name});
     await pages[0].goBack();await readyList(pages[0]);
     for(const t of [guide,summary,secondPdf])await checkOpen(pages[0],t);
     report('list groups one course and three distinct works; Guide alias and two different PDF checksums open exact selection');
@@ -173,10 +195,20 @@ async function main() {
     for(const t of [guide,summary]) {
       await list(pages[0],0);deleteFault(t,users[0],true);
       try {
-        const r=await removeUi(pages[0],t,503);assert.equal((await r.json()).error.code,'SAVED_ITEMS_UNAVAILABLE');
+        let sawFailedDelete=false;
+        const observeFailure=r=>{if(r.request().method()==='DELETE' && new URL(r.url()).pathname===statePath(t) && r.status()===503)sawFailedDelete=true;};
+        pages[0].on('response',observeFailure);
+        let latest;
+        try {
+          const refreshed=pages[0].waitForResponse(r=>sawFailedDelete && r.request().method()==='GET' && new URL(r.url()).pathname==='/api/saved-items');
+          const r=await removeUi(pages[0],t,503);assert.equal((await r.json()).error.code,'SAVED_ITEMS_UNAVAILABLE');
+          const response=await refreshed;assert.equal(response.status(),200);latest=await response.json();
+          assert(latest.items.some(row=>row.item_type===t.kind && row.item_id===t.id));
+        }finally{pages[0].off('response',observeFailure);}
         assert.deepEqual(bookmarkUsers(t),[...users].sort((a,b)=>a-b));
         await card(pages[0],t).waitFor();await pages[0].locator('#saved-status[data-kind=error]').waitFor();
         await shot(pages[0],`03-${t.kind}-delete-sql-failure`);
+        report(`${t.kind}: DELETE 503 followed by actual GET 200 retaining current user's bookmark`, {deleteStatus:503,getStatus:200,items:latest.items.length});
       } finally { deleteFault(t,users[0],false); }
       await removeUi(pages[0],t);assert.equal(await card(pages[0],t).count(),0);
       assert.deepEqual(bookmarkUsers(t),[users[1]]);
@@ -250,7 +282,7 @@ async function main() {
   finally {
     try {
       if(renamed)sql("EXEC sp_rename 'dbo.task124_saved_summaries_unavailable', 'saved_summaries'");
-      sql('DROP TRIGGER IF EXISTS dbo.task124_delete_failure');
+      ownedTrigger.cleanup();
       for(const t of [...fixtures].reverse())if(!t.deleted)await deleteTarget(pages[t.owner],t);
       if(baseline){assert.deepEqual(snapshot(),baseline);cleaned=true;report('cleanup restored baseline SQL rows and PDF checksums; test trigger absent');}
     } finally {
