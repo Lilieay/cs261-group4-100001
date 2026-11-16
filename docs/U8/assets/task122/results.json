@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "sourceSha": "afd5bed521bfddb7bf1ffda7d4a0147318bf4b43",
+  "sourceSha": "f2e2105aec78b17b7abae8c3489f22ca93f0abce",
   "environment": {
     "browser": "142.0.7444.176",
     "docker": "29.8.2",
@@ -8,7 +8,7 @@
   },
   "authMode": "TU mock, two processes, distinct SQL user IDs",
   "project": "cs261-task122-a646cdb",
-  "date": "2026-11-16T13:16:21.737Z",
+  "date": "2026-11-16T16:40:56.428Z",
   "results": [
     {
       "name": "two real SQL user IDs; TU mock",
@@ -24,6 +24,16 @@
       "name": "guide: real API self/duplicate/owner/auth/validation checks; owner UI cannot add"
     },
     {
+      "name": "guide: failed PUT shows visible error, performs fresh GET and displays original review; edit draft retained",
+      "putStatus": 503,
+      "getStatus": 200,
+      "savedRating": 4,
+      "savedComment": "แก้ไขแล้ว",
+      "draftRating": 1,
+      "draftComment": "ต้องไม่ถูกบันทึก",
+      "notice": "ไม่สามารถอ่านหรือบันทึกรีวิวได้ กรุณาโหลดข้อมูลล่าสุด โหลดข้อมูลล่าสุดแล้ว"
+    },
+    {
       "name": "guide: SQL failure create/update/delete rolls back; UI cancel/delete; concurrent duplicate prevented"
     },
     {
@@ -34,6 +44,16 @@
     },
     {
       "name": "summary: real API self/duplicate/owner/auth/validation checks; owner UI cannot add"
+    },
+    {
+      "name": "summary: failed PUT shows visible error, performs fresh GET and displays original review; edit draft retained",
+      "putStatus": 503,
+      "getStatus": 200,
+      "savedRating": 4,
+      "savedComment": "แก้ไขแล้ว",
+      "draftRating": 1,
+      "draftComment": "ต้องไม่ถูกบันทึก",
+      "notice": "ไม่สามารถอ่านหรือบันทึกรีวิวได้ กรุณาโหลดข้อมูลล่าสุด โหลดข้อมูลล่าสุดแล้ว"
     },
     {
       "name": "summary: SQL failure create/update/delete rolls back; UI cancel/delete; concurrent duplicate prevented"
@@ -51,25 +71,25 @@
   ],
   "targets": [
     {
-      "id": 11,
+      "id": 1007,
       "kind": "guide",
       "owner": 0,
       "removed": true
     },
     {
-      "id": 12,
+      "id": 1008,
       "kind": "guide",
       "owner": 1,
       "removed": true
     },
     {
-      "id": 3,
+      "id": 2004,
       "kind": "summary",
       "owner": 0,
       "removed": true
     },
     {
-      "id": 4,
+      "id": 2005,
       "kind": "summary",
       "owner": 1,
       "removed": true
