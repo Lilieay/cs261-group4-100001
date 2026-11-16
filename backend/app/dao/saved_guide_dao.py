@@ -1,4 +1,4 @@
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
@@ -27,8 +27,17 @@ class SavedGuideDAO:
     def contains(self, user_id: int, guide_id: int) -> bool:
         return self.session.get(SavedGuide, (user_id, guide_id)) is not None
 
-    def target_exists(self, guide_id: int) -> bool:
-        return self.session.get(Guide, guide_id) is not None
+    def read_saved_state(self, user_id: int, guide_id: int) -> bool | None:
+        statement = (
+            select(Guide.id, SavedGuide.user_id)
+            .outerjoin(
+                SavedGuide,
+                and_(SavedGuide.guide_id == Guide.id, SavedGuide.user_id == user_id),
+            )
+            .where(Guide.id == guide_id)
+        )
+        row = self.session.execute(statement).one_or_none()
+        return None if row is None else row.user_id is not None
 
     def is_saved(self, user_id: int, guide_id: int) -> bool:
         return self.contains(user_id, guide_id)
@@ -53,7 +62,7 @@ class SavedGuideDAO:
         if not self.is_saved(user_id, guide_id):
             self.insert_if_absent(user_id, guide_id)
 
-    def remove(self, user_id: int, guide_id: int) -> None:
-        self.session.execute(delete(SavedGuide).where(
+    def remove(self, user_id: int, guide_id: int) -> int:
+        return self.session.execute(delete(SavedGuide).where(
             SavedGuide.user_id == user_id, SavedGuide.guide_id == guide_id
-        ))
+        )).rowcount

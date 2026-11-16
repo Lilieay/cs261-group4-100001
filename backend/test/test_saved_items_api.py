@@ -266,7 +266,7 @@ def test_database_failures_return_503_and_do_not_create_bookmark(saved_item_clie
     path = f"/api/saved-items/guide/{ids['guide']}"
 
     with patch.object(
-        SavedGuideDAO, "target_exists", side_effect=SQLAlchemyError("read failed")
+        SavedGuideDAO, "read_saved_state", side_effect=SQLAlchemyError("read failed")
     ):
         read_response = client.get(path)
     with patch.object(

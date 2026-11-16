@@ -25,14 +25,14 @@
     if (method === 'GET' && path.startsWith('/')) {
       const local = new URL(path, window.location.origin);
       const listPath = /^\/courses\/[1-9]\d*\/guides$/.test(local.pathname);
-      const allowed = listPath || /^\/courses\/[1-9]\d*\/guides\/filter-options$/.test(local.pathname)
-        || /^\/guides\/[1-9]\d*$/.test(local.pathname);
+      const guidePath = /^\/guides\/[1-9]\d*$/.test(local.pathname);
+      const allowed = guidePath || listPath || /^\/courses\/[1-9]\d*\/guides\/filter-options$/.test(local.pathname);
       const allowedQuery = new Set(['academic_year', 'semester', 'exam_period']);
       if (!allowed || (!listPath && local.search)
           || [...local.searchParams.keys()].some(key => !allowedQuery.has(key))) {
         throw new GuideApiError('เส้นทางอ่านแนวข้อสอบไม่ถูกต้อง', {status: 422});
       }
-      return `/api/guides${local.pathname}${local.search}`;
+      return `${guidePath ? '/api' : '/api/guides'}${local.pathname}${local.search}`;
     }
     const base = new URL(config.apiBaseUrl || window.location.origin);
     if (!['http:', 'https:'].includes(base.protocol)) throw new GuideApiError('ที่อยู่ API ต้องเป็น HTTP หรือ HTTPS');

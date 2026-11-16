@@ -253,6 +253,18 @@
   --star-paint: #fff;
 }
 
+.compact-review-score:not([hidden]) {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  color: #516480;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  --star-size: 14px;
+}
+
 .review-personal {
   margin-top: 14px;
   padding: 10px 12px;

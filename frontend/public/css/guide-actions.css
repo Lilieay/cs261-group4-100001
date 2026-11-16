@@ -7,20 +7,28 @@
 .sprint-note { margin: 12px 0 0; color: #64748b; font-size: 12px; }
 .saved-content [hidden] { display: none !important; }
 .saved-content :focus-visible, .actions button:focus-visible { outline: 2px solid #3c64ae; outline-offset: 3px; }
-.saved-content { max-width: 960px; width: min(100%, 960px); margin: 0 auto; }
+.saved-content { max-width: 1280px; margin: 0 auto; }
+.saved-content h1 { margin: 0 0 5px; font-size: clamp(28px, 5vw, 44px); line-height: 1.3; }
 .saved-intro { color: #64748b; margin-bottom: 24px; font-size: 15px; line-height: 1.8; }
-.saved-search { display: grid; gap: 8px; margin-bottom: 16px; }
-.saved-search input { width: 100%; padding: 13px 15px; border: 1px solid #cad6e9; border-radius: 8px; font: inherit; font-size: 15px; }
-.saved-card { border: 1px solid #d9dff3; border-radius: 12px; padding: 22px; margin-top: 16px; }
-.saved-card-heading, .saved-card-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; color: #64748b; }
-.saved-code { padding: 5px 10px; color: #bd1030; border: 1px solid #ffc2cb; background: #fff5f6; border-radius: 4px; }
-.saved-card h2 { font-size: 19px; line-height: 1.6; margin: 16px 0 6px; overflow-wrap: anywhere; }
-.saved-card > p { color: #60718c; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
-.saved-card-bottom { border-top: 1px solid #e6eaf3; padding-top: 14px; margin-top: 18px; }
-.saved-card-bottom > div { display: flex; gap: 16px; align-items: center; }
-.saved-card-bottom a { color: #263f70; font-weight: 600; padding: 10px 0; }
-.saved-card-bottom button, #saved-clear { padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 5px; color: #9f1239; background: white; min-height: 44px; }
+.saved-layout { display: grid; grid-template-columns: minmax(205px, 25%) minmax(0, 1fr); gap: 28px; align-items: start; }
+.saved-search { display: grid; gap: 7px; }
+.saved-search label { padding-top: 4px; color: #344d7b; font-weight: 600; }
+.saved-search :is(input, select) { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #cad6e9; border-radius: 6px; background: white; color: inherit; font: inherit; }
+.saved-results #saved-status:empty { display: none; }
+.saved-results #saved-count { color: #516480; margin: 0 0 12px; }
+.saved-course-group + .saved-course-group { margin-top: 22px; }
+.saved-course-group h2 { margin: 0 0 8px; font-size: 16px; color: #344d7b; }
+.saved-course-group h2 a:hover { text-decoration: underline; }
+.saved-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px; border: 1px solid #d9dff3; border-radius: 12px; padding: 16px 18px; margin-top: 9px; }
+.saved-code { display: inline-block; padding: 3px 8px; color: #344d7b; background: #eef1fa; border-radius: 3px; font-size: 11px; }
+.saved-card h3 { font-size: 16px; line-height: 1.6; margin: 7px 0 0; overflow-wrap: anywhere; }
+.saved-card-actions { display: grid; gap: 6px; justify-items: end; }
+.saved-card-actions a { padding: 8px 12px; border-radius: 4px; background: #e5e7f7; color: #263f70; font-weight: 600; }
+.saved-card-actions a:hover { background: #dbe0f6; }
+.saved-card-actions button, #saved-clear { padding: 5px 10px; border: 1px solid #e6aabf; border-radius: 4px; color: #9f1239; background: #fffafa; min-height: 32px; }
+@media (max-width: 700px) {
+  .saved-layout { grid-template-columns: 1fr; gap: 18px; }
+}
 @media (max-width: 600px) {
-  .saved-card { padding: 18px; }
-  .saved-content h1 { font-size: 25px; }
+  .saved-card { padding: 14px; grid-template-columns: 1fr; gap: 10px; }
 }

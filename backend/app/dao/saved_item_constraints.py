@@ -74,6 +74,13 @@ def _sqlite_unique_columns_match(
     return actual == expected
 
 
+def _inspection_scope(session: Session) -> dict[str, str]:
+    schema_map = session.get_bind().get_execution_options().get("schema_translate_map")
+    if isinstance(schema_map, dict) and schema_map.get(None):
+        return {"schema": schema_map[None]}
+    return {}
+
+
 def _matches_expected_unique_index(
     message: str,
     session: Session,
@@ -92,16 +99,17 @@ def _matches_expected_unique_index(
     reported_name = constraint_match.group(1).split(".")[-1].strip("[]\"'")
     try:
         inspector = inspect(session.get_bind())
-        primary_key = inspector.get_pk_constraint(relation_table)
+        scope = _inspection_scope(session)
+        primary_key = inspector.get_pk_constraint(relation_table, **scope)
         if _matches_named_columns(primary_key, reported_name, expected_columns):
             return True
-        unique_constraints = inspector.get_unique_constraints(relation_table)
+        unique_constraints = inspector.get_unique_constraints(relation_table, **scope)
         if any(
             _matches_named_columns(item, reported_name, expected_columns)
             for item in unique_constraints
         ):
             return True
-        indexes = inspector.get_indexes(relation_table)
+        indexes = inspector.get_indexes(relation_table, **scope)
         return any(
             item.get("unique")
             and _matches_named_columns(item, reported_name, expected_columns)
@@ -140,7 +148,9 @@ def _matches_expected_target_fk(
         return False
     reported_name = constraint_match.group(1).split(".")[-1].strip("[]\"'")
     try:
-        foreign_keys = inspect(session.get_bind()).get_foreign_keys(relation_table)
+        foreign_keys = inspect(session.get_bind()).get_foreign_keys(
+            relation_table, **_inspection_scope(session)
+        )
     except Exception:
         return False
     return any(

@@ -14,6 +14,7 @@ from app.routers.my_guides import router as my_guides_router
 from app.routers.my_summaries import router as my_summaries_router
 from app.routers.saved_guides import router as saved_guides_router
 from app.routers.saved_items import router as saved_items_router
+from app.routers.saved_items import saved_items_http_error
 from app.routers.reviews import router as reviews_router
 from app.routers.reviews import reviews_http_exception_handler
 from app.routers.summaries import router as summaries_router
@@ -31,7 +32,16 @@ async def lifespan(application: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.add_exception_handler(StarletteHTTPException, reviews_http_exception_handler)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def api_http_exception_handler(request, error):
+    saved_items_error = saved_items_http_error(request, error)
+    if saved_items_error is not None:
+        return saved_items_error
+    return await reviews_http_exception_handler(request, error)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5000", "http://localhost:5000"],

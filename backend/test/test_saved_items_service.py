@@ -20,20 +20,31 @@ class FakeSession:
     def __init__(self, events):
         self.events = events
 
-    @contextmanager
     def begin(self):
         self.events.append("begin")
+        return self.transaction()
+
+    @contextmanager
+    def transaction(self):
         try:
             yield
-            self.events.append("commit")
+            self.commit()
         except Exception:
-            self.events.append("rollback")
+            self.rollback()
             raise
+
+    def commit(self):
+        self.events.append("commit")
 
     def rollback(self):
         self.events.append("rollback")
 
     def get_bind(self):
+        bind = Mock()
+        bind.get_execution_options.return_value = {}
+        return bind
+
+    def get(self, _model, _id):
         return object()
 
 
@@ -46,12 +57,11 @@ def make_service(item_type="guide", *, target=True, saved=False):
     selected.classify_integrity_error.return_value = (
         IntegrityConflictKind.BOOKMARK_DUPLICATE
     )
-    selected.target_exists.side_effect = lambda _item_id: events.append(
-        "target_exists"
-    ) or target
-    selected.is_saved.side_effect = lambda _user_id, _item_id: events.append(
-        "is_saved"
-    ) or saved
+    def read_saved_state(_user_id, _item_id):
+        events.append("read_saved_state")
+        return saved if target else None
+
+    selected.read_saved_state.side_effect = read_saved_state
     selected.insert_if_absent.side_effect = lambda _user_id, _item_id: events.append(
         "insert"
     )
@@ -69,7 +79,7 @@ def test_save_begins_transaction_before_target_select_and_returns_contract_state
     result = service.save(7, item_type, 12)
 
     assert result == SavedItemState(item_type=item_type, item_id=12, saved=True)
-    assert events == ["begin", "target_exists", "is_saved", "insert", "commit"]
+    assert events == ["begin", "read_saved_state", "insert", "commit"]
     dao.insert_if_absent.assert_called_once_with(7, 12)
 
 
@@ -79,7 +89,7 @@ def test_save_existing_relation_is_idempotent_without_second_insert():
     result = service.save(7, "guide", 12)
 
     assert result == SavedItemState(item_type="guide", item_id=12, saved=True)
-    assert events == ["begin", "target_exists", "is_saved", "commit"]
+    assert events == ["begin", "read_saved_state", "rollback"]
     dao.insert_if_absent.assert_not_called()
 
 
@@ -89,7 +99,7 @@ def test_state_returns_false_for_existing_unsaved_target():
     result = service.state(7, "summary", 12)
 
     assert result == SavedItemState(item_type="summary", item_id=12, saved=False)
-    assert events == ["begin", "target_exists", "is_saved", "commit"]
+    assert events == ["begin", "read_saved_state", "commit"]
 
 
 def test_state_and_save_reject_missing_target():
@@ -97,12 +107,12 @@ def test_state_and_save_reject_missing_target():
 
     with pytest.raises(SavedTargetNotFound):
         service.save(7, "guide", 404)
-    assert events == ["begin", "target_exists", "rollback"]
+    assert events == ["begin", "read_saved_state", "rollback"]
 
 
 def test_database_read_failure_is_not_reported_as_unsaved():
     service, dao, _events = make_service()
-    dao.target_exists.side_effect = SQLAlchemyError("read failed")
+    dao.read_saved_state.side_effect = SQLAlchemyError("read failed")
 
     with pytest.raises(SavedItemsUnavailable):
         service.state(7, "guide", 12)
@@ -112,11 +122,12 @@ def test_duplicate_insert_is_success_only_after_transactional_reread():
     service, dao, events = make_service()
     saved_results = iter([False, True])
 
-    def is_saved(_user_id, _item_id):
-        events.append("is_saved")
+    def read_saved_state(_user_id, _item_id):
+        events.append("read_saved_state")
         return next(saved_results)
 
-    dao.is_saved.side_effect = is_saved
+    dao.read_saved_state.side_effect = read_saved_state
+
     def duplicate_insert(_user_id, _item_id):
         events.append("insert")
         raise IntegrityError(
@@ -129,8 +140,8 @@ def test_duplicate_insert_is_success_only_after_transactional_reread():
 
     assert result == SavedItemState(item_type="guide", item_id=12, saved=True)
     assert events == [
-        "begin", "target_exists", "is_saved", "insert", "rollback",
-        "rollback", "begin", "target_exists", "is_saved", "commit",
+        "begin", "read_saved_state", "insert", "rollback",
+        "begin", "read_saved_state", "commit",
     ]
 
 
@@ -147,17 +158,17 @@ def test_unclassified_integrity_error_returns_unavailable():
 
 def test_target_deleted_during_insert_is_rechecked_after_rollback():
     service, dao, events = make_service()
-    target_results = iter([True, False])
+    target_results = iter([False, None])
 
-    def target_exists(_item_id):
-        events.append("target_exists")
+    def read_saved_state(_user_id, _item_id):
+        events.append("read_saved_state")
         return next(target_results)
 
     def foreign_key_insert(_user_id, _item_id):
         events.append("insert")
         raise IntegrityError("insert", {}, Exception("FOREIGN KEY constraint failed"))
 
-    dao.target_exists.side_effect = target_exists
+    dao.read_saved_state.side_effect = read_saved_state
     dao.classify_integrity_error.return_value = (
         IntegrityConflictKind.UNNAMED_FOREIGN_KEY
     )
@@ -167,14 +178,14 @@ def test_target_deleted_during_insert_is_rechecked_after_rollback():
         service.save(7, "guide", 12)
 
     assert events == [
-        "begin", "target_exists", "is_saved", "insert", "rollback",
-        "rollback", "begin", "target_exists", "rollback",
+        "begin", "read_saved_state", "insert", "rollback",
+        "begin", "read_saved_state", "rollback",
     ]
 
 
 def test_unrelated_unique_constraint_stays_503_even_if_relation_would_recheck_true():
     service, dao, _events = make_service()
-    dao.is_saved.side_effect = [False, True]
+    dao.read_saved_state.side_effect = [False, True]
     duplicate_error = IntegrityError(
         "insert",
         {},
@@ -210,6 +221,6 @@ def test_unrelated_unique_constraint_stays_503_even_if_relation_would_recheck_tr
         with pytest.raises(SavedItemsUnavailable):
             service.save(7, "guide", 12)
 
-    # The second is_saved result models a relation found by a recheck. It must
+    # The second result models a relation found by a recheck. It must
     # not be consulted for an error that did not match the bookmark key.
-    dao.is_saved.assert_called_once_with(7, 12)
+    dao.read_saved_state.assert_called_once_with(7, 12)

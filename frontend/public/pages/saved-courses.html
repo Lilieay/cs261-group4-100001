@@ -11,12 +11,13 @@
   <link rel="stylesheet" href="/css/read-courses.css">
   <link rel="stylesheet" href="/css/guide-actions.css">
   <link rel="stylesheet" href="/css/profile.css">
+  <link rel="stylesheet" href="/css/reviews-list.css">
   <script src="/js/login-config.js" defer></script>
   <script src="/js/ui-utils.js" defer></script>
   <script src="/js/http-client.js" defer></script>
   <script src="/js/profile.js" defer></script>
-  <script src="/js/upload-config.js" defer></script>
-  <script src="/js/guide-api.js" defer></script>
+  <script src="/js/reviews.js" defer></script>
+  <script src="/js/saved-items.js" defer></script>
   <script src="/js/saved-courses.js" defer></script>
 </head>
 <body>
@@ -49,14 +50,24 @@
   <main class="page">
     <section class="saved-content">
       <h1>รายวิชาที่บันทึก</h1>
-      <p class="saved-intro">แนวข้อสอบที่คุณเก็บไว้อ่านภายหลัง</p>
-      <form id="saved-search-form" class="saved-search" role="search">
-        <label for="saved-search">ค้นหาในรายการที่บันทึก</label>
-        <input id="saved-search" type="search" placeholder="รหัสวิชา ชื่อวิชา หรือชื่อแนวข้อสอบ" autocomplete="off">
-      </form>
-      <p id="saved-count" aria-live="polite"></p>
-      <p id="saved-status" class="guide-action-status" role="status"></p>
-      <div id="saved-list"></div>
+      <p class="saved-intro">แนวข้อสอบและสรุปเนื้อหาที่คุณเก็บไว้อ่านภายหลัง</p>
+      <div class="saved-layout">
+        <form id="saved-search-form" class="saved-search" role="search">
+          <label for="saved-search">ค้นหาในรายการที่บันทึก</label>
+          <input id="saved-search" type="search" placeholder="รหัสวิชา ชื่อวิชา หรือชื่อเอกสาร" autocomplete="off">
+          <label for="saved-type">ประเภทเอกสาร</label>
+          <select id="saved-type">
+            <option value="">ทั้งหมด</option>
+            <option value="guide">แนวข้อสอบ</option>
+            <option value="summary">สรุปเนื้อหา</option>
+          </select>
+        </form>
+        <section class="saved-results" aria-label="รายการเอกสารที่บันทึก">
+          <p id="saved-count" aria-live="polite"></p>
+          <p id="saved-status" class="guide-action-status" role="status"></p>
+          <div id="saved-list"></div>
+        </section>
+      </div>
     </section>
   </main>
 
