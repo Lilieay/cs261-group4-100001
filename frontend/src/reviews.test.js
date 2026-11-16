@@ -95,14 +95,19 @@ const ownReview = (type, values = {}) => ({
 for (const type of ['guide', 'summary']) {
   test(`U8 ${type} does not report a no-op PUT with a 503 as saved`, async () => {
     const row = ownReview(type);
-    const page = reviewPage({type, profile: () => ok(currentUser), items: () => [row]});
+    const anotherReview = ownReview(type, {id: 27, rating: 2, author: {id: 8, display_name: 'Peer'}});
+    let reads = 0;
+    const page = reviewPage({
+      type, profile: () => ok(currentUser), items: () => ++reads === 1 ? [row] : [row, anotherReview]
+    });
     await tick();
     assert.equal(page.dialog.querySelector('[data-review-own-review]').hidden, false);
     await page.click('edit');
     page.submit(row.rating, row.comment);
     await tick();
-    assert.match(page.notice(), /ยังยืนยันผลการบันทึกครั้งนี้ไม่ได้/);
+    assert.match(page.notice(), /คำขอนี้บันทึกรีวิวไม่สำเร็จ โหลดข้อมูลล่าสุดแล้ว/);
     assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, false);
+    assert.equal(page.dialog.querySelector('[data-review-average]').textContent, '3.0');
     assert.deepEqual(page.calls.filter(([, method]) => method === 'PUT'),
       [['/api/reviews/22', 'PUT', JSON.stringify({rating: row.rating, comment: row.comment})]]);
     assert.equal(page.calls.filter(([endpoint]) => endpoint.endsWith('/reviews')).length, 2);
@@ -141,6 +146,30 @@ test('U8 does not confirm an uncertain edit using a different review ID with mat
   await page.click('edit');
   page.submit(replacement.rating, replacement.comment);
   await tick();
-  assert.match(page.notice(), /รีวิวของคุณมีการเปลี่ยนแปลง/);
+  assert.match(page.notice(), /คำขอนี้บันทึกรีวิวไม่สำเร็จ โหลดข้อมูลล่าสุดแล้ว/);
   assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, true);
 });
+
+for (const [name, write, notice] of [
+  ['a 503', () => unavailable, /คำขอนี้บันทึกรีวิวไม่สำเร็จ โหลดข้อมูลล่าสุดแล้ว/],
+  ['a lost connection', () => { throw new Error('offline'); }, /ยังยืนยันผลการบันทึกรีวิวครั้งนี้ไม่ได้ โหลดข้อมูลล่าสุดแล้ว/]
+]) {
+  test(`U8 reports the request outcome after ${name} even when the same review now matches the edit`, async () => {
+    const original = ownReview('summary');
+    const updated = {...original, rating: 5, comment: 'อ่านง่ายมาก'};
+    let reads = 0;
+    const page = reviewPage({
+      type: 'summary', profile: () => ok(currentUser), items: () => [++reads === 1 ? original : updated], write
+    });
+    await tick();
+    await page.click('edit');
+    page.submit(updated.rating, updated.comment);
+    await tick();
+    assert.match(page.notice(), notice);
+    assert.doesNotMatch(page.notice(), /บันทึกรีวิวแล้ว/);
+    assert.equal(page.dialog.querySelector('[data-review-average]').textContent, '5.0');
+    assert.equal(page.dialog.querySelector('[data-review-own-review]').hidden, false);
+    assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, true);
+    assert.equal(reads, 2);
+  });
+}

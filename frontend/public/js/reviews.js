@@ -163,9 +163,7 @@
     }
   }
 
-  function renderList(state, notice = '') {
-    action('reload').hidden = true;
-    action('retry-profile').hidden = true;
+  function renderItems(state) {
     const ready = Boolean(state.items);
     if (ready) {
       const {count, average} = totals(state.items);
@@ -194,6 +192,13 @@
     for (const review of state.items || []) {
       if (review !== state.own) entries.append(item(review));
     }
+    $('[data-review-community]').hidden = state.editorMode === 'create' || !entries.childElementCount;
+  }
+
+  function renderList(state, notice = '') {
+    action('reload').hidden = true;
+    action('retry-profile').hidden = true;
+    renderItems(state);
     renderEditor(state);
     message(notice);
   }
@@ -317,26 +322,24 @@
   }
 
   async function reconcile(state) {
-    const {method, payload, previous} = state.pending;
+    const {method, previous, failed} = state.pending;
+    const operation = method === 'DELETE' ? 'ลบรีวิว' : 'บันทึกรีวิว';
+    const outcome = failed ? `คำขอนี้${operation}ไม่สำเร็จ` : `ยังยืนยันผลการ${operation}ครั้งนี้ไม่ได้`;
     try {
       updateItems(state, await read(state.target, true));
       const current = state.own;
-      const sameReview = current?.id === previous?.id;
-      const unchanged = sameReview && current?.rating === previous?.rating && current?.comment === previous?.comment;
-      const matchesRequest = method !== 'DELETE' && current?.rating === payload.rating && current.comment === payload.comment;
-      const applied = method === 'DELETE' ? !current : matchesRequest && (method === 'POST' || (sameReview && !unchanged));
+      const changed = current?.id !== previous?.id || current?.rating !== previous?.rating
+        || current?.comment !== previous?.comment;
+      const notice = `${outcome} โหลดข้อมูลล่าสุดแล้ว`;
       state.pending = null;
-      if (applied) {
-        renderList(state, method === 'DELETE' ? 'รีวิวของคุณถูกลบแล้ว' : 'บันทึกรีวิวแล้ว');
-      } else if (!unchanged) {
-        renderList(state, 'รีวิวของคุณมีการเปลี่ยนแปลง กรุณาตรวจสอบก่อนทำรายการอีกครั้ง');
-      } else if (matchesRequest) {
-        message('โหลดข้อมูลล่าสุดแล้ว ยังยืนยันผลการบันทึกครั้งนี้ไม่ได้');
-      } else {
-        message('ตรวจสอบข้อมูลล่าสุดแล้ว ยังไม่พบการเปลี่ยนแปลง กรุณาลองอีกครั้ง');
+      // A fresh read shows the current state but cannot identify which request changed it.
+      if (changed) renderList(state, notice);
+      else {
+        renderItems(state);
+        message(notice);
       }
     } catch (_) {
-      message('ยังตรวจสอบผลไม่ได้ กรุณาตรวจสอบสถานะล่าสุดก่อนส่งซ้ำ');
+      message(`${outcome} ยังโหลดข้อมูลล่าสุดไม่ได้ กรุณาตรวจสอบสถานะล่าสุดก่อนส่งซ้ำ`);
     }
   }
 
@@ -356,7 +359,7 @@
     } catch (error) {
       if (error.status === 0 || error.status >= 500) {
         reads.delete(pathFor(state.target));
-        state.pending = {method, payload, previous};
+        state.pending = {method, previous, failed: error.status === 503};
         await reconcile(state);
       } else if (error.code === 'SELF_REVIEW_FORBIDDEN') {
         state.owner = true;
