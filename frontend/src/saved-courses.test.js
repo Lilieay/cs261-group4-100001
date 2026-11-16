@@ -7,19 +7,22 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 
 function runPage(file, services) {
   const elements = new Map(), events = {};
-  const get = selector => {
+  const document = {querySelector: get, getElementById: get, activeElement: null};
+  function get(selector) {
     if (!elements.has(selector)) elements.set(selector, {
-      value: '', dataset: {}, listeners: {}, classList: {toggle() {}}, setAttribute() {}, focus() {},
+      value: '', dataset: {}, listeners: {}, classList: {toggle() {}}, setAttribute() {},
+      focus() { document.activeElement = this; },
+      querySelectorAll() { return []; },
       addEventListener(type, callback) { this.listeners[type] = callback; }
     });
     return elements.get(selector);
-  };
+  }
   const window = {...services,
     UiUtils: {escapeHtml: value => String(value).replaceAll('<', '&lt;')},
     addEventListener: (type, callback) => { events[type] = callback; }};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8'),
-    {window, document: {querySelector: get, getElementById: get}, URL, URLSearchParams, AbortController});
-  return {get, events};
+    {window, document, URL, URLSearchParams, AbortController});
+  return {get, events, document};
 }
 
 function page({saved = async () => [], savedState = async () => false} = {}) {
@@ -44,6 +47,27 @@ test('saved page reads API data, escapes text, filters, and links to the API rea
   assert.match(get('#saved-list').innerHTML, /ไม่พบรายการที่ตรง/);
 });
 
+test('U10 displays separate course and document links and updates the filtered count', async () => {
+  const secondGuide = {...row, item_id: 13, title: 'Practice exam'};
+  const {get} = page({saved: async () => [secondGuide, row, summary]});
+  const list = get('#saved-list');
+  await tick();
+  assert.match(list.innerHTML, /choose-courses\.html\?course=CS261&courseId=4[^>]*>Software Engineering/);
+  assert.match(list.innerHTML, /read-courses\.html\?guide=13&/);
+  assert.match(list.innerHTML, /read-courses\.html\?guide=12&/);
+  assert.match(list.innerHTML, /read-summary\.html\?summary=12&/);
+  assert.match(list.innerHTML, /class="saved-code">CS261/);
+  assert.match(list.innerHTML, /class="saved-document-type">สรุปเนื้อหา/);
+  get('#saved-type').value = 'guide';
+  get('#saved-type').listeners.change();
+  assert.equal(get('#saved-count').textContent, 'แสดง 2 จาก 3 รายการ');
+  assert.doesNotMatch(list.innerHTML, /read-summary\.html/);
+  get('#saved-search').value = 'Practice exam';
+  get('#saved-search').listeners.input();
+  assert.equal(get('#saved-count').textContent, 'แสดง 1 จาก 3 รายการ');
+  assert.doesNotMatch(list.innerHTML, /guide=12&/);
+});
+
 test('saved page prevents duplicate removal and removes a row only after API success', async () => {
   let resolve, calls = 0;
   const {get} = page({saved: async () => [row, summary], savedState: (type, id, value) => {
@@ -60,6 +84,66 @@ test('saved page prevents duplicate removal and removes a row only after API suc
   resolve(false); await pending;
   assert.match(get('#saved-list').innerHTML, /Saved summary/);
   assert.doesNotMatch(get('#saved-list').innerHTML, /Saved title/);
+});
+
+for (const focusedControl of ['#saved-search', '#saved-type', null]) {
+  test(`U10 removal respects focus on ${focusedControl || 'the initiating button'}`, async () => {
+    let finish;
+    const {get, document} = page({saved: async () => [row, summary],
+      savedState: () => new Promise(resolve => { finish = resolve; })});
+    await tick();
+    const list = get('#saved-list');
+    const button = get('#remove-guide');
+    button.dataset = {unsave: '12', itemType: 'guide'};
+    list.querySelectorAll = () => [button, get('#remove-summary')];
+    button.focus();
+    const pending = list.listeners.click({target: {closest: selector => selector === '[data-unsave]' ? button : null}});
+    assert.equal(document.activeElement, button);
+    if (focusedControl) {
+      const control = get(focusedControl);
+      control.focus();
+      control.value = focusedControl === '#saved-search' ? 'Saved' : 'summary';
+      control.listeners[focusedControl === '#saved-search' ? 'input' : 'change']();
+    }
+    finish(false);
+    await pending;
+    assert.equal(document.activeElement, get(focusedControl || '#saved-search'));
+    assert.match(list.innerHTML, /Saved summary/);
+    assert.doesNotMatch(list.innerHTML, /Saved title/);
+  });
+}
+
+test('U10 keeps focus on the same document link after another bookmark is removed', async () => {
+  const nextGuide = {...row, item_id: 13, title: 'Next exam'};
+  const sameIdSummary = {...summary, item_id: 13};
+  let finish;
+  const {get, document} = page({
+    saved: async () => [row, nextGuide, sameIdSummary],
+    savedState: () => new Promise(resolve => { finish = resolve; })
+  });
+  await tick();
+
+  const list = get('#saved-list');
+  const button = get('#remove-guide');
+  button.dataset = {unsave: '12', itemType: 'guide'};
+  button.focus();
+  const pending = list.listeners.click({target: {closest: selector => selector === '[data-unsave]' ? button : null}});
+  const oldLink = get('#old-guide-link');
+  oldLink.dataset.openItem = 'guide:13';
+  oldLink.focus();
+
+  const summaryLink = get('#new-summary-link');
+  summaryLink.dataset.openItem = 'summary:13';
+  const guideLink = get('#new-guide-link');
+  guideLink.dataset.openItem = 'guide:13';
+  list.querySelectorAll = selector => selector === '[data-open-item]' ? [summaryLink, guideLink] : [];
+  finish(false);
+  await pending;
+
+  assert.equal(document.activeElement, guideLink);
+  assert.match(list.innerHTML, /data-open-item="guide:13"/);
+  assert.match(list.innerHTML, /data-open-item="summary:13"/);
+  assert.doesNotMatch(list.innerHTML, /data-open-item="guide:12"/);
 });
 
 test('saved page rejects stale refreshes and reloads an uncertain removal', async () => {
