@@ -1,15 +1,23 @@
 {
   "passed": true,
-  "sourceSha": "90acf9bde0c711610d5cf8df835bab1fce1e981a",
+  "sourceSha": "ee56764bb03f74599e4c9b84b1f878820664a822",
   "environment": {
     "browser": "142.0.7444.176",
     "docker": "29.8.2",
     "sqlServer": "16.0.4305.5"
   },
   "authMode": "TU mock; two backend processes; distinct SQL user IDs",
-  "project": "cs261-task124-89a60fa",
-  "date": "2026-11-16T16:12:00.437Z",
+  "project": "cs261-task124-d854470",
+  "date": "2026-11-16T19:05:59.065Z",
   "results": [
+    {
+      "name": "preflight verifies frontend port owners and A/B proxies on the selected Compose project",
+      "project": "cs261-task124-d854470",
+      "urls": [
+        "http://127.0.0.1:29800",
+        "http://127.0.0.1:29801"
+      ]
+    },
     {
       "name": "empty UI and search link; anonymous list rejected; two SQL users",
       "userIds": [
@@ -18,13 +26,41 @@
       ]
     },
     {
+      "name": "INTRODUCTION TO SOFTWARE ENGINEERING",
+      "code": "CS261"
+    },
+    {
+      "name": "PDF reader blob matches selected fixture",
+      "id": 1,
+      "viewerSha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+      "fixtureSha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b"
+    },
+    {
+      "name": "PDF reader blob matches selected fixture",
+      "id": 2,
+      "viewerSha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+      "fixtureSha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44"
+    },
+    {
       "name": "list groups one course and three distinct works; Guide alias and two different PDF checksums open exact selection"
     },
     {
       "name": "reload and new Bearer session preserve list; second account has its own list"
     },
     {
+      "name": "guide: DELETE 503 followed by actual GET 200 retaining current user's bookmark",
+      "deleteStatus": 503,
+      "getStatus": 200,
+      "items": 3
+    },
+    {
       "name": "guide: SQL DELETE rollback, UI error/reload, remove/repeat, content and other account preserved"
+    },
+    {
+      "name": "summary: DELETE 503 followed by actual GET 200 retaining current user's bookmark",
+      "deleteStatus": 503,
+      "getStatus": 200,
+      "items": 3
     },
     {
       "name": "summary: SQL DELETE rollback, UI error/reload, remove/repeat, content and other account preserved"
@@ -53,33 +89,33 @@
   ],
   "fixtures": [
     {
-      "id": 7,
+      "id": 5,
       "kind": "guide",
       "owner": 0,
-      "title": "Task124-1794845496121 guide 0",
+      "title": "Task124-1794855935498 guide 0",
       "deleted": true
     },
     {
-      "id": 3,
+      "id": 1,
       "kind": "summary",
       "owner": 0,
-      "title": "Task124-1794845496121 summary 1",
+      "title": "Task124-1794855935498 summary 1",
       "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
       "deleted": true
     },
     {
-      "id": 4,
+      "id": 2,
       "kind": "summary",
       "owner": 0,
-      "title": "Task124-1794845496121 summary 2",
+      "title": "Task124-1794855935498 summary 2",
       "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
       "deleted": true
     },
     {
-      "id": 8,
+      "id": 6,
       "kind": "guide",
       "owner": 1,
-      "title": "Task124-1794845496121 guide 3",
+      "title": "Task124-1794855935498 guide 3",
       "deleted": true
     }
   ]
