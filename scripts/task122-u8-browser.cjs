@@ -112,6 +112,10 @@ async function open(page, target, index) {
   const url = target.kind === 'guide' ? `/read-courses.html?source=api&guide=${target.id}&courseId=${target.course}` : `/read-summary.html?summary=${target.id}`;
   await page.goto(urls[index] + url);
   const trigger = page.locator(target.kind === 'guide' ? '.review-button' : '#summary-review');
+  if (target.kind === 'summary') {
+    await page.locator('#summary-pdf[src^="blob:"]').waitFor({state: 'visible'});
+  }
+  await trigger.focus();
   await trigger.click();
   await page.waitForFunction(() => {
     const d = document.querySelector('dialog[open]');
