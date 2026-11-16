@@ -1,0 +1,97 @@
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.dao.saved_item_constraints import IntegrityConflictKind
+from app.dao.saved_guide_dao import SavedGuideDAO
+from app.dao.saved_items_dao import SavedSummaryDAO
+from app.schemas.saved_item import SavedItemState, SavedItemType
+
+
+class SavedItemsUnavailable(Exception):
+    pass
+
+
+class SavedTargetNotFound(Exception):
+    def __init__(self, item_type: SavedItemType):
+        self.item_type = item_type
+
+
+class SavedItemsService:
+    def __init__(
+        self,
+        session: Session,
+        guide_dao: SavedGuideDAO,
+        summary_dao: SavedSummaryDAO,
+    ):
+        self.session = session
+        self.daos = {"guide": guide_dao, "summary": summary_dao}
+
+    def state(
+        self, user_id: int, item_type: SavedItemType, item_id: int
+    ) -> SavedItemState:
+        dao = self.daos[item_type]
+        try:
+            with self.session.begin():
+                if not dao.target_exists(item_id):
+                    raise SavedTargetNotFound(item_type)
+                saved = dao.is_saved(user_id, item_id)
+            return SavedItemState(item_type=item_type, item_id=item_id, saved=saved)
+        except SavedTargetNotFound:
+            raise
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            raise SavedItemsUnavailable from error
+
+    def save(
+        self, user_id: int, item_type: SavedItemType, item_id: int
+    ) -> SavedItemState:
+        dao = self.daos[item_type]
+        try:
+            with self.session.begin():
+                if not dao.target_exists(item_id):
+                    raise SavedTargetNotFound(item_type)
+                if not dao.is_saved(user_id, item_id):
+                    dao.insert_if_absent(user_id, item_id)
+            return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
+        except SavedTargetNotFound:
+            raise
+        except IntegrityError as error:
+            self.session.rollback()
+            return self._recover_integrity_conflict(
+                error, user_id, item_type, item_id, dao
+            )
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            raise SavedItemsUnavailable from error
+
+    def _recover_integrity_conflict(
+        self,
+        error: IntegrityError,
+        user_id: int,
+        item_type: SavedItemType,
+        item_id: int,
+        dao,
+    ) -> SavedItemState:
+        kind = dao.classify_integrity_error(error)
+        if kind is IntegrityConflictKind.OTHER:
+            raise SavedItemsUnavailable from error
+
+        try:
+            with self.session.begin():
+                if not dao.target_exists(item_id):
+                    raise SavedTargetNotFound(item_type)
+                saved = (
+                    dao.is_saved(user_id, item_id)
+                    if kind is IntegrityConflictKind.BOOKMARK_DUPLICATE
+                    else False
+                )
+            if kind is IntegrityConflictKind.BOOKMARK_DUPLICATE and saved:
+                return SavedItemState(
+                    item_type=item_type, item_id=item_id, saved=True
+                )
+            raise SavedItemsUnavailable from error
+        except SavedTargetNotFound:
+            raise
+        except SQLAlchemyError as recovery_error:
+            self.session.rollback()
+            raise SavedItemsUnavailable from recovery_error

@@ -13,11 +13,13 @@ from app.routers.my_guide_updates import router as my_guide_updates_router
 from app.routers.my_guides import router as my_guides_router
 from app.routers.my_summaries import router as my_summaries_router
 from app.routers.saved_guides import router as saved_guides_router
+from app.routers.saved_items import router as saved_items_router
 from app.routers.reviews import router as reviews_router
 from app.routers.reviews import reviews_http_exception_handler
 from app.routers.summaries import router as summaries_router
 from app.middleware.pdf_upload_limit import PdfUploadSizeLimitMiddleware
 from app.middleware.summary_no_store import SummaryNoStoreMiddleware
+from app.middleware.saved_items_no_store import SavedItemsNoStoreMiddleware
 from app.services.auth import AuthService
 from app.services.summary_storage import LocalPdfStorage
 from app.services.tu_api import verify_tu_account
@@ -46,6 +48,7 @@ app.include_router(my_guide_deletions_router)
 app.include_router(my_guide_updates_router)
 app.include_router(my_guides_router)
 app.include_router(saved_guides_router)
+app.include_router(saved_items_router)
 app.include_router(reviews_router)
 app.include_router(summaries_router)
 app.include_router(my_summaries_router)
@@ -56,6 +59,7 @@ app.add_middleware(
     max_bytes=PDF_REQUEST_MAX_BYTES,
 )
 app.add_middleware(SummaryNoStoreMiddleware)
+app.add_middleware(SavedItemsNoStoreMiddleware)
 
 
 @app.get("/")
