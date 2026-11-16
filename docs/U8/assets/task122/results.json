@@ -1,0 +1,78 @@
+{
+  "passed": true,
+  "sourceSha": "afd5bed521bfddb7bf1ffda7d4a0147318bf4b43",
+  "environment": {
+    "browser": "142.0.7444.176",
+    "docker": "29.8.2",
+    "sqlServer": "16.0.4305.5"
+  },
+  "authMode": "TU mock, two processes, distinct SQL user IDs",
+  "project": "cs261-task122-a646cdb",
+  "date": "2026-11-16T13:16:21.737Z",
+  "results": [
+    {
+      "name": "two real SQL user IDs; TU mock",
+      "userIds": [
+        2,
+        3
+      ]
+    },
+    {
+      "name": "guide: UI create/list/update; SQL persistence across reload and new session"
+    },
+    {
+      "name": "guide: real API self/duplicate/owner/auth/validation checks; owner UI cannot add"
+    },
+    {
+      "name": "guide: SQL failure create/update/delete rolls back; UI cancel/delete; concurrent duplicate prevented"
+    },
+    {
+      "name": "guide: target deletion cascades only related reviews; missing target/review returns 404"
+    },
+    {
+      "name": "summary: UI create/list/update; SQL persistence across reload and new session"
+    },
+    {
+      "name": "summary: real API self/duplicate/owner/auth/validation checks; owner UI cannot add"
+    },
+    {
+      "name": "summary: SQL failure create/update/delete rolls back; UI cancel/delete; concurrent duplicate prevented"
+    },
+    {
+      "name": "real PDF unchanged after review CRUD/failures",
+      "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b"
+    },
+    {
+      "name": "summary: target deletion cascades only related reviews; missing target/review returns 404"
+    },
+    {
+      "name": "cleanup restored original SQL rows and PDF files exactly"
+    }
+  ],
+  "targets": [
+    {
+      "id": 11,
+      "kind": "guide",
+      "owner": 0,
+      "removed": true
+    },
+    {
+      "id": 12,
+      "kind": "guide",
+      "owner": 1,
+      "removed": true
+    },
+    {
+      "id": 3,
+      "kind": "summary",
+      "owner": 0,
+      "removed": true
+    },
+    {
+      "id": 4,
+      "kind": "summary",
+      "owner": 1,
+      "removed": true
+    }
+  ]
+}
