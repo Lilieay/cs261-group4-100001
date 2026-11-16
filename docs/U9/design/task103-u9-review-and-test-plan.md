@@ -1,6 +1,6 @@
 # Task103 U9 — Review และ Test Plan
 
-**รุ่น 0.3 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Test Plan — Not Run**
+**รุ่น 0.4 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Test Plan — Not Run**
 
 เอกสารนี้อัปเดตแผนทดสอบของ Task103 ให้ตรง Task94 API Contract v0.4 และการใช้ relation ร่วมกับ U10 ตาม Task104 v0.3 ไม่มีการอ้างว่ารัน Unit/API/Integration tests แล้ว
 

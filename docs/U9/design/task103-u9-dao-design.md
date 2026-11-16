@@ -1,6 +1,6 @@
 # Task103 U9 — DAO และ API Design
 
-**รุ่น 0.3 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Draft for Review**
+**รุ่น 0.4 | วันที่ 15 พฤศจิกายน 2569 | สถานะ: Draft for Review**
 
 เอกสารฉบับนี้ปรับจาก Task103 v0.1 ให้สอดคล้องกับ **Task94 API Contract v0.4** และแนวทางข้อมูล/DAO ใน **Task104 U10 v0.3** โดยบันทึกผลงานทีละชิ้น ได้แก่ Guide (`guide`) และ Summary PDF (`summary`) ไม่ใช่ Course ทั้งวิชา
 
@@ -122,7 +122,7 @@ Summary ใช้ `item_type: "summary"` และ `open_path: "/api/summaries/{
 
 ## 5. DAO / Service design
 
-DAO ใช้ SQLAlchemy Session ที่ Service ส่งให้ ไม่ commit/rollback เอง ไม่สร้าง HTTP response และไม่รับ `user_id` จาก request body
+DAO ใช้ SQLAlchemy Session ที่ Service ส่งให้ ไม่ commit/rollback เอง ไม่สร้าง HTTP response และไม่รับ `user_id` จาก request body; Service เป็นเจ้าของ transaction boundary และการจำแนก/แปลง domain errors เป็นผลลัพธ์ตาม Contract
 
 | Method | หน้าที่ | Contract |
 |---|---|---|
@@ -180,6 +180,55 @@ def save_item(session, current_user_id, item_type, item_id):
 
 `insert_if_absent` ต้องจัดการเฉพาะ unique conflict ที่เป็น duplicate ของ key นี้เท่านั้น ห้ามกลบ DB exception ประเภทอื่นเป็น duplicate หากใช้ dialect-specific insert-on-conflict ให้ตรวจ semantics ของ SQL Server ที่ใช้งานจริงก่อนเลือก implementation
 
+### Target Foreign Key conflict เมื่อผลงานถูกลบระหว่าง PUT
+
+การตรวจ `target_exists` ก่อน INSERT ไม่ได้ทำให้ target คงอยู่ตลอด transaction เสมอไป: อีก transaction อาจลบ Guide/Summary หลัง target SELECT แต่ก่อน INSERT bookmark ทำให้ INSERT ชน Foreign Key ของ target ได้ กรณีนี้ **ไม่ใช่ duplicate bookmark** และห้ามตอบ `saved:true` จากการพบ IntegrityError เพียงอย่างเดียว
+
+แนวทางจัดการที่ Service ต้องใช้:
+
+1. จำแนกเฉพาะ Foreign Key constraint ที่อ้าง target table ของชนิดปัจจุบัน (`guides` สำหรับ Guide หรือ `summaries` สำหรับ Summary) โดยอาศัยชื่อ constraint/รหัส DB ที่ยืนยันกับ schema จริง
+2. เมื่อเป็น target-FK conflict ให้ปล่อย transaction T1 ออกจาก `with session.begin()` เพื่อให้ rollback เสร็จก่อน ห้าม query ต่อใน T1 ที่ failed
+3. เริ่ม transaction ใหม่ T2 (หรือใช้ Session ใหม่) แล้วเรียก `target_exists` อีกครั้ง
+4. ถ้า target ไม่พบ ให้คืน domain not-found และ map เป็น `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND`
+5. ถ้า target ยังอยู่ ให้ถือว่าเป็น integrity/database failure ที่ยังอธิบายไม่ได้ ไม่ใช่ duplicate success; map เป็น `503 SAVED_ITEMS_UNAVAILABLE` ตาม saved-items DB failure
+6. ถ้าการตรวจซ้ำใน T2 อ่านฐานข้อมูลไม่ได้ ให้ map เป็น `503 SAVED_ITEMS_UNAVAILABLE`
+
+ตัวอย่าง pseudo-code เชิงแนวคิด (ต้องปรับตัวตรวจ constraint ให้ตรงชื่อ/รหัสจริงของ SQL Server และ driver ที่ใช้):
+
+```python
+try:
+    with session.begin():  # T1: BEGIN ก่อน target SELECT
+        target = dao.target_exists(session, item_id)
+        if target is None:
+            raise TargetNotFound(item_type, item_id)
+        dao.insert(session, current_user_id, item_id)
+    return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
+
+except IntegrityError as exc:
+    if is_expected_bookmark_unique_conflict(exc):
+        # T1 ถูก rollback เมื่อออกจาก begin context แล้ว
+        with session.begin():  # T2: read-after-duplicate
+            target = dao.target_exists(session, item_id)
+            if target is None:
+                raise TargetNotFound(item_type, item_id)
+            exists = dao.is_saved(session, current_user_id, item_id)
+        if not exists:
+            raise SavedItemConflictNotConfirmed()
+        return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
+
+    if is_expected_target_foreign_key_conflict(exc):
+        # T1 ถูก rollback เมื่อออกจาก begin context แล้ว
+        with session.begin():  # T2: recheck target after concurrent deletion
+            target = dao.target_exists(session, item_id)
+        if target is None:
+            raise TargetNotFound(item_type, item_id)
+        raise SavedItemsUnavailable()
+
+    raise  # DB/constraint error อื่นให้ Service/API map เป็น 503 หรือ error ตาม Contract
+```
+
+ห้ามใช้ `except IntegrityError` กว้าง ๆ แล้วถือว่าทุกกรณีเป็น duplicate bookmark: ต้องแยก expected bookmark unique key, expected target FK และ integrity error อื่นออกจากกันอย่างชัดเจน หาก driver/DB ไม่สามารถจำแนก constraint ได้อย่างเชื่อถือได้ ให้ fail เป็น `503` และให้ Backend ยืนยันวิธีจำแนกก่อน implementation
+
 ### Duplicate-key recovery และ Concurrent PUT
 
 สองคำขอพร้อมกันสำหรับ user/type/id เดียวกันอาจแข่ง insert ได้ ให้ unique key เป็น final guard โดยแยกผลลัพธ์เป็นสองเส้นทางอย่างชัดเจน:
@@ -234,7 +283,7 @@ WHERE user_id = :current_user_id AND summary_id = :item_id;
 ## 10. DoD / Review gate
 
 - [ ] Frontend ยืนยัน UI ใช้ pre-known saved state สำหรับข้อความ duplicate
-- [ ] Backend ยืนยัน SQLAlchemy transaction boundary และ concurrent duplicate handling
+- [ ] Backend ยืนยัน SQLAlchemy transaction boundary, concurrent duplicate handling และวิธีจำแนก target-FK conflict จาก SQL Server/driver จริง
 - [ ] Data-model owner ยืนยัน `saved_summaries` PK/FK และ deletion policy
 - [ ] ตรวจ `saved_guides` เดิมว่า key/FK จริงสอดคล้องโดยไม่ migrate ข้อมูล
 - [ ] Task94 v0.4 route/DTO/status/error ตรงกัน

@@ -1,6 +1,6 @@
 # Task103 U9 — Sequence Diagrams
 
-**รุ่น 0.3 | 15 พฤศจิกายน 2569 | Draft for Review**
+**รุ่น 0.4 | 15 พฤศจิกายน 2569 | Draft for Review**
 
 Sequence ที่ปรับตาม Task94 v0.4 และ Task104 U10 v0.3 โดยใช้ relation ร่วมกัน (`saved_guides`, `saved_summaries`) และ transaction เริ่มก่อน target SELECT; duplicate-key แยกเป็น rollback แล้วอ่าน state ใหม่
 
