@@ -30,7 +30,8 @@
       <div class="saved-card-footer">
         <div class="compact-review-score" data-review-score-id="${e(row.item_id)}" data-review-score-type="${e(row.item_type)}" hidden></div>
         <div class="saved-card-actions">
-          <a class="saved-open" href="${e(path)}" aria-label="เปิดอ่าน${typeLabel} ${e(row.title)}">เปิดอ่าน <span aria-hidden="true">→</span></a>
+          <a class="saved-open" href="${e(path)}" data-open-item="${e(row.item_type)}:${e(row.item_id)}"
+            aria-label="เปิดอ่าน${typeLabel} ${e(row.title)}">เปิดอ่าน <span aria-hidden="true">→</span></a>
           <button class="saved-button saved-remove" type="button" data-unsave="${e(row.item_id)}" data-item-type="${e(row.item_type)}"
             aria-disabled="${removing}" aria-label="นำ ${e(row.title)} ออกจากรายการที่บันทึก">นำออก</button>
         </div>
@@ -60,6 +61,7 @@
       if (!courses.has(course.id)) courses.set(course.id, {course, items: []});
       courses.get(course.id).items.push(row);
     }
+    const focusedItem = document.activeElement?.dataset.openItem;
     list.innerHTML = courses.size ? [...courses.values()].map(({course, items}) => {
       const url = new URLSearchParams({course: course.course_code, courseId: course.id});
       return `<section class="saved-course-group" aria-labelledby="saved-course-${e(course.id)}">
@@ -71,6 +73,11 @@
       <p>${rows.length ? 'ลองเปลี่ยนคำค้นหาหรือล้างตัวกรอง' : 'เปิดอ่านแนวข้อสอบหรือสรุปเนื้อหา แล้วกดบันทึกเพื่อกลับมาอ่านภายหลัง'}</p>
       ${rows.length ? '<button class="saved-button" id="saved-clear" type="button">ล้างตัวกรอง</button>' : '<a class="saved-button" href="courses.html">ค้นหารายวิชา</a>'}
     </div>`;
+    if (focusedItem) {
+      const link = Array.from(list.querySelectorAll('[data-open-item]'))
+        .find(control => control.dataset.openItem === focusedItem);
+      link?.focus({preventScroll: true});
+    }
     window.Reviews?.connectScores(list);
   }
 

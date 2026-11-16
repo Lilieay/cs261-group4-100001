@@ -113,6 +113,39 @@ for (const focusedControl of ['#saved-search', '#saved-type', null]) {
   });
 }
 
+test('U10 keeps focus on the same document link after another bookmark is removed', async () => {
+  const nextGuide = {...row, item_id: 13, title: 'Next exam'};
+  const sameIdSummary = {...summary, item_id: 13};
+  let finish;
+  const {get, document} = page({
+    saved: async () => [row, nextGuide, sameIdSummary],
+    savedState: () => new Promise(resolve => { finish = resolve; })
+  });
+  await tick();
+
+  const list = get('#saved-list');
+  const button = get('#remove-guide');
+  button.dataset = {unsave: '12', itemType: 'guide'};
+  button.focus();
+  const pending = list.listeners.click({target: {closest: selector => selector === '[data-unsave]' ? button : null}});
+  const oldLink = get('#old-guide-link');
+  oldLink.dataset.openItem = 'guide:13';
+  oldLink.focus();
+
+  const summaryLink = get('#new-summary-link');
+  summaryLink.dataset.openItem = 'summary:13';
+  const guideLink = get('#new-guide-link');
+  guideLink.dataset.openItem = 'guide:13';
+  list.querySelectorAll = selector => selector === '[data-open-item]' ? [summaryLink, guideLink] : [];
+  finish(false);
+  await pending;
+
+  assert.equal(document.activeElement, guideLink);
+  assert.match(list.innerHTML, /data-open-item="guide:13"/);
+  assert.match(list.innerHTML, /data-open-item="summary:13"/);
+  assert.doesNotMatch(list.innerHTML, /data-open-item="guide:12"/);
+});
+
 test('saved page rejects stale refreshes and reloads an uncertain removal', async () => {
   let calls = 0, resolveOld;
   const {get, events} = page({saved: () => {
