@@ -195,12 +195,52 @@ async function main() {
       try {
         await open(pages[1], t, 1); await action(pages[1], 'edit').click();
         await pages[1].locator('#star-1').check(); await pages[1].locator('#review-comment').fill('ต้องไม่ถูกบันทึก');
-        let pending = pages[1].waitForResponse(r => r.request().method() === 'PUT' && r.url().includes('/api/reviews/'));
-        await pages[1].locator('dialog[open] [type=submit]').click();
-        assert.equal((await pending).status(), 503);
+        const failedPath = `/api/reviews/${created.id}`;
+        let sawFailedPut = false;
+        const observeFailure = r => {
+          if (r.request().method() === 'PUT' && new URL(r.url()).pathname === failedPath && r.status() === 503) {
+            sawFailedPut = true;
+          }
+        };
+        pages[1].on('response', observeFailure);
+        let failure;
+        try {
+          const pending = pages[1].waitForResponse(r => r.request().method() === 'PUT'
+            && new URL(r.url()).pathname === failedPath);
+          // Require a real GET after the failed PUT, not a cached list or an old DOM.
+          const refreshed = pages[1].waitForResponse(r => sawFailedPut && r.request().method() === 'GET'
+            && new URL(r.url()).pathname === endpoint(t));
+          await pages[1].locator('dialog[open] [type=submit]').click();
+          const response = await pending;
+          assert.equal(response.status(), 503);
+          failure = await response.json();
+          assert.equal(failure.error.code, 'STORAGE_UNAVAILABLE');
+          assert(failure.error.message.trim());
+          const latest = await refreshed;
+          assert.equal(latest.status(), 200);
+          const saved = (await latest.json()).items.find(row => row.id === created.id);
+          assert(saved);
+          assert.deepEqual([saved.rating, saved.comment], [4, 'แก้ไขแล้ว']);
+        } finally { pages[1].off('response', observeFailure); }
         await pages[1].waitForFunction(() => document.querySelector('dialog[open]')?.getAttribute('aria-busy') === 'false');
+        const notice = pages[1].locator('dialog[open] [data-review-message]');
+        await notice.waitFor({state: 'visible'});
+        const noticeText = await notice.innerText();
+        assert(noticeText.includes(failure.error.message));
+        assert.match(noticeText, /โหลดข้อมูลล่าสุดแล้ว/);
+        assert.equal(await pages[1].locator('#star-1').isChecked(), true);
+        assert.equal(await pages[1].locator('#review-comment').inputValue(), 'ต้องไม่ถูกบันทึก');
         assert.deepEqual(sqlReview(created.id).slice(4), [4,'แก้ไขแล้ว']);
         await shot(pages[1], `${kind}-03-sql-failure`);
+        await action(pages[1], 'cancel-editor').click();
+        const own = pages[1].locator('dialog[open] [data-review-own-entry]');
+        await own.waitFor({state: 'visible'});
+        assert.equal(await own.locator('[data-review-comment]').innerText(), 'แก้ไขแล้ว');
+        assert.equal(await own.locator('[data-review-entry-stars]').getAttribute('aria-label'), '4 จาก 5 ดาว');
+        await shot(pages[1], `${kind}-03a-review-after-failure`);
+        passed(`${kind}: failed PUT shows visible error, performs fresh GET and displays original review; edit draft retained`,
+          {putStatus: 503, getStatus: 200, savedRating: 4, savedComment: 'แก้ไขแล้ว', draftRating: 1,
+            draftComment: 'ต้องไม่ถูกบันทึก', notice: noticeText});
         const failedDelete = await api(pages[1], `/api/reviews/${created.id}`, 'DELETE');
         assert.equal(failedDelete.status, 503); assert(sqlReview(created.id));
       } finally { fault(t, false); }
