@@ -10,6 +10,7 @@ function runPage(file, services) {
   const get = selector => {
     if (!elements.has(selector)) elements.set(selector, {
       value: '', dataset: {}, listeners: {}, classList: {toggle() {}}, setAttribute() {}, focus() {},
+      querySelectorAll() { return []; },
       addEventListener(type, callback) { this.listeners[type] = callback; }
     });
     return elements.get(selector);
@@ -42,6 +43,27 @@ test('saved page reads API data, escapes text, filters, and links to the API rea
   get('#saved-search').value = 'unmatched';
   get('#saved-search').listeners.input();
   assert.match(get('#saved-list').innerHTML, /ไม่พบรายการที่ตรง/);
+});
+
+test('U10 displays separate course and document links and updates the filtered count', async () => {
+  const secondGuide = {...row, item_id: 13, title: 'Practice exam'};
+  const {get} = page({saved: async () => [secondGuide, row, summary]});
+  const list = get('#saved-list');
+  await tick();
+  assert.match(list.innerHTML, /choose-courses\.html\?course=CS261&courseId=4[^>]*>Software Engineering/);
+  assert.match(list.innerHTML, /read-courses\.html\?guide=13&/);
+  assert.match(list.innerHTML, /read-courses\.html\?guide=12&/);
+  assert.match(list.innerHTML, /read-summary\.html\?summary=12&/);
+  assert.match(list.innerHTML, /class="saved-code">CS261/);
+  assert.match(list.innerHTML, /class="saved-document-type">สรุปเนื้อหา/);
+  get('#saved-type').value = 'guide';
+  get('#saved-type').listeners.change();
+  assert.equal(get('#saved-count').textContent, 'แสดง 2 จาก 3 รายการ');
+  assert.doesNotMatch(list.innerHTML, /read-summary\.html/);
+  get('#saved-search').value = 'Practice exam';
+  get('#saved-search').listeners.input();
+  assert.equal(get('#saved-count').textContent, 'แสดง 1 จาก 3 รายการ');
+  assert.doesNotMatch(list.innerHTML, /guide=12&/);
 });
 
 test('saved page prevents duplicate removal and removes a row only after API success', async () => {
