@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "sourceSha": "90acf9bde0c711610d5cf8df835bab1fce1e981a",
+  "environment": {
+    "browser": "142.0.7444.176",
+    "docker": "29.8.2",
+    "sqlServer": "16.0.4305.5"
+  },
+  "authMode": "TU mock; two backend processes; distinct SQL user IDs",
+  "project": "cs261-task124-89a60fa",
+  "date": "2026-11-16T16:12:00.437Z",
+  "results": [
+    {
+      "name": "empty UI and search link; anonymous list rejected; two SQL users",
+      "userIds": [
+        2,
+        3
+      ]
+    },
+    {
+      "name": "list groups one course and three distinct works; Guide alias and two different PDF checksums open exact selection"
+    },
+    {
+      "name": "reload and new Bearer session preserve list; second account has its own list"
+    },
+    {
+      "name": "guide: SQL DELETE rollback, UI error/reload, remove/repeat, content and other account preserved"
+    },
+    {
+      "name": "summary: SQL DELETE rollback, UI error/reload, remove/repeat, content and other account preserved"
+    },
+    {
+      "name": "real SELECT failure shows error rather than empty or partial list; retry recovers all three bookmarks"
+    },
+    {
+      "name": "guide: lost browser DELETE response triggers real GET list; current SQL state shown without claiming original request success"
+    },
+    {
+      "name": "summary: lost browser DELETE response triggers real GET list; current SQL state shown without claiming original request success"
+    },
+    {
+      "name": "guide: stale saved card opens typed 404; Back refreshes list and preserves other work"
+    },
+    {
+      "name": "summary: stale saved card opens typed 404; Back refreshes list and preserves other work"
+    },
+    {
+      "name": "invalid IDs/type/user override rejected; no-token DELETE rejected; empty state persists; other bookmarks and PDF remain"
+    },
+    {
+      "name": "cleanup restored baseline SQL rows and PDF checksums; test trigger absent"
+    }
+  ],
+  "fixtures": [
+    {
+      "id": 7,
+      "kind": "guide",
+      "owner": 0,
+      "title": "Task124-1794845496121 guide 0",
+      "deleted": true
+    },
+    {
+      "id": 3,
+      "kind": "summary",
+      "owner": 0,
+      "title": "Task124-1794845496121 summary 1",
+      "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+      "deleted": true
+    },
+    {
+      "id": 4,
+      "kind": "summary",
+      "owner": 0,
+      "title": "Task124-1794845496121 summary 2",
+      "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+      "deleted": true
+    },
+    {
+      "id": 8,
+      "kind": "guide",
+      "owner": 1,
+      "title": "Task124-1794845496121 guide 3",
+      "deleted": true
+    }
+  ]
+}
