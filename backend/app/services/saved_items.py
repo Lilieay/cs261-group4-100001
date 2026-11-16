@@ -1,119 +1,179 @@
-import re
-from sqlite3 import SQLITE_CONSTRAINT_FOREIGNKEY, SQLITE_CONSTRAINT_PRIMARYKEY, SQLITE_CONSTRAINT_UNIQUE
-
-from sqlalchemy import and_, delete, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.dao.saved_item_constraints import IntegrityConflictKind
+from app.dao.saved_guide_dao import SavedGuideDAO
+from app.dao.saved_items_dao import SavedSummaryDAO
 from app.models.course import Course
 from app.models.guide import Guide
 from app.models.saved_guide import SavedGuide
 from app.models.saved_summary import SavedSummary
 from app.models.summary import Summary
 from app.models.user import User
-from app.schemas.saved_items import SavedItemDTO, SavedItemListResponse, SavedItemState
+from app.schemas.saved_item import (
+    SavedItemDTO,
+    SavedItemListResponse,
+    SavedItemState,
+    SavedItemType,
+)
 
 
 TARGETS = {"guide": (Guide, SavedGuide), "summary": (Summary, SavedSummary)}
 
 
-class SavedItemNotFound(Exception):
+class SavedItemsUnavailable(Exception):
     pass
 
 
-class SavedItemCommitUnknown(Exception):
+class SavedItemCommitUnknown(SavedItemsUnavailable):
     pass
 
 
-def duplicate_bookmark(error: IntegrityError, table: str, target_field: str) -> bool:
-    original = error.orig
-    message = str(original).lower()
-    if getattr(original, "sqlite_errorcode", None) in (SQLITE_CONSTRAINT_PRIMARYKEY, SQLITE_CONSTRAINT_UNIQUE):
-        return message == f"unique constraint failed: {table}.user_id, {table}.{target_field}"
-    return "(2627)" in message and "primary key constraint" in message and bool(
-        re.search(rf"object '(?:[^']+\.)?{table}'", message)
-    )
-
-
-def bookmark_target_fk(error: IntegrityError, table: str) -> bool:
-    original = error.orig
-    if getattr(original, "sqlite_errorcode", None) == SQLITE_CONSTRAINT_FOREIGNKEY:
-        return True  # SQLite does not name the referenced table.
-    message = str(original).lower()
-    return "(547)" in message and "foreign key constraint" in message and bool(
-        re.search(rf'table "(?:[^"]+\.)?{table}"', message)
-    )
+class SavedTargetNotFound(Exception):
+    def __init__(self, item_type: SavedItemType):
+        self.item_type = item_type
 
 
 class SavedItemsService:
-    def __init__(self, session: Session):
+    def __init__(
+        self,
+        session: Session,
+        guide_dao: SavedGuideDAO,
+        summary_dao: SavedSummaryDAO,
+    ):
         self.session = session
+        self.daos = {"guide": guide_dao, "summary": summary_dao}
 
     def list(self, user_id: int) -> SavedItemListResponse:
         items = []
-        for kind, (target, bookmark) in TARGETS.items():
-            target_fk = getattr(bookmark, f"{kind}_id")
-            statement = (
-                select(target.id, target.title, Course.id, Course.course_code, Course.course_name)
-                .join_from(bookmark, target, target_fk == target.id)
-                .join(Course, target.course_id == Course.id)
-                .where(bookmark.user_id == user_id)
-            )
-            for item_id, title, course_id, code, name in self.session.execute(statement):
-                items.append(SavedItemDTO(
-                    item_type=kind,
-                    item_id=item_id,
-                    course={"id": course_id, "course_code": code, "course_name": name},
-                    title=title,
-                    open_path=f"/api/{'guides' if kind == 'guide' else 'summaries'}/{item_id}",
-                ))
+        try:
+            with self.session.begin():
+                for item_type, (target, bookmark) in TARGETS.items():
+                    target_fk = getattr(bookmark, f"{item_type}_id")
+                    collection = "guides" if item_type == "guide" else "summaries"
+                    statement = (
+                        select(target.id, target.title, Course.id, Course.course_code, Course.course_name)
+                        .join_from(bookmark, target, target_fk == target.id)
+                        .join(Course, target.course_id == Course.id)
+                        .where(bookmark.user_id == user_id)
+                    )
+                    for item_id, title, course_id, code, name in self.session.execute(statement):
+                        items.append(
+                            SavedItemDTO(
+                                item_type=item_type,
+                                item_id=item_id,
+                                course={"id": course_id, "course_code": code, "course_name": name},
+                                title=title,
+                                open_path=f"/api/{collection}/{item_id}",
+                            )
+                        )
+        except SQLAlchemyError as error:
+            self._rollback()
+            raise SavedItemsUnavailable from error
+
         items.sort(key=lambda item: (item.course.course_code, item.item_type, -item.item_id))
         return SavedItemListResponse(items=items)
 
-    def _state(self, target, bookmark, target_fk, user_id: int, item_id: int) -> bool:
-        statement = (
-            select(target.id, bookmark.user_id)
-            .select_from(target)
-            .outerjoin(bookmark, and_(target_fk == target.id, bookmark.user_id == user_id))
-            .where(target.id == item_id)
-        )
-        row = self.session.execute(statement).one_or_none()
-        if row is None:
-            raise SavedItemNotFound
-        return row[1] is not None
+    def _state(self, user_id: int, item_type: SavedItemType, item_id: int) -> bool:
+        saved = self.daos[item_type].read_saved_state(user_id, item_id)
+        if saved is None:
+            raise SavedTargetNotFound(item_type)
+        return saved
 
-    def _commit(self):
+    def state(
+        self, user_id: int, item_type: SavedItemType, item_id: int
+    ) -> SavedItemState:
+        try:
+            with self.session.begin():
+                saved = self._state(user_id, item_type, item_id)
+        except SQLAlchemyError as error:
+            self._rollback()
+            raise SavedItemsUnavailable from error
+        return SavedItemState(item_type=item_type, item_id=item_id, saved=saved)
+
+    def save(
+        self, user_id: int, item_type: SavedItemType, item_id: int
+    ) -> SavedItemState:
+        dao = self.daos[item_type]
+        try:
+            self.session.begin()
+            saved = self._state(user_id, item_type, item_id)
+        except SavedTargetNotFound:
+            self._rollback()
+            raise
+        except SQLAlchemyError as error:
+            self._rollback()
+            raise SavedItemsUnavailable from error
+
+        if saved:
+            self._rollback()
+            return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
+
+        try:
+            dao.insert_if_absent(user_id, item_id)
+        except IntegrityError as error:
+            self._rollback()
+            return self._recover_integrity_conflict(
+                error, user_id, item_type, item_id, dao
+            )
+        except SQLAlchemyError as error:
+            self._rollback()
+            raise SavedItemsUnavailable from error
+
+        self._commit()
+        return SavedItemState(item_type=item_type, item_id=item_id, saved=True)
+
+    def remove(
+        self, user_id: int, item_type: SavedItemType, item_id: int
+    ) -> SavedItemState:
+        try:
+            self.daos[item_type].remove(user_id, item_id)
+        except SQLAlchemyError as error:
+            self._rollback()
+            raise SavedItemsUnavailable from error
+        self._commit()
+        return SavedItemState(item_type=item_type, item_id=item_id, saved=False)
+
+    def _commit(self) -> None:
         try:
             self.session.commit()
         except SQLAlchemyError as error:
+            self._rollback()
             raise SavedItemCommitUnknown from error
 
-    def _save(self, target, bookmark, target_field: str, user_id: int, item_id: int):
+    def _rollback(self) -> None:
         try:
-            self.session.add(bookmark(user_id=user_id, **{target_field: item_id}))
-            self.session.flush()
-        except IntegrityError as error:
             self.session.rollback()
-            if duplicate_bookmark(error, bookmark.__tablename__, target_field):
-                if self._state(target, bookmark, getattr(bookmark, target_field), user_id, item_id):
-                    return
-            elif bookmark_target_fk(error, target.__tablename__):
-                if self.session.get(target, item_id) is None and self.session.get(User, user_id) is not None:
-                    raise SavedItemNotFound from error
-            raise
-        self._commit()
+        except SQLAlchemyError:
+            # Preserve the operation's original error if the connection is lost.
+            pass
 
-    def manage(self, method: str, user_id: int, kind: str, item_id: int) -> SavedItemState:
-        target, bookmark = TARGETS[kind]
-        target_field = f"{kind}_id"
-        target_fk = getattr(bookmark, target_field)
-        if method == "DELETE":
-            self.session.execute(delete(bookmark).where(bookmark.user_id == user_id, target_fk == item_id))
-            self._commit()
-            saved = False
-        else:
-            saved = self._state(target, bookmark, target_fk, user_id, item_id)
-            if method == "PUT" and not saved:
-                self._save(target, bookmark, target_field, user_id, item_id)
-                saved = True
-        return SavedItemState(item_type=kind, item_id=item_id, saved=saved)
+    def _recover_integrity_conflict(
+        self,
+        error: IntegrityError,
+        user_id: int,
+        item_type: SavedItemType,
+        item_id: int,
+        dao: SavedGuideDAO | SavedSummaryDAO,
+    ) -> SavedItemState:
+        kind = dao.classify_integrity_error(error)
+        if kind is IntegrityConflictKind.OTHER:
+            raise SavedItemsUnavailable from error
+
+        try:
+            with self.session.begin():
+                try:
+                    saved = self._state(user_id, item_type, item_id)
+                except SavedTargetNotFound:
+                    if kind is IntegrityConflictKind.UNNAMED_FOREIGN_KEY and self.session.get(User, user_id) is None:
+                        raise SavedItemsUnavailable from error
+                    raise
+            if kind is IntegrityConflictKind.BOOKMARK_DUPLICATE and saved:
+                return SavedItemState(
+                    item_type=item_type, item_id=item_id, saved=True
+                )
+            raise SavedItemsUnavailable from error
+        except SQLAlchemyError as recovery_error:
+            self._rollback()
+            raise SavedItemsUnavailable from recovery_error

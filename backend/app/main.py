@@ -20,6 +20,7 @@ from app.routers.reviews import reviews_http_exception_handler
 from app.routers.summaries import router as summaries_router
 from app.middleware.pdf_upload_limit import PdfUploadSizeLimitMiddleware
 from app.middleware.summary_no_store import SummaryNoStoreMiddleware
+from app.middleware.saved_items_no_store import SavedItemsNoStoreMiddleware
 from app.services.auth import AuthService
 from app.services.summary_storage import LocalPdfStorage
 from app.services.tu_api import verify_tu_account
@@ -31,9 +32,14 @@ async def lifespan(application: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
 @app.exception_handler(StarletteHTTPException)
 async def api_http_exception_handler(request, error):
-    return saved_items_http_error(request, error) or await reviews_http_exception_handler(request, error)
+    saved_items_error = saved_items_http_error(request, error)
+    if saved_items_error is not None:
+        return saved_items_error
+    return await reviews_http_exception_handler(request, error)
 
 
 app.add_middleware(
@@ -63,6 +69,7 @@ app.add_middleware(
     max_bytes=PDF_REQUEST_MAX_BYTES,
 )
 app.add_middleware(SummaryNoStoreMiddleware)
+app.add_middleware(SavedItemsNoStoreMiddleware)
 
 
 @app.get("/")

@@ -10,6 +10,7 @@ from app.dao.my_guide_dao import MyGuideDAO
 from app.dao.publish_guide_dao import PublishGuideDAO
 from app.dao.read_guide_dao import ReadGuideDAO
 from app.dao.saved_guide_dao import SavedGuideDAO
+from app.dao.saved_items_dao import SavedSummaryDAO
 from app.dao.summary_dao import SummaryDAO
 from app.dao.summary_file_dao import SummaryFileDAO
 from app.dao.update_owned_guide_dao import UpdateOwnedGuideDAO
@@ -21,6 +22,7 @@ from app.services.my_guides import MyGuidesService
 from app.services.publish_guide import PublishGuideService
 from app.services.read_guide import ReadGuideService
 from app.services.saved_guides import SavedGuidesService
+from app.services.saved_items import SavedItemsService
 from app.services.summaries import SummaryService
 from app.services.summary_storage import LocalPdfStorage
 
@@ -90,6 +92,16 @@ def get_saved_guides_service(
 ) -> SavedGuidesService:
     return SavedGuidesService(
         session, SavedGuideDAO(session), ReadGuideDAO(session)
+    )
+
+
+def get_saved_items_service(
+    session: Session = Depends(get_db_session),
+) -> SavedItemsService:
+    return SavedItemsService(
+        session=session,
+        guide_dao=SavedGuideDAO(session),
+        summary_dao=SavedSummaryDAO(session),
     )
 
 

@@ -18,7 +18,7 @@ from app.models.saved_summary import SavedSummary
 from app.models.summary import Summary
 from app.models.user import User
 from app.services.auth import AuthenticatedUser as AuthUser
-from app.services.saved_items import SavedItemsService, TARGETS
+from app.services.saved_items import SavedItemsService, SavedTargetNotFound, TARGETS
 
 
 @pytest.fixture
@@ -278,6 +278,7 @@ def test_u9_only_recovers_expected_bookmark_duplicate_and_target_fk(saved_client
     assert duplicate.json()["saved"] is True
     assert state.call_count == 2
     assert len(session.scalars(select(bookmark)).all()) == 1
+    session.rollback()
     unrelated = IntegrityError("insert", {}, Exception("another constraint failed"))
     with patch.object(SavedItemsService, "_state", return_value=False), \
          patch.object(session, "flush", side_effect=unrelated):
@@ -287,7 +288,9 @@ def test_u9_only_recovers_expected_bookmark_duplicate_and_target_fk(saved_client
     assert client.get(url).json()["saved"] is True
     session.delete(session.get(target, 1))
     session.commit()
-    with patch.object(SavedItemsService, "_state", return_value=False):
+    with patch.object(
+        SavedItemsService, "_state", side_effect=[False, SavedTargetNotFound(kind)]
+    ):
         missing = client.put(url)
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == f"{kind.upper()}_NOT_FOUND"

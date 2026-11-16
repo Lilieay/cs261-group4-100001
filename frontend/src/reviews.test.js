@@ -36,7 +36,13 @@ class Element {
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const currentUser = {id: 7, username: 'student', display_name: 'Student'};
 const ok = payload => ({response: {ok: true, status: 200}, payload});
-const unavailable = {response: {ok: false, status: 503}, payload: {error: {code: 'STORAGE_UNAVAILABLE'}}};
+const storageMessage = 'ไม่สามารถอ่านหรือบันทึกรีวิวได้ กรุณาโหลดข้อมูลล่าสุด';
+const uncertainMessage = 'ไม่ทราบผลบันทึก กรุณาโหลดข้อมูลล่าสุดก่อนลองใหม่';
+const storageUnavailable = message => ({
+  response: {ok: false, status: 503},
+  payload: {error: {code: 'STORAGE_UNAVAILABLE', message}}
+});
+const unavailable = storageUnavailable(storageMessage);
 
 function reviewPage({type, profile, items, write = () => unavailable}) {
   const dialog = new Element();
@@ -95,14 +101,19 @@ const ownReview = (type, values = {}) => ({
 for (const type of ['guide', 'summary']) {
   test(`U8 ${type} does not report a no-op PUT with a 503 as saved`, async () => {
     const row = ownReview(type);
-    const page = reviewPage({type, profile: () => ok(currentUser), items: () => [row]});
+    const anotherReview = ownReview(type, {id: 27, rating: 2, author: {id: 8, display_name: 'Peer'}});
+    let reads = 0;
+    const page = reviewPage({
+      type, profile: () => ok(currentUser), items: () => ++reads === 1 ? [row] : [row, anotherReview]
+    });
     await tick();
     assert.equal(page.dialog.querySelector('[data-review-own-review]').hidden, false);
     await page.click('edit');
     page.submit(row.rating, row.comment);
     await tick();
-    assert.match(page.notice(), /ยังยืนยันผลการบันทึกครั้งนี้ไม่ได้/);
+    assert.equal(page.notice(), `${storageMessage} โหลดข้อมูลล่าสุดแล้ว`);
     assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, false);
+    assert.equal(page.dialog.querySelector('[data-review-average]').textContent, '3.0');
     assert.deepEqual(page.calls.filter(([, method]) => method === 'PUT'),
       [['/api/reviews/22', 'PUT', JSON.stringify({rating: row.rating, comment: row.comment})]]);
     assert.equal(page.calls.filter(([endpoint]) => endpoint.endsWith('/reviews')).length, 2);
@@ -141,6 +152,32 @@ test('U8 does not confirm an uncertain edit using a different review ID with mat
   await page.click('edit');
   page.submit(replacement.rating, replacement.comment);
   await tick();
-  assert.match(page.notice(), /รีวิวของคุณมีการเปลี่ยนแปลง/);
+  assert.equal(page.notice(), `${storageMessage} โหลดข้อมูลล่าสุดแล้ว`);
   assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, true);
 });
+
+for (const [name, write, notice] of [
+  ['a storage failure', () => unavailable, storageMessage],
+  ['an uncertain storage outcome', () => storageUnavailable(uncertainMessage), uncertainMessage],
+  ['a 503 without a usable message', () => storageUnavailable('  '), 'ยังยืนยันผลการบันทึกรีวิวครั้งนี้ไม่ได้'],
+  ['a lost connection', () => { throw new Error('offline'); }, 'ยังยืนยันผลการบันทึกรีวิวครั้งนี้ไม่ได้']
+]) {
+  test(`U8 reports the request outcome after ${name} even when the same review now matches the edit`, async () => {
+    const original = ownReview('summary');
+    const updated = {...original, rating: 5, comment: 'อ่านง่ายมาก'};
+    let reads = 0;
+    const page = reviewPage({
+      type: 'summary', profile: () => ok(currentUser), items: () => [++reads === 1 ? original : updated], write
+    });
+    await tick();
+    await page.click('edit');
+    page.submit(updated.rating, updated.comment);
+    await tick();
+    assert.equal(page.notice(), `${notice} โหลดข้อมูลล่าสุดแล้ว`);
+    assert.doesNotMatch(page.notice(), /บันทึกรีวิวแล้ว|คำขอนี้บันทึกรีวิวไม่สำเร็จ/);
+    assert.equal(page.dialog.querySelector('[data-review-average]').textContent, '5.0');
+    assert.equal(page.dialog.querySelector('[data-review-own-review]').hidden, false);
+    assert.equal(page.dialog.querySelector('[data-review-editor]').hidden, true);
+    assert.equal(reads, 2);
+  });
+}
