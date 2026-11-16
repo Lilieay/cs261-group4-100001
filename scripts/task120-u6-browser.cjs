@@ -26,9 +26,36 @@ function backendPython(input) {
     {input, encoding: 'utf8', timeout: 20000});
 }
 
-assert.equal(docker('inspect', '--format',
-  '{{ index .Config.Labels "com.docker.compose.project" }}', backend).trim(), project);
-assert.equal(docker('exec', backend, 'printenv', 'TU_API_MODE').trim(), 'mock');
+function inspect(container, format) {
+  return docker('inspect', '--type', 'container', '--format', format, container).trim();
+}
+
+function verifyStack() {
+  const projectLabel = '{{ index .Config.Labels "com.docker.compose.project" }}';
+  const network = project + '_default';
+  for (const [frontend, upstream, hostname, url] of [
+    [project + '-frontend-1', backend, 'backend', ownerUrl],
+    [project + '-frontend-b', project + '-backend-b', project + '-backend-b', otherUrl]
+  ]) {
+    for (const container of [frontend, upstream]) {
+      assert.equal(inspect(container, projectLabel), project, container + ' is outside ' + project);
+      assert.equal(inspect(container, '{{.State.Running}}'), 'true', container + ' is stopped');
+    }
+    const ports = JSON.parse(inspect(frontend, '{{json .NetworkSettings.Ports}}'));
+    const {hostname: host, port} = new URL(url);
+    assert(ports['5000/tcp']?.some(binding => binding.HostIp === host && binding.HostPort === port),
+      frontend + ' does not own ' + url);
+    assert.equal(docker('exec', frontend, 'printenv', 'BACKEND_URL').trim(), 'http://' + hostname + ':8000');
+    assert.equal(docker('exec', upstream, 'printenv', 'TU_API_MODE').trim(), 'mock');
+    const upstreamNetworks = JSON.parse(inspect(upstream, '{{json .NetworkSettings.Networks}}'));
+    const upstreamIp = upstreamNetworks[network]?.IPAddress;
+    assert(upstreamIp, upstream + ' is missing from ' + network);
+    const resolvedIp = docker('exec', frontend, 'node', '-e',
+      "require('node:dns').lookup(process.argv[1], (error, address) => { if (error) throw error; console.log(address); })",
+      hostname).trim();
+    assert.equal(resolvedIp, upstreamIp, frontend + ' resolves a different backend');
+  }
+}
 
 function inspectSummary(id) {
   assert(Number.isSafeInteger(id) && id > 0);
@@ -43,6 +70,8 @@ with engine.connect() as connection:
     print(json.dumps({
         "summary": summary is not None, "file": file is not None,
         "key": file[0] if file else None,
+        "summary_count": connection.exec_driver_sql("SELECT COUNT(*) FROM dbo.summaries").scalar(),
+        "file_count": connection.exec_driver_sql("SELECT COUNT(*) FROM dbo.summary_files").scalar(),
         "objects": sorted(LocalPdfStorage(PDF_STORAGE_ROOT).list_private_objects())
     }))
 `;
@@ -102,7 +131,7 @@ async function request(page, apiPath, method = 'GET', fields, file) {
   }, {apiPath, method, fields, file: file && {...file, buffer: undefined, bytes: Array.from(file.buffer)}});
 }
 
-async function publish(page, url, title, file) {
+async function submitSummary(page, url, title, file, createdIds) {
   await page.goto(url + '/upload-summary.html');
   const course = page.locator('#summary-course');
   await course.locator('option', {hasText: 'CS261'}).waitFor({state: 'attached'});
@@ -117,10 +146,12 @@ async function publish(page, url, title, file) {
     && r.request().method() === 'POST');
   await page.locator('#summary-form button[type=submit]').click();
   const response = await result;
-  assert.equal(response.status(), 201, await response.text());
-  const row = await response.json();
-  assert.deepEqual([row.academic_year, row.semester, row.exam_period], [2569, 1, 'midterm']);
-  return row;
+  const data = await response.json();
+  if (response.status() === 201) {
+    assert(Number.isSafeInteger(data.id) && data.id > 0, 'Publish response is missing its summary ID');
+    createdIds.add(data.id);
+  }
+  return {status: response.status(), data};
 }
 
 async function screenshot(page, name) {
@@ -131,15 +162,20 @@ async function screenshot(page, name) {
 
 
 async function main() {
+  verifyStack();
+  report('Both browser ports and proxy backends belong to the selected mock Docker stack');
   const browser = await chromium.launch({channel: 'chrome', headless: true});
   const owner = await browser.newPage();
   const reader = await browser.newPage();
-  let row;
+  const createdIds = new Set();
   try {
     const a = await login(owner, ownerUrl, '6800000000');
     const b = await login(reader, otherUrl, '6800000001');
     assert.notEqual(a, b);
-    row = await publish(owner, ownerUrl, tag, original);
+    const published = await submitSummary(owner, ownerUrl, tag, original, createdIds);
+    assert.equal(published.status, 201, JSON.stringify(published.data));
+    const row = published.data;
+    assert.deepEqual([row.academic_year, row.semester, row.exam_period], [2569, 1, 'midterm']);
     assert.equal(row.owner.id, a);
     const before = inspectSummary(row.id);
     assert(before.summary && before.file && before.objects.includes(before.key));
@@ -158,22 +194,36 @@ async function main() {
     await screenshot(reader, '01-read-pdf');
     report('UI publish, course list, second account and matching PDF bytes');
 
-    const fields = {course_id: String(course.id), title: tag + ' failure', academic_year: '2569', semester: '1', exam_period: 'midterm'};
-    const post = (overrides = {}) => request(reader, '/api/summaries', 'POST', {...fields, ...overrides}, original);
     const anonymous = await browser.newPage();
     await anonymous.goto(otherUrl + '/login.html');
     assert.equal((await request(anonymous, route + '/file')).status, 401);
-    assert.equal((await post({course_id: '2147483647'})).status, 404);
+    const unknownCourse = await request(reader, '/api/summaries', 'POST', {
+      course_id: '2147483647', title: tag + ' missing course', academic_year: '2569', semester: '1', exam_period: 'midterm'
+    }, original);
+    assert.equal(unknownCourse.status, 404);
+
+    async function verifyPublishFailure(title, screenshotName, expectedCode) {
+      const failure = await submitSummary(owner, ownerUrl, title, original, createdIds);
+      assert.equal(failure.status, 503, JSON.stringify(failure.data));
+      if (expectedCode) assert.equal(failure.data.error.code, expectedCode);
+      const error = owner.locator('#summary-upload-error');
+      await error.waitFor({state: 'visible'});
+      assert.match(await error.innerText(), /เผยแพร่สรุปไม่สำเร็จ/);
+      assert.equal(await owner.locator('#summary-success').evaluate(dialog => dialog.open), false);
+      assert.deepEqual(inspectSummary(row.id), before, title + ' changed SQL rows or PDF files');
+      await screenshot(owner, screenshotName);
+    }
+    const sqlFailureTitle = tag + ' SQL failure';
     const changeTrigger = sql => backendPython(`from app.db import engine
 with engine.begin() as connection:
     connection.exec_driver_sql(${JSON.stringify(sql)})
 `);
     changeTrigger(`CREATE TRIGGER dbo.task120_test_publish ON dbo.summaries AFTER INSERT AS
-BEGIN IF EXISTS (SELECT 1 FROM inserted WHERE title = '${fields.title}')
+BEGIN IF EXISTS (SELECT 1 FROM inserted WHERE title = '${sqlFailureTitle}')
 BEGIN ;THROW 51020, 'Task120 publish failure', 1; END END`);
     try {
-      const failure = await post();
-      assert.equal(failure.status, 503, JSON.stringify(failure));
+      await verifyPublishFailure(sqlFailureTitle, '02-sql-publish-failure');
+      report('SQL publish failure shows a form error, leaves the success dialog closed and preserves SQL/PDF');
     } finally {
       changeTrigger('DROP TRIGGER IF EXISTS dbo.task120_test_publish');
     }
@@ -182,19 +232,12 @@ BEGIN ;THROW 51020, 'Task120 publish failure', 1; END END`);
     const mode = docker('exec', backend, 'stat', '-c', '%a', storage).trim();
     docker('exec', '-u', '0', backend, 'chmod', '0555', storage);
     try {
-      const failure = await post();
-      assert.equal(failure.status, 503, JSON.stringify(failure));
-      assert.equal(failure.data.error.code, 'STORAGE_UNAVAILABLE');
+      await verifyPublishFailure(tag + ' storage failure', '03-storage-publish-failure', 'STORAGE_UNAVAILABLE');
+      report('Storage publish failure shows a form error, leaves the success dialog closed and preserves SQL/PDF');
     } finally {
       docker('exec', '-u', '0', backend, 'chmod', mode, storage);
     }
-    const unwanted = backendPython(`from app.db import engine
-with engine.connect() as connection:
-    print(connection.exec_driver_sql("SELECT COUNT(*) FROM dbo.summaries WHERE title = ?", (${JSON.stringify(fields.title)},)).scalar())
-`).trim();
-    assert.equal(unwanted, '0');
-    assert.deepEqual(inspectSummary(row.id), before);
-    report('Unauthenticated and missing course; SQL and storage failures leave SQL/PDF unchanged');
+    report('Unauthenticated PDF read and unknown course publish are rejected');
 
     execFileSync('docker', ['compose', '-p', project, 'up', '-d', '--wait', '--no-deps', '--force-recreate', 'backend'], {stdio: 'inherit', timeout: 120000});
     assert.equal(await login(owner, ownerUrl, '6800000000'), a);
@@ -209,13 +252,15 @@ with engine.connect() as connection:
     report('Backend recreated with existing volume, fresh login retrieves unchanged metadata and PDF');
   } finally {
     try {
-      if (row) {
-        const response = await request(owner, '/api/summaries/' + row.id, 'DELETE');
+      for (const id of createdIds) {
+        const response = await request(owner, '/api/summaries/' + id, 'DELETE');
         assert.equal(response.status, 204, JSON.stringify(response));
-        const cleaned = inspectSummary(row.id);
+        const cleaned = inspectSummary(id);
         assert(!cleaned.summary && !cleaned.file);
-        assert.deepEqual(cleaned.objects, []);
-        report('Cleanup removed the fixture SQL rows and PDF');
+      }
+      if (createdIds.size) {
+        assert.deepEqual(inspectSummary(createdIds.values().next().value).objects, []);
+        report('Cleanup removed the fixture SQL rows and PDF files');
       }
     } finally { await browser.close(); }
   }
