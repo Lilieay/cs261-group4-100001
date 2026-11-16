@@ -399,7 +399,7 @@ test('guide proxy preserves backend authentication and missing-record responses'
   });
 });
 
-test('guide proxy rejects backend paths outside the read API allowlist', async t => {
+test('guide alias rejects a non-ID segment without forwarding outside the read API allowlist', async t => {
   const originalFetch = global.fetch;
   t.after(() => { global.fetch = originalFetch; });
   let calls = 0;
@@ -407,7 +407,8 @@ test('guide proxy rejects backend paths outside the read API allowlist', async t
 
   await withServer(async port => {
     const response = await request(port, '/api/guides/my-guides');
-    assert.equal(response.status, 404);
+    // The new /api/guides/:guideId alias validates this as a malformed ID.
+    assert.equal(response.status, 422);
     assert.equal(calls, 0);
   });
 });

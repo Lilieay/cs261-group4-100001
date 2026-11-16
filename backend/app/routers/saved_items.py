@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.dependencies import current_user, get_saved_items_service
 from app.schemas.guides import ErrorDetailDTO, ErrorFieldDTO, ErrorResponseDTO
-from app.schemas.saved_item import SavedItemState, SavedItemType
+from app.schemas.saved_item import SavedItemListResponse, SavedItemState, SavedItemType
 from app.services.auth import AuthenticatedUser
 from app.services.saved_items import (
     SavedItemsService,
@@ -148,6 +148,35 @@ async def _reject_query_or_body(request: Request) -> JSONResponse | None:
             422, "INVALID_PARAMETERS", "ข้อมูลสำหรับเรียก API ไม่ถูกต้อง", fields
         )
     return None
+
+
+@router.get("", response_model=SavedItemListResponse)
+async def list_saved_items(
+    request: Request,
+    user_context: tuple[str, AuthenticatedUser] = Depends(current_user),
+    service: SavedItemsService = Depends(get_saved_items_service),
+):
+    invalid_request = await _reject_query_or_body(request)
+    if invalid_request is not None:
+        return invalid_request
+    return await run_in_threadpool(service.list_for_user, user_context[1].id)
+
+
+@router.delete("/{item_type}/{item_id}", response_model=SavedItemState)
+async def remove_saved_item(
+    request: Request,
+    item_type: SavedItemType,
+    item_id: str = Path(),
+    user_context: tuple[str, AuthenticatedUser] = Depends(current_user),
+    service: SavedItemsService = Depends(get_saved_items_service),
+):
+    parsed_item_id = _parse_item_id(item_id)
+    if parsed_item_id is None:
+        return _invalid_item_id_response()
+    invalid_request = await _reject_query_or_body(request)
+    if invalid_request is not None:
+        return invalid_request
+    return await run_in_threadpool(service.remove, user_context[1].id, item_type, parsed_item_id)
 
 
 @router.put("/{item_type}/{item_id}", response_model=SavedItemState)

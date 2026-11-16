@@ -1,5 +1,6 @@
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.dao.saved_item_constraints import (
     IntegrityConflictKind,
@@ -15,6 +16,21 @@ class SavedSummaryDAO:
 
     def target_exists(self, summary_id: int) -> bool:
         return self.session.get(Summary, summary_id) is not None
+
+    def list_by_user(self, user_id: int) -> list[Summary]:
+        statement = (
+            select(Summary)
+            .join(SavedSummary, SavedSummary.summary_id == Summary.id)
+            .where(SavedSummary.user_id == user_id)
+            .options(joinedload(Summary.course))
+        )
+        return list(self.session.scalars(statement))
+
+    def remove(self, user_id: int, summary_id: int) -> int:
+        return self.session.execute(delete(SavedSummary).where(
+            SavedSummary.user_id == user_id,
+            SavedSummary.summary_id == summary_id,
+        )).rowcount
 
     def is_saved(self, user_id: int, summary_id: int) -> bool:
         return self.session.get(SavedSummary, (user_id, summary_id)) is not None

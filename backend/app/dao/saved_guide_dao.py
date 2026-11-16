@@ -53,7 +53,7 @@ class SavedGuideDAO:
         if not self.is_saved(user_id, guide_id):
             self.insert_if_absent(user_id, guide_id)
 
-    def remove(self, user_id: int, guide_id: int) -> None:
-        self.session.execute(delete(SavedGuide).where(
+    def remove(self, user_id: int, guide_id: int) -> int:
+        return self.session.execute(delete(SavedGuide).where(
             SavedGuide.user_id == user_id, SavedGuide.guide_id == guide_id
-        ))
+        )).rowcount

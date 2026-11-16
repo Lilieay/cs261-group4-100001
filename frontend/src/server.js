@@ -67,6 +67,26 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
     });
   }
 
+  const savedItemError = (res, status, code, message) => res.status(status).json({
+    error: {code, message, fields: []}
+  });
+  app.all(['/api/saved-items', '/api/saved-items/:itemType/:itemId'],
+    express.raw({type: () => true, limit: '32kb'}), (req, res) => {
+      res.set('Cache-Control', 'no-store');
+      const {itemType, itemId} = req.params;
+      if (!(itemId ? ['GET', 'PUT', 'DELETE'].includes(req.method) : req.method === 'GET')) {
+        res.set('Allow', itemId ? 'GET, PUT, DELETE' : 'GET');
+        return savedItemError(res, 405, 'METHOD_NOT_ALLOWED', 'ไม่รองรับคำขอนี้');
+      }
+      if ((itemId && (!['guide', 'summary'].includes(itemType) || !validId(itemId)))
+        || Object.keys(req.query).length || req.body?.length) {
+        return savedItemError(res, 422, 'INVALID_PARAMETERS', 'ข้อมูลรายการที่บันทึกไม่ถูกต้อง');
+      }
+      return proxy(req, res, `/api/saved-items${itemId ? `/${itemType}/${itemId}` : ''}`, {
+        errorMessage: 'เชื่อมต่อบริการรายการที่บันทึกไม่สำเร็จ', errorCode: 'UPSTREAM_UNAVAILABLE'
+      });
+    });
+
   app.all(['/api/saved-guides', '/api/saved-guides/:guideId'], (req, res) => {
     res.set('Cache-Control', 'no-store');
     const id = req.params.guideId;
@@ -254,6 +274,17 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
     });
   });
 
+  // Task104 open_path alias; keep the legacy /api/guides/guides/:id route.
+  app.get('/api/guides/:guideId', express.raw({type: () => true, limit: '32kb'}), (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!validId(req.params.guideId) || Object.keys(req.query).length || req.body?.length) {
+      return savedItemError(res, 422, 'INVALID_PARAMETERS', 'รหัสแนวข้อสอบไม่ถูกต้อง');
+    }
+    return proxy(req, res, `/guides/${req.params.guideId}`, {
+      errorMessage: 'เปิดแนวข้อสอบไม่สำเร็จ', errorCode: 'UPSTREAM_UNAVAILABLE'
+    });
+  });
+
   app.get('/api/guides/*path', (req, res) => {
     res.set('Cache-Control', 'no-store');
     const upstreamPath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path;
@@ -277,6 +308,11 @@ function createApp({backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:80
   app.use(express.static(path.join(publicRoot, 'pages')));
   app.use(express.static(publicRoot));
   app.use((error, req, res, next) => {
+    if (req.path.startsWith('/api/saved-items')) {
+      res.set('Cache-Control', 'no-store');
+      return savedItemError(res, error.status === 413 ? 413 : 400,
+        error.status === 413 ? 'REQUEST_TOO_LARGE' : 'MALFORMED_REQUEST', 'ข้อมูลคำขอไม่ถูกต้อง');
+    }
     if (/^\/api\/summaries(?:\/[^/]+)?\/?$/i.test(req.path)) {
       res.set('Cache-Control', 'no-store');
       if (error.status === 413) return summaryError(res, 413, 'REQUEST_TOO_LARGE', 'ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MB');
