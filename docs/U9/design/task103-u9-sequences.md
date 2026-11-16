@@ -83,20 +83,47 @@ sequenceDiagram
             SVC->>DB: ROLLBACK T1
             Note over SVC,DB: ห้าม query ต่อใน transaction ที่ failed
             SVC->>DB: BEGIN transaction T2 (หลัง rollback)
-            SVC->>DAO: is_saved(current_user.id, item_id)
-            DAO->>DB: SELECT relation จาก saved_guides หรือ saved_summaries
-            DB-->>DAO: relation exists / absent
-            DAO-->>SVC: saved state
-            alt relation พบ
-                SVC->>DB: COMMIT T2
-                SVC-->>API: SavedItemState(saved=true)
-                API-->>UI: 200 {item_type,item_id,saved:true}
-            else relation ไม่พบ
-                SVC->>DB: COMMIT T2
-                SVC-->>API: unexpected conflict / error
-                API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE หรือ mapped conflict error
+            SVC->>DAO: target_exists(item_id) ใน T2
+            DAO->>DB: SELECT target ตามชนิดใหม่
+            DB-->>DAO: target exists / missing
+            alt target หาย
+                SVC->>DB: COMMIT T2 (read-only)
+                SVC-->>API: GUIDE_NOT_FOUND หรือ SUMMARY_NOT_FOUND
+                API-->>UI: 404 ErrorResponseDTO
+            else target ยังอยู่
+                SVC->>DAO: is_saved(current_user.id, item_id)
+                DAO->>DB: SELECT relation จาก saved_guides หรือ saved_summaries
+                DB-->>DAO: relation exists / absent
+                DAO-->>SVC: saved state
+                alt relation พบ
+                    SVC->>DB: COMMIT T2
+                    SVC-->>API: SavedItemState(saved=true)
+                    API-->>UI: 200 {item_type,item_id,saved:true}
+                else relation ไม่พบ
+                    SVC->>DB: ROLLBACK T2
+                    SVC-->>API: SAVED_ITEMS_UNAVAILABLE
+                    API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE
+                end
             end
-        else DB error อื่นที่ไม่ใช่ duplicate key ที่คาดหมาย
+        else target FK conflict จากการลบระหว่าง INSERT
+            Note over DAO,DB: แยกจาก duplicate-key; ตรวจเฉพาะ target FK constraint ที่กำหนดไว้
+            DB-->>DAO: expected target FK violation
+            DAO-->>SVC: TargetWriteConflict
+            SVC->>DB: ROLLBACK T1
+            SVC->>DB: BEGIN transaction T2
+            SVC->>DAO: target_exists(item_id)
+            DAO->>DB: SELECT target ตามชนิดใหม่
+            DB-->>DAO: target missing / exists
+            alt target หายแล้ว
+                SVC->>DB: COMMIT T2 (read-only)
+                SVC-->>API: GUIDE_NOT_FOUND หรือ SUMMARY_NOT_FOUND
+                API-->>UI: 404 ErrorResponseDTO
+            else target ยังอยู่
+                SVC->>DB: ROLLBACK T2
+                SVC-->>API: SAVED_ITEMS_UNAVAILABLE
+                API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE
+            end
+        else DB error อื่นที่ไม่ใช่ duplicate key หรือ target FK conflict ที่คาดหมาย
             DB-->>DAO: SQL/storage exception
             DAO-->>SVC: propagate exception
             SVC->>DB: ROLLBACK T1
@@ -134,12 +161,13 @@ sequenceDiagram
         SVC-->>API: SAVED_ITEMS_UNAVAILABLE
         API-->>UI: 503 SAVED_ITEMS_UNAVAILABLE
     else success
-        SVC->>SVC: รวม DTO และเรียงตาม Contract
+        SVC->>SVC: รวมเฉพาะ bookmark ที่ JOIN พบ target; ข้าม target ที่ถูกลบ
+        SVC->>SVC: เรียง DTO ตาม Contract
         SVC-->>API: SavedItemListResponse
         API-->>UI: 200 {items:[...]}
         UI-->>Student: group ตาม Course แต่แสดงแต่ละ item แยกกัน
     end
-    Student->>UI: กดนำ bookmark ออก
+    Student->>UI: กดนำ bookmark ออกจากหน้ารายการ (อาจเปิดค้างไว้ก่อน target ถูกลบ)
     UI->>API: DELETE /api/saved-items/{item_type}/{item_id} + Bearer
     API->>SVC: remove(current_user.id,item_type,item_id)
     alt item_type = guide
@@ -149,10 +177,22 @@ sequenceDiagram
         SVC->>SDAO: remove(user_id, summary_id)
         SDAO->>DB: DELETE saved_summaries WHERE user_id AND summary_id
     end
+    Note over SVC,DB: DELETE relation ทำได้แม้ target ถูกลบไปแล้ว; ไม่มี relation ก็ถือเป็น no-op
     SVC->>DB: COMMIT
     SVC-->>API: SavedItemState(saved=false)
     API-->>UI: 200 {item_type,item_id,saved:false}
-    UI-->>Student: นำออกเฉพาะ bookmark นี้
+    UI-->>Student: นำออกเฉพาะ bookmark นี้; กดซ้ำได้ผลเดิม
 ```
 
-ข้อผิดพลาด DB read/write/commit ของ saved-items ให้ตอบ `503 SAVED_ITEMS_UNAVAILABLE`; target missing ตอบ 404 ตามชนิด; validation 422; auth 401.
+### ผลเมื่อ target ถูกลบ แยกตาม endpoint (Task94 v0.4 ข้อ 7)
+
+| Endpoint | เมื่อผลงานไม่อยู่แล้ว | พฤติกรรม |
+|---|---|---|
+| `GET /api/saved-items/{item_type}/{item_id}` | `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND` | แยกตามชนิดผลงาน |
+| `PUT /api/saved-items/{item_type}/{item_id}` | `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND` | รวมกรณี target หายก่อนเริ่มเขียนหรือยืนยันว่าหายหลัง rollback/recheck |
+| `DELETE /api/saved-items/{item_type}/{item_id}` | `200 {item_type,item_id,saved:false}` | ลบ relation ถ้ายังมี; ถ้าไม่มีหรือ target ถูกลบแล้วเป็น no-op idempotent |
+| `GET /api/saved-items` | `200` และข้าม bookmark ที่อ้างถึง target ที่ถูกลบ | หาก DB อ่านไม่ได้จริงให้ `503 SAVED_ITEMS_UNAVAILABLE` ไม่ตีความเป็นรายการว่าง |
+
+สำหรับ PUT ที่ target ถูกลบระหว่าง SELECT กับ INSERT ให้จัดการเฉพาะ target FK conflict ที่ระบุ constraint ได้: ROLLBACK T1 แล้ว BEGIN T2 เพื่อตรวจ target ใหม่ หากไม่พบให้ตอบ 404 ตามชนิด; หาก target ยังอยู่แต่ไม่พบ relation ที่ยืนยัน idempotent success ได้ ให้ตอบ `503 SAVED_ITEMS_UNAVAILABLE`. ใน duplicate-key recovery ให้ตรวจ target และ relation ใหม่หลัง rollback เช่นกัน: พบ target และ relation จึงตอบ `200 saved:true`; target หายตอบ 404; อ่านไม่ได้หรือ target ยังอยู่แต่ relation ไม่พบให้ตอบ 503. ห้ามส่ง conflict response ที่ไม่ได้กำหนดไว้ใน Task94.
+
+ข้อผิดพลาด DB read/write/commit ของ saved-items ให้ตอบ `503 SAVED_ITEMS_UNAVAILABLE`; validation 422; auth 401.

@@ -22,7 +22,9 @@
 | GET state ไม่มี bookmark แต่ target มี | `200 saved:false` |
 | DELETE | `200 saved:false` และลบเฉพาะ relation ของ current user |
 | DB read/write/commit error | `503 SAVED_ITEMS_UNAVAILABLE` |
-| target หาย | `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND` |
+| GET state / PUT เมื่อ target หาย | `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND` ตามชนิด |
+| DELETE เมื่อ target หายหรือไม่มี bookmark | `200 {item_type,item_id,saved:false}` เป็น no-op แบบ idempotent |
+| GET list เมื่อมี bookmark อ้าง target ที่ถูกลบ | `200` และข้าม bookmark นั้น; DB read failure จริงตอบ `503 SAVED_ITEMS_UNAVAILABLE` |
 | token ใช้ไม่ได้ | `401 AUTH_REQUIRED` |
 | type/ID ไม่ถูกต้อง | `422 INVALID_PARAMETERS` |
 
@@ -50,6 +52,9 @@ Duplicate message “ได้บันทึกการแบ่งปัน�
 | **ST02 — Transaction order** | SQLAlchemy transaction boundary | instrument Session แล้วพิสูจน์ว่า `session.begin()` เกิดก่อน SELECT target; SELECT และ INSERT อยู่ใน transaction เดียว; ไม่เกิด autobegin conflict |
 | **ST03 — Concurrent PUT** | คำขอบันทึกพร้อมกัน | ยิง PUT หลาย request สำหรับ user/type/id เดียวกันบน SQL Server; เหลือ relation เดียวและทุก request ที่ยืนยันผลได้ตอบ `200 saved:true`; duplicate-key recovery ต้อง rollback แล้วอ่าน state ใหม่ |
 | **ST04 — Cross-feature consistency** | U9/U10 ใช้ relation ร่วมกัน | U9 PUT แล้ว U10 GET list เห็นรายการเดียวกัน; U10 DELETE แล้ว U9 GET state เป็น `saved:false` |
+| **ST05 — Delete from stale list** | ผลงานถูกลบหลังเปิดหน้ารายการก่อนกดนำออก | เปิดรายการ A ค้างไว้ขณะ bookmark target ยังอยู่; ลบ target จากแหล่งข้อมูล; กด DELETE จากหน้าค้างและกดซ้ำ ต้องได้ `200 {item_type,item_id,saved:false}` ทั้งสองครั้ง; bookmark อื่นของ A และ bookmark ของ B ต้องคงอยู่; GET list ตอบ `200` และข้าม target ที่หาย |
+| **ST06 — PUT races with target deletion** | Guide และ Summary ถูกลบระหว่างบันทึก | ทดสอบแยก Guide/Summary โดยให้ target ถูกลบหลัง target SELECT แต่ก่อน INSERT (เช่นจำลอง FK conflict ที่ constraint ของ target); DAO rollback T1 แล้วเริ่ม T2 เพื่อตรวจ target ใหม่; เมื่อยืนยันว่า target หายต้องตอบ `404 GUIDE_NOT_FOUND` หรือ `404 SUMMARY_NOT_FOUND` และห้ามตอบ saved:true; ถ้า recheck อ่าน/เขียนไม่ได้ตอบ `503 SAVED_ITEMS_UNAVAILABLE` |
+| **ST07 — Concurrent PUT without target deletion** | PUT พร้อมกันสองคำขอสำหรับ target ที่ยังอยู่ | ยิง PUT พร้อมกันสองคำขอของ user/type/id เดียวกันบน SQL Server โดยไม่มีการลบ target; ทั้งสองคำขอที่ยืนยันผลได้ตอบ `200 saved:true` และมี bookmark เพียงแถวเดียว; duplicate-key path rollback T1, begin T2, recheck target+relation; DB read/write failure ตอบ `503 SAVED_ITEMS_UNAVAILABLE` |
 
 ## 4. การทดสอบร่วมที่ยังต้องครอบคลุม
 
@@ -57,11 +62,18 @@ Duplicate message “ได้บันทึกการแบ่งปัน�
 |---|---|
 | Auth | no token / invalid / expired → `401 AUTH_REQUIRED` และ WWW-Authenticate |
 | Validation | unsupported type, ID 0, negative, float/string/bool, unknown query/body → `422 INVALID_PARAMETERS` |
-| Target missing | guide → `404 GUIDE_NOT_FOUND`; summary → `404 SUMMARY_NOT_FOUND`; ไม่มี relation ใหม่ |
+| GET state / PUT target missing | guide → `404 GUIDE_NOT_FOUND`; summary → `404 SUMMARY_NOT_FOUND`; ไม่มี relation ใหม่ |
+| DELETE target missing | `200 saved:false` ทั้งเมื่อไม่มี relation และเมื่อ target ถูกลบแล้ว; เรียกซ้ำได้ผลเดิมและไม่กระทบ bookmark อื่น |
+| GET list มี stale bookmark | ตอบ `200` และข้าม bookmark ที่อ้าง target ถูกลบ; ถ้า DB อ่านไม่ได้จริงตอบ `503 SAVED_ITEMS_UNAVAILABLE` |
+| PUT target deletion race | target FK conflict ที่คาดหมาย → rollback T1 → begin T2 → recheck target; target หายตอบ 404 ตามชนิด; target ยังอยู่แต่ไม่ยืนยัน relation หรือ DB อ่าน/เขียนไม่ได้ตอบ 503 |
+| Duplicate-key recheck | หลัง rollback T1 และ begin T2 ให้ตรวจ target กับ relation; relation มีและ target อยู่ตอบ 200 saved:true; target หายตอบ 404 ตามชนิด; recheck DB failure หรือ target ยังอยู่แต่ relation หายตอบ 503 |
 | Owner isolation | A save แล้ว B GET state เป็น false; B DELETE ไม่ลบ bookmark ของ A |
 | State durability | reload และ Login ใหม่บัญชีเดิมยังอ่าน saved state เดิม |
 | Empty list vs failure | ไม่มี bookmark = `200 {"items":[]}`; DB error = `503 SAVED_ITEMS_UNAVAILABLE` |
-| Duplicate-key recovery | unique conflict ที่เป็นคู่ key นี้เท่านั้น → rollback transaction เดิม → อ่าน relation ใหม่ใน transaction หลัง rollback; พบ relation จึงถือเป็น idempotent success; หากอ่านไม่ได้ตอบ 503 |
+| Duplicate-key recovery | unique conflict ที่เป็นคู่ key นี้เท่านั้น → rollback transaction เดิม → begin transaction ใหม่ → ตรวจ target และ relation; target อยู่และ relation พบจึงตอบ 200 saved:true; target หายตอบ 404 ตามชนิด; DB recheck ล้มเหลวหรือ target ยังอยู่แต่ relation ไม่พบตอบ 503 |
+| Stale-list DELETE | เปิด list ก่อน target ถูกลบ แล้ว DELETE จากหน้าค้าง; ต้องได้ 200 saved:false แม้ target หาย, กดซ้ำได้ผลเดิม, bookmark อื่นยังอยู่ |
+| PUT/delete race | ทดสอบ Guide และ Summary เมื่อ delete target ชนกับ PUT; เมื่อ recheck ยืนยัน target หายต้องตอบ 404 ไม่ใช่ saved:true; DB failure ต้องเป็น 503 |
+| Concurrent PUT without delete | สอง PUT พร้อมกันกับ target ที่ไม่ถูกลบ; ทั้งคู่ 200 saved:true และ relation เหลือแถวเดียว |
 | Legacy | bookmark เดิมใน `saved_guides` ยังคงอยู่; ไม่มี auto migration/copy/delete |
 | List consistency | U10 list เรียง course_code ASC, item_type ASC, item_id DESC และเปิด exact `open_path` |
 | Delete safety | ลบเฉพาะ relation; ไม่ลบ Guide/Summary/PDF/Course หรือ bookmark ของ user อื่น |
