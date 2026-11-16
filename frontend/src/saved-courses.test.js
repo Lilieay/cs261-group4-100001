@@ -7,20 +7,22 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 
 function runPage(file, services) {
   const elements = new Map(), events = {};
-  const get = selector => {
+  const document = {querySelector: get, getElementById: get, activeElement: null};
+  function get(selector) {
     if (!elements.has(selector)) elements.set(selector, {
-      value: '', dataset: {}, listeners: {}, classList: {toggle() {}}, setAttribute() {}, focus() {},
+      value: '', dataset: {}, listeners: {}, classList: {toggle() {}}, setAttribute() {},
+      focus() { document.activeElement = this; },
       querySelectorAll() { return []; },
       addEventListener(type, callback) { this.listeners[type] = callback; }
     });
     return elements.get(selector);
-  };
+  }
   const window = {...services,
     UiUtils: {escapeHtml: value => String(value).replaceAll('<', '&lt;')},
     addEventListener: (type, callback) => { events[type] = callback; }};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8'),
-    {window, document: {querySelector: get, getElementById: get}, URL, URLSearchParams, AbortController});
-  return {get, events};
+    {window, document, URL, URLSearchParams, AbortController});
+  return {get, events, document};
 }
 
 function page({saved = async () => [], savedState = async () => false} = {}) {
@@ -83,6 +85,33 @@ test('saved page prevents duplicate removal and removes a row only after API suc
   assert.match(get('#saved-list').innerHTML, /Saved summary/);
   assert.doesNotMatch(get('#saved-list').innerHTML, /Saved title/);
 });
+
+for (const focusedControl of ['#saved-search', '#saved-type', null]) {
+  test(`U10 removal respects focus on ${focusedControl || 'the initiating button'}`, async () => {
+    let finish;
+    const {get, document} = page({saved: async () => [row, summary],
+      savedState: () => new Promise(resolve => { finish = resolve; })});
+    await tick();
+    const list = get('#saved-list');
+    const button = get('#remove-guide');
+    button.dataset = {unsave: '12', itemType: 'guide'};
+    list.querySelectorAll = () => [button, get('#remove-summary')];
+    button.focus();
+    const pending = list.listeners.click({target: {closest: selector => selector === '[data-unsave]' ? button : null}});
+    assert.equal(document.activeElement, button);
+    if (focusedControl) {
+      const control = get(focusedControl);
+      control.focus();
+      control.value = focusedControl === '#saved-search' ? 'Saved' : 'summary';
+      control.listeners[focusedControl === '#saved-search' ? 'input' : 'change']();
+    }
+    finish(false);
+    await pending;
+    assert.equal(document.activeElement, get(focusedControl || '#saved-search'));
+    assert.match(list.innerHTML, /Saved summary/);
+    assert.doesNotMatch(list.innerHTML, /Saved title/);
+  });
+}
 
 test('saved page rejects stale refreshes and reloads an uncertain removal', async () => {
   let calls = 0, resolveOld;

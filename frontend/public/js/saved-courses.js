@@ -32,7 +32,7 @@
         <div class="saved-card-actions">
           <a class="saved-open" href="${e(path)}" aria-label="เปิดอ่าน${typeLabel} ${e(row.title)}">เปิดอ่าน <span aria-hidden="true">→</span></a>
           <button class="saved-button saved-remove" type="button" data-unsave="${e(row.item_id)}" data-item-type="${e(row.item_type)}"
-            ${removing ? 'disabled' : ''} aria-label="นำ ${e(row.title)} ออกจากรายการที่บันทึก">นำออก</button>
+            aria-disabled="${removing}" aria-label="นำ ${e(row.title)} ออกจากรายการที่บันทึก">นำออก</button>
         </div>
       </div>
     </article>`;
@@ -108,11 +108,13 @@
     const button = event.target.closest('[data-unsave]');
     if (!button || removing || loading) return;
     const {unsave: id, itemType} = button.dataset;
-    const index = Array.from(list.querySelectorAll('[data-unsave]')).indexOf(button);
     removing = true;
-    render();
+    list.setAttribute('aria-busy', 'true');
+    // Keep the initiating button mounted and focusable while the request runs.
+    list.querySelectorAll('[data-unsave]').forEach(control => control.setAttribute('aria-disabled', 'true'));
     status.textContent = 'กำลังนำรายการออก…';
     status.dataset.kind = '';
+    let refreshList = false;
     try {
       await window.SavedItems.state(itemType, id, false);
       rows = rows.filter(row => row.item_type !== itemType || String(row.item_id) !== id);
@@ -120,16 +122,14 @@
     } catch (error) {
       status.textContent = error.message || 'นำรายการออกไม่สำเร็จ';
       status.dataset.kind = 'error';
-      if (!error.status || error.status >= 500) {
-        removing = false;
-        await load();
-      }
+      refreshList = !error.status || error.status >= 500;
     } finally {
+      const restoreFocus = document.activeElement === button;
       removing = false;
-      render();
-      const buttons = list.querySelectorAll('[data-unsave]');
-      const nextButton = buttons[Math.min(index, buttons.length - 1)];
-      (nextButton || search).focus();
+      const reload = refreshList ? load() : null;
+      if (!reload) render();
+      if (restoreFocus) search.focus();
+      if (reload) await reload;
     }
   });
   load();
