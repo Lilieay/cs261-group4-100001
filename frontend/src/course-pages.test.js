@@ -21,7 +21,7 @@ class Element {
   querySelector() { return null; }
 }
 
-function runPage(file, {url, api, guideApi = {}, data = {}}) {
+function runPage(file, {url, api, summaryApi, guideApi = {}, data = {}}) {
   const elements = new Map();
   const get = selector => {
     if (!elements.has(selector)) elements.set(selector, new Element());
@@ -36,13 +36,14 @@ function runPage(file, {url, api, guideApi = {}, data = {}}) {
   };
   const window = {
     location: {href: url}, history: {replaceState() {}}, addEventListener() {},
-    CourseApi: api, GuideApi: {savedState: async () => false, ...guideApi}, CourseData: data
+    CourseApi: api, SummaryApi: summaryApi, GuideApi: {savedState: async () => false, ...guideApi}, CourseData: data,
+    SavedItems: {state: (_type, id, desired) => (guideApi.savedState || (async () => false))(id, desired)}
   };
   const source = fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8');
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/ui-utils.js'), 'utf8'), {window});
   window.UiUtils = {...window.UiUtils, ...data};
   vm.runInNewContext(source, {window, document, URL, URLSearchParams, AbortController, setTimeout, clearTimeout});
-  return {elements, get};
+  return {elements, get, tabs};
 }
 
 function deferred() {
@@ -50,6 +51,66 @@ function deferred() {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 }
+
+test('U6 lists summaries using the selected course and discards a guide response after switching tabs', async () => {
+  const guide = deferred();
+  const summaryCalls = [];
+  const {get, tabs} = runPage('choose-courses.js', {
+    url: 'http://frontend/choose-courses.html?courseId=7&course=CS261&type=summaries',
+    api: {getCourse: async () => ({id: 7, code: 'CS261', name: 'Software Engineering'})},
+    guideApi: {
+      filterOptions: async () => ({exam_periods: [], academic_years: [], semesters: []}),
+      list: () => guide.promise
+    },
+    summaryApi: {list: async id => {
+      summaryCalls.push(id);
+      return [{id: 41, title: 'สรุป <CS261>', owner: {display_name: 'ผู้เผยแพร่'}}];
+    }}
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(get('#filters').hidden, false);
+  assert.match(get('#documentList').innerHTML, /สรุป &lt;CS261&gt;/);
+  assert.match(get('#documentList').innerHTML, /read-summary\.html\?summary=41/);
+
+  tabs[0].listeners.click();
+  await new Promise(resolve => setImmediate(resolve));
+  tabs[1].listeners.click();
+  await new Promise(resolve => setImmediate(resolve));
+  guide.resolve([{id: '55', title: 'Stale guide'}]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(summaryCalls, [7, 7]);
+  assert.match(get('#documentList').innerHTML, /ผู้เผยแพร่/);
+  assert.doesNotMatch(get('#documentList').innerHTML, /Stale guide/);
+});
+
+test('summary filters combine year, semester and exam period while keeping old uploads in all results', async () => {
+  const owner = {display_name: 'ผู้เผยแพร่'};
+  const rows = [
+    {id: 1, title: 'Old upload', owner},
+    {id: 2, title: 'Match', academic_year: 2569, semester: 2, exam_period: 'final', owner},
+    {id: 3, title: 'Other semester', academic_year: 2569, semester: 1, exam_period: 'final', owner},
+    {id: 4, title: 'Other year', academic_year: 2568, semester: 2, exam_period: 'final', owner},
+    {id: 5, title: 'Other period', academic_year: 2569, semester: 2, exam_period: 'midterm', owner}
+  ];
+  const {get} = runPage('choose-courses.js', {
+    url: 'http://frontend/choose-courses.html?courseId=7&type=summaries',
+    api: {getCourse: async () => ({id: 7, code: 'CS261', name: 'Software Engineering'})},
+    summaryApi: {list: async () => rows}
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(get('#documentList').innerHTML, /Old upload/);
+  assert.match(get('#yearFilter').innerHTML, /2568/);
+  assert.match(get('#periodFilter').innerHTML, /ปลายภาค/);
+  get('#yearFilter').value = '2569';
+  get('#semesterFilter').value = '2';
+  get('#periodFilter').value = 'ปลายภาค';
+  get('#periodFilter').listeners.change();
+  assert.equal(get('#resultCount').textContent, 'พบ 1 เอกสาร');
+  assert.match(get('#documentList').innerHTML, /Match/);
+  assert.doesNotMatch(get('#documentList').innerHTML, /Old upload|Other/);
+  get('#clearFilters').listeners.click();
+  assert.equal(get('#resultCount').textContent, 'พบ 5 เอกสาร');
+});
 
 test('course search page keeps the newest response when an older search finishes last', async () => {
   const old = deferred();
@@ -232,7 +293,7 @@ test('course search page renders a Thai API result even when it is absent from t
 });
 
 
-test('read bookmark waits for API state, prevents duplicate writes, and toggles persisted state', async () => {
+test('read bookmark waits for API state and keeps a saved item when pressed again', async () => {
   const state = deferred(), write = deferred();
   const calls = [];
   const {get} = runPage('read-courses.js', {
@@ -255,7 +316,11 @@ test('read bookmark waits for API state, prevents duplicate writes, and toggles 
   await pending;
   assert.match(get('#readingContent').innerHTML, /aria-pressed="true"/);
   assert.match(get('#reading-status').textContent, /เพิ่มในรายวิชาที่บันทึกแล้ว/);
-  assert.match(get('#readingContent').innerHTML, /review-button" type="button" disabled/);
+  await get('#readingContent').listeners.click(click);
+  assert.equal(calls.length, 2);
+  assert.match(get('#reading-status').textContent, /ได้บันทึกการแบ่งปันนี้ไปแล้ว/);
+  assert.match(get('#readingContent').innerHTML, /review-button" type="button"/);
+  assert.doesNotMatch(get('#readingContent').innerHTML, /review-button"[^>]*disabled/);
 });
 
 test('an older filter response cannot overwrite rows later rendered by sorting', async () => {

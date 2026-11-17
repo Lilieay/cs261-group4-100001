@@ -40,6 +40,21 @@ class SummaryFileDAO:
         )
         return self.session.scalars(statement).unique().one_or_none()
 
+    def replace(
+        self,
+        summary_file: SummaryFile,
+        *,
+        storage_key: str,
+        original_name: str,
+        content_type: str,
+        size_bytes: int,
+    ) -> None:
+        summary_file.storage_key = storage_key
+        summary_file.original_name = original_name
+        summary_file.content_type = content_type
+        summary_file.size_bytes = size_bytes
+        self.session.flush()
+
     def list_storage_keys(self) -> set[str]:
         return set(self.session.scalars(select(SummaryFile.storage_key)))
 

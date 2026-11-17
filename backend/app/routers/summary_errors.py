@@ -5,7 +5,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from fastapi.routing import APIRoute
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.exceptions import HTTPException
 
 from app.schemas.guides import ErrorDetailDTO, ErrorFieldDTO, ErrorResponseDTO
 from app.services.pdf_validator import PdfValidationError
@@ -15,8 +15,34 @@ from app.services.summaries import (
     SummaryStorageUnavailable,
 )
 
-
 logger = logging.getLogger(__name__)
+
+ERRORS = {
+    "MALFORMED_REQUEST": (400, "รูปแบบคำขอไม่ถูกต้อง"),
+    "AUTH_REQUIRED": (401, "กรุณาเข้าสู่ระบบ"),
+    "SUMMARY_FORBIDDEN": (403, "ไม่มีสิทธิ์จัดการสรุปนี้"),
+    "SUMMARY_NOT_FOUND": (404, "ไม่พบสรุป"),
+    "COURSE_NOT_FOUND": (404, "ไม่พบรายวิชา CS"),
+    "PDF_TOO_LARGE": (413, "ไฟล์ PDF ต้องมีขนาดไม่เกิน 15 MB"),
+    "REQUEST_TOO_LARGE": (413, "คำขอมีขนาดใหญ่เกินกำหนด"),
+    "UNSUPPORTED_MEDIA_TYPE": (415, "ชนิดข้อมูลของคำขอไม่ถูกต้อง"),
+    "INVALID_PARAMETERS": (422, "ข้อมูลสำหรับเรียก API ไม่ถูกต้อง"),
+    "PDF_INVALID": (422, "ไฟล์ไม่ใช่ PDF ที่ถูกต้อง"),
+    "PDF_UNREADABLE": (422, "ไม่สามารถเปิดอ่านไฟล์ PDF นี้ได้"),
+    "INTERNAL_ERROR": (500, "เกิดข้อผิดพลาดภายในระบบ"),
+    "STORAGE_UNAVAILABLE": (503, "ระบบจัดเก็บข้อมูลไม่พร้อมใช้งาน"),
+}
+
+DEFAULT_CODES = {
+    400: "MALFORMED_REQUEST",
+    401: "AUTH_REQUIRED",
+    403: "SUMMARY_FORBIDDEN",
+    404: "SUMMARY_NOT_FOUND",
+    413: "REQUEST_TOO_LARGE",
+    415: "UNSUPPORTED_MEDIA_TYPE",
+    422: "INVALID_PARAMETERS",
+    503: "STORAGE_UNAVAILABLE",
+}
 
 
 class SummaryApiRoute(APIRoute):
@@ -25,81 +51,62 @@ class SummaryApiRoute(APIRoute):
 
         async def handle(request: Request) -> Response:
             try:
-                return await original_handler(request)
+                response = await original_handler(request)
             except SummaryCourseNotFound:
-                return error_response(404, "COURSE_NOT_FOUND", "ไม่พบรายวิชา CS")
+                response = _error_response("COURSE_NOT_FOUND")
             except SummaryNotFound:
-                return error_response(404, "SUMMARY_NOT_FOUND", "ไม่พบสรุป")
-            except PdfValidationError as error:
-                fields = None
-                if error.code in {"PDF_INVALID", "PDF_UNREADABLE", "PDF_TOO_LARGE"}:
-                    fields = [ErrorFieldDTO(field="file", message=error.message)]
-                return error_response(error.status_code, error.code, error.message, fields)
+                response = _error_response("SUMMARY_NOT_FOUND")
             except SummaryStorageUnavailable:
-                return error_response(
-                    503,
-                    "STORAGE_UNAVAILABLE",
-                    "ไม่สามารถจัดเก็บหรืออ่านข้อมูลสรุปได้ในขณะนี้",
+                response = _error_response("STORAGE_UNAVAILABLE")
+            except PdfValidationError as error:
+                fields = (
+                    [ErrorFieldDTO(field="file", message=error.message)]
+                    if error.code in {"PDF_INVALID", "PDF_UNREADABLE", "PDF_TOO_LARGE"}
+                    else None
                 )
-            except StarletteHTTPException as error:
-                return _http_error(error)
+                response = _error_response(error.code, fields=fields, message=error.message)
             except RequestValidationError as error:
                 fields = [
                     ErrorFieldDTO(
-                        field=".".join(str(part) for part in detail["loc"][1:]),
-                        message=detail["msg"],
+                        field=".".join(str(part) for part in item["loc"][1:]),
+                        message=item["msg"],
                     )
-                    for detail in error.errors()
+                    for item in error.errors()
                 ]
-                return error_response(
-                    422,
-                    "INVALID_PARAMETERS",
-                    "ข้อมูลสำหรับเรียก API ไม่ถูกต้อง",
-                    fields,
-                )
+                response = _error_response("INVALID_PARAMETERS", fields=fields)
+            except HTTPException as error:
+                code = DEFAULT_CODES.get(error.status_code, "INTERNAL_ERROR")
+                if (
+                    isinstance(error.detail, str)
+                    and error.detail in ERRORS
+                    and ERRORS[error.detail][0] == error.status_code
+                ):
+                    code = error.detail
+                response = _error_response(code, headers=error.headers)
             except Exception:
-                logger.exception("Unexpected error in U6 summary API")
-                return error_response(500, "INTERNAL_ERROR", "เกิดข้อผิดพลาดภายในระบบ")
+                logger.exception("Unexpected error in summary API")
+                response = _error_response("INTERNAL_ERROR")
+
+            response.headers["Cache-Control"] = "no-store"
+            return response
 
         return handle
 
 
-def error_response(
-    status_code: int,
+def _error_response(
     code: str,
-    message: str,
+    *,
     fields: list[ErrorFieldDTO] | None = None,
     headers: dict[str, str] | None = None,
+    message: str | None = None,
 ) -> JSONResponse:
+    status_code, default_message = ERRORS[code]
     body = ErrorResponseDTO(
-        error=ErrorDetailDTO(code=code, message=message, fields=fields or [])
+        error=ErrorDetailDTO(code=code, message=message or default_message, fields=fields or [])
     )
-    return JSONResponse(
-        content=body.model_dump(), status_code=status_code, headers=headers
+    response = JSONResponse(
+        status_code=status_code, content=body.model_dump(), headers=headers
     )
-
-
-def _http_error(error: StarletteHTTPException) -> JSONResponse:
-    if error.status_code == 400:
-        return error_response(400, "MALFORMED_REQUEST", "รูปแบบคำขอไม่ถูกต้อง")
-    if error.status_code == 415:
-        return error_response(415, "UNSUPPORTED_MEDIA_TYPE", "ชนิดข้อมูลของคำขอไม่ถูกต้อง")
-    if error.status_code == 401:
-        return error_response(
-            401,
-            "AUTH_REQUIRED",
-            "กรุณาเข้าสู่ระบบก่อนใช้งาน",
-            headers=error.headers,
-        )
-    if error.status_code == 404:
-        return error_response(404, "SUMMARY_NOT_FOUND", "ไม่พบสรุป")
-    if error.status_code == 413:
-        return error_response(413, "REQUEST_TOO_LARGE", "คำขอมีขนาดใหญ่เกินกำหนด")
-    return error_response(
-        error.status_code,
-        "INVALID_PARAMETERS" if error.status_code == 422 else "INTERNAL_ERROR",
-        "ข้อมูลสำหรับเรียก API ไม่ถูกต้อง"
-        if error.status_code == 422
-        else "เกิดข้อผิดพลาดภายในระบบ",
-        headers=error.headers,
-    )
+    if status_code == 401:
+        response.headers["WWW-Authenticate"] = "Bearer"
+    return response

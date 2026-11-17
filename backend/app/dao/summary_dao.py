@@ -16,6 +16,10 @@ class SummaryDAO:
         owner_id: int,
         title: str,
         description: str | None,
+        *,
+        academic_year: int | None = None,
+        semester: int | None = None,
+        exam_period: str | None = None,
     ) -> Summary:
         created_at = utc_now_naive()
         summary = Summary(
@@ -23,6 +27,9 @@ class SummaryDAO:
             owner_id=owner_id,
             title=title,
             description=description,
+            academic_year=academic_year,
+            semester=semester,
+            exam_period=exam_period,
             created_at=created_at,
             updated_at=created_at,
         )

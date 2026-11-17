@@ -18,8 +18,6 @@
     return user;
   }
 
-  window.currentUserReady = loadUser();
-
   document.querySelectorAll('[data-logout]').forEach(button => {
     button.addEventListener('click', async () => {
       if (loggingOut) return;
@@ -47,9 +45,10 @@
     });
   });
 
-  async function renderProfile() {
+  async function renderProfile(profile) {
     try {
-      const user = await window.currentUserReady;
+      const user = await profile;
+      if (profile !== window.currentUserReady) return;
       if (!user) {
         document.querySelectorAll('[data-user-name]').forEach(el => { el.textContent = 'เข้าสู่ระบบ'; });
         document.querySelectorAll('[data-profile-link]').forEach(el => { el.href = 'login.html'; });
@@ -60,11 +59,19 @@
       document.querySelectorAll('[data-user-name]').forEach(el => { el.textContent = name; });
       document.querySelectorAll('[data-user-id]').forEach(el => { el.textContent = user.username; });
       document.querySelectorAll('[data-user-avatar]').forEach(el => { el.textContent = Array.from(name)[0] || '?'; });
+      const status = document.getElementById('profile-status');
+      if (status) status.textContent = '';
     } catch (_) {
+      if (profile !== window.currentUserReady) return;
       document.querySelectorAll('[data-user-name]').forEach(el => { el.textContent = 'โหลดข้อมูลไม่ได้'; });
       const status = document.getElementById('profile-status');
       if (status) status.textContent = 'โหลดข้อมูลไม่ได้ กรุณารีเฟรชหน้าเพื่อลองใหม่';
     }
   }
-  renderProfile();
+  window.refreshCurrentUser = () => {
+    const profile = window.currentUserReady = loadUser();
+    renderProfile(profile);
+    return profile;
+  };
+  window.refreshCurrentUser();
 })();

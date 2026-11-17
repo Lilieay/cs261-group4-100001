@@ -1,9 +1,15 @@
 import asyncio
 
+import pytest
+
 from app.middleware.pdf_upload_limit import PdfUploadSizeLimitMiddleware
 
 
-def test_rejects_chunked_body_that_exceeds_limit_without_content_length():
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [("POST", "/api/summaries"), ("PUT", "/api/summaries/1")],
+)
+def test_rejects_chunked_body_that_exceeds_limit_without_content_length(method, path):
     messages = iter(
         [
             {"type": "http.request", "body": b"123", "more_body": True},
@@ -28,8 +34,8 @@ def test_rejects_chunked_body_that_exceeds_limit_without_content_length():
         middleware(
             {
                 "type": "http",
-                "method": "POST",
-                "path": "/api/summaries",
+                "method": method,
+                "path": path,
                 "headers": [],
             },
             receive,

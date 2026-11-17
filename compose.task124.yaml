@@ -1,0 +1,28 @@
+# Extend the existing stack for isolated U10 tests with two mock accounts.
+services:
+  backend:
+    environment:
+      TU_API_MODE: mock
+  backend-b:
+    extends:
+      file: compose.yaml
+      service: backend
+    environment:
+      TU_API_MODE: mock
+      TU_MOCK_USERNAME: "6800000001"
+    ports: !override
+      - "127.0.0.1:32801:8000"
+    depends_on:
+      backend:
+        condition: service_healthy
+  frontend-b:
+    extends:
+      file: compose.yaml
+      service: frontend
+    environment:
+      BACKEND_URL: "http://backend-b:8000"
+    ports: !override
+      - "127.0.0.1:29801:5000"
+    depends_on: !override
+      backend-b:
+        condition: service_healthy

@@ -11,20 +11,16 @@
   <link rel="stylesheet" href="/css/read-courses.css">
   <link rel="stylesheet" href="/css/guide-actions.css">
   <link rel="stylesheet" href="/css/profile.css">
+  <link rel="stylesheet" href="/css/reviews-list.css">
   <script src="/js/login-config.js" defer></script>
   <script src="/js/ui-utils.js" defer></script>
   <script src="/js/http-client.js" defer></script>
   <script src="/js/profile.js" defer></script>
-  <script src="/js/upload-config.js" defer></script>
-  <script src="/js/guide-api.js" defer></script>
+  <script src="/js/reviews.js" defer></script>
+  <script src="/js/saved-items.js" defer></script>
   <script src="/js/saved-courses.js" defer></script>
 </head>
 <body>
-  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <symbol id="i-back" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7 7 12l5 5M7 12h10"/></symbol>
-    <symbol id="i-save" viewBox="0 0 24 24"><path d="M4 4h14l2 2v14H4zM8 4v6h8V4M8 20v-6h8v6"/></symbol>
-  </svg>
-
   <header class="topbar">
     <a class="brand" href="courses.html" aria-label="หน้าแรก">
       <svg class="icon brand-icon"><use href="/assets/icons/navbar.svg#i-file"/></svg>
@@ -46,17 +42,31 @@
 </div>
   </header>
 
-  <main class="page">
+  <main class="page saved-page">
     <section class="saved-content">
       <h1>รายวิชาที่บันทึก</h1>
-      <p class="saved-intro">แนวข้อสอบที่คุณเก็บไว้อ่านภายหลัง</p>
+      <p class="saved-intro">แนวข้อสอบและสรุปเนื้อหาที่คุณเก็บไว้อ่านภายหลัง</p>
       <form id="saved-search-form" class="saved-search" role="search">
-        <label for="saved-search">ค้นหาในรายการที่บันทึก</label>
-        <input id="saved-search" type="search" placeholder="รหัสวิชา ชื่อวิชา หรือชื่อแนวข้อสอบ" autocomplete="off">
+        <div class="saved-query">
+          <label for="saved-search">ค้นหาในรายการที่บันทึก</label>
+          <input id="saved-search" type="search" placeholder="รหัสวิชา ชื่อวิชา หรือชื่อเอกสาร" autocomplete="off">
+        </div>
+        <div class="saved-toolbar">
+          <p id="saved-count" aria-live="polite"></p>
+          <div class="saved-type-filter">
+            <label for="saved-type">ประเภทเอกสาร</label>
+            <select id="saved-type">
+              <option value="">ทั้งหมด</option>
+              <option value="guide">แนวข้อสอบ</option>
+              <option value="summary">สรุปเนื้อหา</option>
+            </select>
+          </div>
+        </div>
       </form>
-      <p id="saved-count" aria-live="polite"></p>
-      <p id="saved-status" class="guide-action-status" role="status"></p>
-      <div id="saved-list"></div>
+      <section class="saved-results" aria-label="รายการเอกสารที่บันทึก">
+        <p id="saved-status" class="guide-action-status" role="status"></p>
+        <div id="saved-list"></div>
+      </section>
     </section>
   </main>
 

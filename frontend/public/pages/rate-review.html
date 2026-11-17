@@ -1,0 +1,33 @@
+<template id="review-form-template">
+    <form class="review-editor" novalidate>
+      <fieldset class="review-rating" data-review-rating>
+        <legend>คะแนนของคุณ <span class="review-required" aria-hidden="true">*</span></legend>
+        <div class="review-rating-options">
+          <label><input type="radio" name="rating" value="1" id="star-1" required aria-label="1 ดาว"><span data-review-star-icon aria-hidden="true"></span></label>
+          <label><input type="radio" name="rating" value="2" id="star-2" required aria-label="2 ดาว"><span data-review-star-icon aria-hidden="true"></span></label>
+          <label><input type="radio" name="rating" value="3" id="star-3" required aria-label="3 ดาว"><span data-review-star-icon aria-hidden="true"></span></label>
+          <label><input type="radio" name="rating" value="4" id="star-4" required aria-label="4 ดาว"><span data-review-star-icon aria-hidden="true"></span></label>
+          <label><input type="radio" name="rating" value="5" id="star-5" required aria-label="5 ดาว"><span data-review-star-icon aria-hidden="true"></span></label>
+        </div>
+        <p class="review-selected-rating" aria-live="polite" data-review-rating-value>เลือกคะแนน 1 ถึง 5 ดาว</p>
+      </fieldset>
+
+      <div class="review-comment-field" data-review-comment-field>
+        <label for="review-comment">ความคิดเห็น <span>(ไม่บังคับ)</span></label>
+        <textarea id="review-comment" name="comment" rows="2" placeholder="เอกสารนี้ช่วยคุณอย่างไรบ้าง?"></textarea>
+      </div>
+
+      <section class="review-delete-prompt" data-review-delete-prompt aria-labelledby="review-delete-title" hidden>
+        <h3 id="review-delete-title" tabindex="-1">ลบรีวิวของคุณ?</h3>
+        <p>หลังลบแล้ว คุณสามารถกลับมาให้คะแนนอีกครั้งได้</p>
+      </section>
+
+      <div class="review-editor-actions">
+        <button class="review-control review-remove-button" type="button" data-review-action="delete" hidden>ลบรีวิว</button>
+        <button class="review-control" type="button" data-review-action="cancel-editor" hidden>ยกเลิก</button>
+        <button class="review-control review-control-primary" type="submit">บันทึกคะแนน</button>
+        <button class="review-control" type="button" data-review-action="cancel-delete" hidden>ยกเลิก</button>
+        <button class="review-control review-control-primary" type="button" data-review-action="confirm-delete" hidden>ยืนยันการลบ</button>
+      </div>
+    </form>
+</template>

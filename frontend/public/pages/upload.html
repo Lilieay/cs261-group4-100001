@@ -21,32 +21,6 @@
   <script src="/js/guide-api.js" defer></script>
   <script src="/js/profile.js" defer></script>
   <script src="/js/upload.js" defer></script>
-  <style>
-    .form-group label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      flex-wrap: nowrap;
-      white-space: nowrap;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #1e293b;
-    }
-
-    .required {
-      color: #e11d48;
-      font-weight: 700;
-    }
-
-    /* ปรับแต่งปุ่มยกเลิกที่เป็นแท็ก <a> ให้แสดงผลเหมือนปุ่ม */
-    .btn-cancel {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-      box-sizing: border-box;
-    }
-  </style>
 </head>
 
 <body>
@@ -91,15 +65,20 @@
   </header>
 
   <!-- Main Content -->
-  <main class="page">
-    <section class="content">
+  <main class="publish-page">
+    <a class="publish-back" href="courses.html" aria-label="กลับหน้าค้นหารายวิชา"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m12 8-4 4 4 4m-4-4h8"/></svg></a>
+    <div class="publish-content">
+      <nav class="summary-tabs" aria-label="ประเภทเอกสารที่จะเผยแพร่">
+        <a href="upload.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="/assets/icons/navbar.svg#i-upload"/></svg>เผยแพร่แนวข้อสอบวิชา CS</a>
+        <a href="upload-summary.html"><svg class="icon" aria-hidden="true"><use href="/assets/icons/navbar.svg#i-shared"/></svg>เผยแพร่สรุปเนื้อหารายวิชา CS</a>
+      </nav>
       <div class="page-header">
         <h1>เผยแพร่แนวข้อสอบวิชา CS</h1>
         <p>กรอกข้อมูลแนวข้อสอบของคุณเพื่อเป็นประโยชน์แก่เพื่อนๆ นักศึกษามหาวิทยาลัยธรรมศาสตร์ (โปรดกรอก/เลือก
           ในหัวข้อที่มี <span class="required">*</span> ให้ครบถ้วน)</p>
       </div>
 
-      <p id="publish-mode" class="publish-mode">กำลังเตรียมข้อมูล…</p>
+      <p id="publish-mode" class="publish-mode" hidden></p>
       <noscript>
         <p class="publish-notice">กรุณาเปิด JavaScript เพื่อใช้งานฟอร์มเผยแพร่</p>
       </noscript>
@@ -218,28 +197,27 @@
                 </div>
               </div>
               <p class="upload-count-hint">เว้นว่างเมื่อไม่ระบุจำนวนข้อ เลือกอัตนัยหรือปรนัยเพื่อกรอกเฉพาะประเภทนั้น</p>
+            </div>
+
+            <!-- ฝั่งขวา: หัวข้อที่ออกสอบและคำแนะนำ -->
+            <div class="form-column">
               <div class="form-group">
                 <label for="exam-topics">หัวข้อที่ออกสอบ <span class="required">*</span></label>
                 <textarea id="exam-topics" name="topics" rows="3" maxlength="2000" placeholder="หัวข้อที่ออกสอบ"
                   required aria-describedby="exam-topics-error"></textarea>
                 <small id="exam-topics-error" class="upload-field-error" hidden></small>
               </div>
-            </div>
-
-            <!-- ฝั่งขวา: คำแนะนำและปุ่มกด -->
-            <div class="form-column form-column-right">
               <div class="form-group full-height">
                 <label for="note">คำแนะนำ / ข้อสังเกตเพิ่มเติม</label>
                 <textarea id="note" name="note" maxlength="2000" placeholder="คำแนะนำ"
                   aria-describedby="note-error"></textarea>
                 <small id="note-error" class="upload-field-error" hidden></small>
               </div>
-
-              <div class="form-actions">
-                <a href="courses.html" class="btn-cancel">ยกเลิก</a>
-                <button type="submit" class="btn-submit" id="publish-submit">เผยแพร่</button>
-              </div>
             </div>
+          </div>
+          <div class="form-actions">
+            <a href="courses.html" class="btn-cancel">ยกเลิก</a>
+            <button type="submit" class="btn-submit" id="publish-submit">เผยแพร่</button>
           </div>
         </fieldset>
       </form>
@@ -247,7 +225,7 @@
         <p id="publish-success-text"></p>
         <a id="published-link" href="courses.html">เปิดรายละเอียดแนวข้อสอบ</a>
       </section>
-    </section>
+    </div>
   </main>
 
   <!-- Site Footer -->

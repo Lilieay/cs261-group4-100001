@@ -1,0 +1,551 @@
+{
+  "passed": true,
+  "cleanupPassed": true,
+  "primaryFailure": null,
+  "cleanupErrors": [],
+  "remainingFixtures": [],
+  "sourceSha": "a94550388b0c4d1bdfc5080eb9adfb04264d4eaf",
+  "environment": {
+    "browser": "142.0.7444.176",
+    "expiringBackend": {
+      "project": "cs261-task127-0c63713",
+      "service": "backend-expiring",
+      "running": true,
+      "ports": {
+        "8000/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "34803"
+          }
+        ]
+      },
+      "mode": "mock",
+      "ttl": "1"
+    },
+    "docker": "29.8.2",
+    "sqlServer": "16.0.4305.5"
+  },
+  "project": "cs261-task127-0c63713",
+  "date": "2026-11-17T13:30:05.664Z",
+  "authMode": "TU mock; three role accounts plus a real 1-second session for TTL expiry",
+  "uat": {
+    "status": "PENDING",
+    "reason": "No PO acceptance session performed"
+  },
+  "cases": [
+    {
+      "tc": "U8-TC01",
+      "kind": "guide",
+      "expected": "5 stars with text persists; another logged-in user reads the same review",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC01.png"
+      ],
+      "actual": {
+        "reviewId": 29,
+        "sql": [
+          29,
+          3,
+          1005,
+          null,
+          5,
+          "อ่านง่ายและตรงประเด็น"
+        ],
+        "visibleToThirdUser": true,
+        "reloaded": true,
+        "newSession": true
+      }
+    },
+    {
+      "tc": "U8-TC02",
+      "kind": "guide",
+      "expected": "1 and 5 stars without comment save null and survive reload",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC02-1-stars.png",
+        "guide-U8-TC02-5-stars.png"
+      ],
+      "actual": [
+        {
+          "id": 30,
+          "rating": 1,
+          "comment": null,
+          "sql": [
+            30,
+            3,
+            1005,
+            null,
+            1,
+            null
+          ]
+        },
+        {
+          "id": 31,
+          "rating": 5,
+          "comment": null,
+          "sql": [
+            31,
+            3,
+            1005,
+            null,
+            5,
+            null
+          ]
+        }
+      ]
+    },
+    {
+      "tc": "U8-TC03",
+      "kind": "guide",
+      "expected": "UI blocks missing stars; POST and PUT reject missing/0/6/-1/2.5 and preserve data",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC03.png"
+      ],
+      "actual": {
+        "uiPostsWithoutRating": 0,
+        "rejectedRatings": [
+          "missing",
+          0,
+          6,
+          -1,
+          2.5
+        ],
+        "unchangedSql": [
+          32,
+          3,
+          1005,
+          null,
+          4,
+          "เดิม"
+        ]
+      }
+    },
+    {
+      "tc": "U8-TC04",
+      "kind": "guide",
+      "expected": "stars-only, text-only and both edits keep review ID/author/target; clearing text works",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC04.png"
+      ],
+      "actual": [
+        {
+          "id": 32,
+          "author": 3,
+          "rating": 3,
+          "comment": "เดิม",
+          "target": 1005
+        },
+        {
+          "id": 32,
+          "author": 3,
+          "rating": 3,
+          "comment": "ข้อความใหม่",
+          "target": 1005
+        },
+        {
+          "id": 32,
+          "author": 3,
+          "rating": 4,
+          "comment": "แก้ทั้งสอง",
+          "target": 1005
+        },
+        {
+          "id": 32,
+          "author": 3,
+          "rating": 4,
+          "comment": null,
+          "target": 1005
+        }
+      ]
+    },
+    {
+      "tc": "U8-TC05",
+      "kind": "guide",
+      "expected": "cancel preserves own review; delete removes only own while another reviewer and content remain",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC05.png"
+      ],
+      "actual": {
+        "deletedId": 32,
+        "getStatus": 200,
+        "remainingReviewIds": [
+          33
+        ],
+        "visibleOtherReviews": 1,
+        "otherReviewSql": [
+          33,
+          4,
+          1005,
+          null,
+          3,
+          "รีวิวของ X"
+        ],
+        "newReviewId": 34,
+        "contentUnchanged": true
+      }
+    },
+    {
+      "tc": "U8-TC06",
+      "kind": "guide",
+      "expected": "other user cannot mutate; missing and genuinely TTL-expired tokens reject POST/PUT/DELETE; forged author rejected",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC06.png"
+      ],
+      "actual": {
+        "thirdUser": 4,
+        "unchangedSql": [
+          34,
+          3,
+          1005,
+          null,
+          4,
+          "หลังลบสร้างใหม่"
+        ],
+        "expiredSessionTtlSeconds": 1,
+        "missingAndExpiredRejected": true
+      }
+    },
+    {
+      "tc": "U8-TC07",
+      "kind": "guide",
+      "expected": "owner UI has no add button; direct self-review is 403 and does not write",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC07.png"
+      ],
+      "actual": {
+        "httpStatus": 403,
+        "error": "SELF_REVIEW_FORBIDDEN",
+        "ownerAddButtonVisible": false
+      }
+    },
+    {
+      "tc": "U8-TC08",
+      "kind": "guide",
+      "expected": "duplicate POST is 409 and preserves original review; works remain isolated",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC08.png"
+      ],
+      "actual": {
+        "httpStatus": 409,
+        "error": "REVIEW_ALREADY_EXISTS",
+        "unchangedSql": [
+          34,
+          3,
+          1005,
+          null,
+          4,
+          "หลังลบสร้างใหม่"
+        ],
+        "controlCount": 0
+      }
+    },
+    {
+      "tc": "U8-TC09",
+      "kind": "guide",
+      "expected": "SQL create/update/delete failure retains data and UI error; deleted target/review return 404",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "guide-U8-TC09.png"
+      ],
+      "actual": {
+        "refreshedReview": {
+          "id": 34,
+          "target_type": "guide",
+          "target_id": 1005,
+          "rating": 4,
+          "comment": "หลังลบสร้างใหม่",
+          "author": {
+            "id": 3,
+            "display_name": "Student User"
+          },
+          "created_at": "2026-11-17T13:29:02.648000Z",
+          "updated_at": "2026-11-17T13:29:02.648000Z"
+        },
+        "originalVisibleAfterCancel": true,
+        "missingCodes": {
+          "GET": "GUIDE_NOT_FOUND",
+          "POST": "GUIDE_NOT_FOUND",
+          "PUT": "REVIEW_NOT_FOUND",
+          "DELETE": "REVIEW_NOT_FOUND"
+        },
+        "sqlCreateUpdateDeleteRejected": true,
+        "targetRemoved": true,
+        "deletedReview": null,
+        "deletedOtherReview": null,
+        "controlCount": 0
+      }
+    },
+    {
+      "tc": "U8-TC01",
+      "kind": "summary",
+      "expected": "5 stars with text persists; another logged-in user reads the same review",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC01.png"
+      ],
+      "actual": {
+        "reviewId": 36,
+        "sql": [
+          36,
+          3,
+          null,
+          1002,
+          5,
+          "อ่านง่ายและตรงประเด็น"
+        ],
+        "visibleToThirdUser": true,
+        "reloaded": true,
+        "newSession": true
+      }
+    },
+    {
+      "tc": "U8-TC02",
+      "kind": "summary",
+      "expected": "1 and 5 stars without comment save null and survive reload",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC02-1-stars.png",
+        "summary-U8-TC02-5-stars.png"
+      ],
+      "actual": [
+        {
+          "id": 37,
+          "rating": 1,
+          "comment": null,
+          "sql": [
+            37,
+            3,
+            null,
+            1002,
+            1,
+            null
+          ]
+        },
+        {
+          "id": 38,
+          "rating": 5,
+          "comment": null,
+          "sql": [
+            38,
+            3,
+            null,
+            1002,
+            5,
+            null
+          ]
+        }
+      ]
+    },
+    {
+      "tc": "U8-TC03",
+      "kind": "summary",
+      "expected": "UI blocks missing stars; POST and PUT reject missing/0/6/-1/2.5 and preserve data",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC03.png"
+      ],
+      "actual": {
+        "uiPostsWithoutRating": 0,
+        "rejectedRatings": [
+          "missing",
+          0,
+          6,
+          -1,
+          2.5
+        ],
+        "unchangedSql": [
+          39,
+          3,
+          null,
+          1002,
+          4,
+          "เดิม"
+        ]
+      }
+    },
+    {
+      "tc": "U8-TC04",
+      "kind": "summary",
+      "expected": "stars-only, text-only and both edits keep review ID/author/target; clearing text works",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC04.png"
+      ],
+      "actual": [
+        {
+          "id": 39,
+          "author": 3,
+          "rating": 3,
+          "comment": "เดิม",
+          "target": 1002
+        },
+        {
+          "id": 39,
+          "author": 3,
+          "rating": 3,
+          "comment": "ข้อความใหม่",
+          "target": 1002
+        },
+        {
+          "id": 39,
+          "author": 3,
+          "rating": 4,
+          "comment": "แก้ทั้งสอง",
+          "target": 1002
+        },
+        {
+          "id": 39,
+          "author": 3,
+          "rating": 4,
+          "comment": null,
+          "target": 1002
+        }
+      ]
+    },
+    {
+      "tc": "U8-TC05",
+      "kind": "summary",
+      "expected": "cancel preserves own review; delete removes only own while another reviewer and content remain",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC05.png"
+      ],
+      "actual": {
+        "deletedId": 39,
+        "getStatus": 200,
+        "remainingReviewIds": [
+          40
+        ],
+        "visibleOtherReviews": 1,
+        "otherReviewSql": [
+          40,
+          4,
+          null,
+          1002,
+          3,
+          "รีวิวของ X"
+        ],
+        "newReviewId": 41,
+        "contentUnchanged": true
+      }
+    },
+    {
+      "tc": "U8-TC06",
+      "kind": "summary",
+      "expected": "other user cannot mutate; missing and genuinely TTL-expired tokens reject POST/PUT/DELETE; forged author rejected",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC06.png"
+      ],
+      "actual": {
+        "thirdUser": 4,
+        "unchangedSql": [
+          41,
+          3,
+          null,
+          1002,
+          4,
+          "หลังลบสร้างใหม่"
+        ],
+        "expiredSessionTtlSeconds": 1,
+        "missingAndExpiredRejected": true
+      }
+    },
+    {
+      "tc": "U8-TC07",
+      "kind": "summary",
+      "expected": "owner UI has no add button; direct self-review is 403 and does not write",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC07.png"
+      ],
+      "actual": {
+        "httpStatus": 403,
+        "error": "SELF_REVIEW_FORBIDDEN",
+        "ownerAddButtonVisible": false
+      }
+    },
+    {
+      "tc": "U8-TC08",
+      "kind": "summary",
+      "expected": "duplicate POST is 409 and preserves original review; works remain isolated",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC08.png"
+      ],
+      "actual": {
+        "httpStatus": 409,
+        "error": "REVIEW_ALREADY_EXISTS",
+        "unchangedSql": [
+          41,
+          3,
+          null,
+          1002,
+          4,
+          "หลังลบสร้างใหม่"
+        ],
+        "controlCount": 0
+      }
+    },
+    {
+      "tc": "U8-TC09",
+      "kind": "summary",
+      "expected": "SQL create/update/delete failure retains data and UI error; deleted target/review return 404",
+      "status": "PASS",
+      "level": "System/E2E",
+      "evidence": [
+        "summary-U8-TC09.png"
+      ],
+      "actual": {
+        "refreshedReview": {
+          "id": 41,
+          "target_type": "summary",
+          "target_id": 1002,
+          "rating": 4,
+          "comment": "หลังลบสร้างใหม่",
+          "author": {
+            "id": 3,
+            "display_name": "Student User"
+          },
+          "created_at": "2026-11-17T13:29:45.946000Z",
+          "updated_at": "2026-11-17T13:29:45.946000Z"
+        },
+        "originalVisibleAfterCancel": true,
+        "missingCodes": {
+          "GET": "SUMMARY_NOT_FOUND",
+          "POST": "SUMMARY_NOT_FOUND",
+          "PUT": "REVIEW_NOT_FOUND",
+          "DELETE": "REVIEW_NOT_FOUND"
+        },
+        "sqlCreateUpdateDeleteRejected": true,
+        "targetRemoved": true,
+        "deletedReview": null,
+        "deletedOtherReview": null,
+        "controlCount": 0
+      }
+    }
+  ]
+}

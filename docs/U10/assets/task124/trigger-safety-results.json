@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "project": "cs261-task124-d854470",
+  "sourceSha": "ee56764bb03f74599e4c9b84b1f878820664a822",
+  "date": "2026-11-16T19:05:35.195Z",
+  "results": [
+    "main script rejects preexisting trigger before Login/fixtures; original ID and definition preserved",
+    "trigger created by current run removed in finally after injected assertion failure"
+  ]
+}

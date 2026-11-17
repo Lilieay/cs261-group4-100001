@@ -45,7 +45,7 @@ test('guide read client uses the same-origin proxy while publish remains in prev
 
   const detail = await client.api.read(12, 'CS261');
   assert.equal(detail.course.course_code, 'CS261');
-  assert.equal(client.calls[0][0], '/api/guides/guides/12');
+  assert.equal(client.calls[0][0], '/api/guides/12');
   assert.equal(client.calls[0][1].headers.Authorization, 'Bearer test-token');
   await assert.rejects(client.api.publish({}, 'CS261'), /ยังไม่ได้เปิดโหมด API/);
 });

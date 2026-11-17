@@ -17,6 +17,7 @@ from app.schemas.summaries import (
     CourseSummaryListResponse,
     SummaryCourseDTO,
     SummaryDTO,
+    SummaryExamMetadata,
     SummaryFileDTO,
     SummaryOwnerDTO,
 )
@@ -70,6 +71,7 @@ class SummaryService:
         content_type: str | None,
         content: bytes,
         authenticated_user: AuthenticatedUser,
+        exam_metadata: SummaryExamMetadata | None = None,
     ) -> SummaryDTO:
         normalized_title = title.strip()
         normalized_description = (description or "").strip() or None
@@ -113,6 +115,7 @@ class SummaryService:
                 owner_pk,
                 normalized_title,
                 normalized_description,
+                **(exam_metadata.model_dump() if exam_metadata else {}),
             )
             summary_file = self.summary_file_dao.create(
                 summary_id=summary.id,
@@ -121,7 +124,7 @@ class SummaryService:
                 content_type=stored_file.content_type,
                 size_bytes=stored_file.size_bytes,
             )
-            response = self._to_dto(summary, course, owner, summary_file)
+            response = self.to_dto(summary, course, owner, summary_file)
             self.session.commit()
             return response
         except SQLAlchemyError as error:
@@ -141,7 +144,7 @@ class SummaryService:
             if any(summary.file is None for summary in summaries):
                 raise SummaryStorageUnavailable("Summary file metadata is missing")
             items = [
-                self._to_dto(summary, summary.course, summary.owner, summary.file)
+                self.to_dto(summary, summary.course, summary.owner, summary.file)
                 for summary in summaries
             ]
             return CourseSummaryListResponse(course_id=course.id, items=items)
@@ -153,7 +156,7 @@ class SummaryService:
             summary = self.summary_dao.get_by_id(summary_id)
             if summary is None or summary.file is None:
                 raise SummaryNotFound
-            return self._to_dto(
+            return self.to_dto(
                 summary, summary.course, summary.owner, summary.file
             )
         except SQLAlchemyError as error:
@@ -186,7 +189,7 @@ class SummaryService:
 
         if persisted_file is not None:
             summary = persisted_file.summary
-            return self._to_dto(
+            return self.to_dto(
                 summary,
                 summary.course,
                 summary.owner,
@@ -218,7 +221,7 @@ class SummaryService:
             )
 
     @staticmethod
-    def _to_dto(
+    def to_dto(
         summary: Summary,
         course: Course,
         owner: User,
@@ -235,6 +238,9 @@ class SummaryService:
             ),
             title=summary.title,
             description=summary.description,
+            academic_year=summary.academic_year,
+            semester=summary.semester,
+            exam_period=summary.exam_period,
             owner=SummaryOwnerDTO(
                 id=owner.id, display_name=format_publisher_name(owner)
             ),

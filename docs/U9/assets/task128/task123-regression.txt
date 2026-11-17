@@ -1,0 +1,11 @@
+PASS guide: UI GET/PUT, repeat save, reload, fresh login and account isolation
+PASS guide: concurrent first PUTs both return 200 and leave one row
+PASS guide: real SQL rejection keeps A saved, B unsaved and shows the error
+PASS guide: lost Browser response prompts GET and SQL confirms saved with uncertainty message
+PASS guide: deleted target returns typed 404 and leaves no bookmarks
+PASS summary: UI GET/PUT, repeat save, reload, fresh login and account isolation
+PASS summary: concurrent first PUTs both return 200 and leave one row
+PASS summary: real SQL rejection keeps A saved, B unsaved and shows the error
+PASS summary: lost Browser response prompts GET and SQL confirms saved with uncertainty message
+PASS summary: deleted target returns typed 404 and leaves no bookmarks
+PASS cleanup restored SQL fixture tables and original PDF volume contents

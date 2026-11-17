@@ -276,15 +276,44 @@ h1 {
   font-size: 12px;
 }
 
-.rating {
-  color: #8b5a00;
-  font-size: 15px;
-  white-space: nowrap;
+.document-actions {
+  display: grid;
+  align-content: space-between;
+  justify-items: end;
+  flex: 0 0 auto;
+  gap: 9px;
+  align-self: stretch;
 }
 
-.rating span {
-  color: #987b77;
+.document-review-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 27px;
+  padding: 3px 8px;
+  border: 1px solid #bf9a94;
+  border-radius: 4px;
+  background: #fff1ef;
+  color: #674741;
+  font: inherit;
   font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.document-review-button:hover {
+  background: #fce1df;
+  border-color: #a77b74;
+}
+
+.document-review-button [data-review-card-score] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-inline-end: 6px;
+  border-inline-end: 1px solid #d9b3af;
+  --star-size: 13px;
 }
 
 .view-button {
@@ -504,6 +533,12 @@ h1 {
 
   .document-card {
     flex-direction: column;
+  }
+
+  .document-actions {
+    grid-auto-flow: column;
+    align-items: center;
+    align-self: flex-end;
   }
 
   .view-button {

@@ -1,0 +1,39 @@
+{
+  "appSha": "0c63713d6764e95b7f19a8edc980b3420d2e8f13",
+  "testRunnerSha": "082d5567e3c997cc6483605e5859d9bbcefa7045",
+  "runnerFile": "scripts/task129-u10-boundary-check.cjs",
+  "project": "cs261-task124-0c63713",
+  "authMode": "TU mock account A; browser login; SQL Server real",
+  "failureInjection": {
+    "secondPutResponse": false,
+    "cleanupRequest": true
+  },
+  "cases": [
+    {
+      "id": "U10-TC01",
+      "expected": "PUT twice: 200 saved=true both times; one relation; Guide and Course remain",
+      "actual": "status 200/200; saved true/true; relation count 1; Guide and Course present",
+      "status": "PASS",
+      "guideId": 1,
+      "courseId": 12
+    },
+    {
+      "id": "U10-TC05",
+      "expected": "Missing target: 404 GUIDE_NOT_FOUND; invalid IDs: 422; no extra relation created",
+      "actual": "missing 404 GUIDE_NOT_FOUND; invalid IDs [{\"value\":\"0\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"},{\"value\":\"-1\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"},{\"value\":\"not-a-number\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"}]; saved rows otherwise unchanged",
+      "status": "PASS",
+      "missingId": 1004
+    }
+  ],
+  "cleanup": {
+    "status": "FAIL",
+    "baselineRestored": false,
+    "observedBookmarks": [
+      1
+    ],
+    "detail": "Cleanup failed; baseline was not restored/verified: page.evaluate: TypeError: Failed to fetch\n    at eval (eval at evaluate (:370:30), <anonymous>:4:28)\n    at UtilityScript.evaluate (<anonymous>:372:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at api (C:\\Users\\User\\Downloads\\ProjectCS261\\CS261-Group4-Project\\scripts\\task129-u10-boundary-check.cjs:64:17)\n    at main (C:\\Users\\User\\Downloads\\ProjectCS261\\CS261-Group4-Project\\scripts\\task129-u10-boundary-check.cjs:164:30)"
+  },
+  "browserClosed": true,
+  "completedAt": "2026-11-17T12:51:47.536Z",
+  "passed": false
+}
