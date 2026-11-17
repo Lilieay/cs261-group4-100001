@@ -1,0 +1,973 @@
+{
+  "sourceSha": "f347ebb73d2139a0f9f1bfa8cb2ad504ba742da5",
+  "startedAt": "2026-11-17T16:40:30.031Z",
+  "authMode": "mock",
+  "checks": [
+    {
+      "message": "TC02 empty state; anonymous request rejected; two mock accounts have distinct DB IDs",
+      "at": "2026-11-17T16:40:33.473Z"
+    },
+    {
+      "message": "TC01 browser opened the correct PDF; owned list excludes other account",
+      "at": "2026-11-17T16:40:34.504Z"
+    },
+    {
+      "message": "TC07 second account can read published PDF but cannot edit or delete it",
+      "at": "2026-11-17T16:40:36.604Z"
+    },
+    {
+      "message": "TC04 blank title prevented the update",
+      "at": "2026-11-17T16:40:37.740Z"
+    },
+    {
+      "message": "TC03 title/course persisted after reload and login; old PDF retained for metadata edit; new PDF replaces bytes and exam metadata survives",
+      "at": "2026-11-17T16:40:40.208Z"
+    },
+    {
+      "message": "TC09 real volume write failure gives 503, preserves draft and keeps original DB metadata/PDF",
+      "at": "2026-11-17T16:40:41.857Z"
+    },
+    {
+      "message": "TC08 SQL Server rejected the file UPDATE; metadata rolled back and staged PDF was cleaned",
+      "at": "2026-11-17T16:40:44.962Z"
+    },
+    {
+      "message": "TC08 DELETE rejected by real SQL trigger gives 503; DB metadata, file row and PDF checksum unchanged after reload",
+      "at": "2026-11-17T16:40:48.249Z"
+    },
+    {
+      "message": "TC08 stale PUT from first tab after second-tab deletion gives 404; GET/file/DELETE 404; no resurrection",
+      "at": "2026-11-17T16:40:52.816Z"
+    },
+    {
+      "message": "TC08 stale DELETE from first tab after second-tab deletion gives 404; GET/file/DELETE 404; no resurrection",
+      "at": "2026-11-17T16:40:57.589Z"
+    },
+    {
+      "message": "TC06 cancel sent no DELETE and the PDF remained readable",
+      "at": "2026-11-17T16:40:57.856Z"
+    },
+    {
+      "message": "TC05 and TC08 confirmed delete returned 204; stale detail/file/delete return 404; SQL rows and PDF removed; other user unaffected",
+      "at": "2026-11-17T16:40:59.021Z"
+    }
+  ],
+  "requests": [
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/my-summaries",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/my-summaries",
+      "auth": "invalid",
+      "status": 401,
+      "data": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "response": {
+        "id": 2,
+        "username": "6800000000",
+        "display_name": "Student User",
+        "role": "student"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25627",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "response": {
+        "id": 3,
+        "username": "6800000001",
+        "display_name": "Student User",
+        "role": "student"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 12,
+          "course_code": "CS261",
+          "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+        },
+        "title": "Task126 1794933629991 owner",
+        "description": "ข้อมูลทดสอบ Task126",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-original.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:33.698000Z"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25627",
+      "method": "PUT",
+      "path": "/api/summaries/7",
+      "status": 403,
+      "response": {
+        "error": {
+          "code": "SUMMARY_FORBIDDEN",
+          "message": "ไม่มีสิทธิ์จัดการสรุปนี้",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25627",
+      "method": "DELETE",
+      "path": "/api/summaries/7",
+      "status": 403,
+      "response": {
+        "error": {
+          "code": "SUMMARY_FORBIDDEN",
+          "message": "ไม่มีสิทธิ์จัดการสรุปนี้",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 12,
+          "course_code": "CS261",
+          "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+        },
+        "title": "Task126 1794933629991 owner",
+        "description": "ข้อมูลทดสอบ Task126",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-original.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:33.698000Z"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25627",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 12,
+          "course_code": "CS261",
+          "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+        },
+        "title": "Task126 1794933629991 owner",
+        "description": "ข้อมูลทดสอบ Task126",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-original.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:33.698000Z"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 1,
+          "course_code": "CS100",
+          "course_name": "BASIC WEB DEVELOPMENT"
+        },
+        "title": "Task126 1794933629991 moved",
+        "description": "แก้ชื่อและย้ายวิชา",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-original.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:37.802000Z"
+      },
+      "scenario": "UI save"
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/courses/12/summaries",
+      "status": 200,
+      "response": {
+        "items": [
+          {
+            "id": 8,
+            "course": {
+              "id": 12,
+              "course_code": "CS261",
+              "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+            },
+            "title": "Task126 1794933629991 other",
+            "description": "ข้อมูลทดสอบ Task126",
+            "academic_year": 2569,
+            "semester": 1,
+            "exam_period": "midterm",
+            "owner": {
+              "id": 3,
+              "display_name": "Student User"
+            },
+            "file": {
+              "original_name": "task126-original.pdf",
+              "content_type": "application/pdf",
+              "size_bytes": 346,
+              "read_path": "/api/summaries/8/file"
+            },
+            "created_at": "2026-11-17T16:40:34.019000Z",
+            "updated_at": "2026-11-17T16:40:34.019000Z"
+          }
+        ],
+        "course_id": 12
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/courses/1/summaries",
+      "status": 200,
+      "response": {
+        "items": [
+          {
+            "id": 7,
+            "course": {
+              "id": 1,
+              "course_code": "CS100",
+              "course_name": "BASIC WEB DEVELOPMENT"
+            },
+            "title": "Task126 1794933629991 moved",
+            "description": "แก้ชื่อและย้ายวิชา",
+            "academic_year": 2569,
+            "semester": 1,
+            "exam_period": "midterm",
+            "owner": {
+              "id": 2,
+              "display_name": "Student User"
+            },
+            "file": {
+              "original_name": "task126-original.pdf",
+              "content_type": "application/pdf",
+              "size_bytes": 346,
+              "read_path": "/api/summaries/7/file"
+            },
+            "created_at": "2026-11-17T16:40:33.698000Z",
+            "updated_at": "2026-11-17T16:40:37.802000Z"
+          }
+        ],
+        "course_id": 1
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 1,
+          "course_code": "CS100",
+          "course_name": "BASIC WEB DEVELOPMENT"
+        },
+        "title": "Task126 1794933629991 moved",
+        "description": "แก้ชื่อและย้ายวิชา",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-replacement.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:38.830000Z"
+      },
+      "scenario": "UI save"
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+        "bytes": 346
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 1,
+          "course_code": "CS100",
+          "course_name": "BASIC WEB DEVELOPMENT"
+        },
+        "title": "Task126 1794933629991 moved",
+        "description": "แก้ชื่อและย้ายวิชา",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-replacement.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:38.830000Z"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "response": {
+        "id": 2,
+        "username": "6800000000",
+        "display_name": "Student User",
+        "role": "student"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/summaries/7",
+      "status": 503,
+      "response": {
+        "error": {
+          "code": "STORAGE_UNAVAILABLE",
+          "message": "ระบบจัดเก็บข้อมูลไม่พร้อมใช้งาน",
+          "fields": []
+        }
+      },
+      "scenario": "UI save"
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+        "bytes": 346
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 1,
+          "course_code": "CS100",
+          "course_name": "BASIC WEB DEVELOPMENT"
+        },
+        "title": "Task126 1794933629991 moved",
+        "description": "แก้ชื่อและย้ายวิชา",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-replacement.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:38.830000Z"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/summaries/7",
+      "status": 503,
+      "response": {
+        "error": {
+          "code": "STORAGE_UNAVAILABLE",
+          "message": "ระบบจัดเก็บข้อมูลไม่พร้อมใช้งาน",
+          "fields": []
+        }
+      },
+      "scenario": "UI save"
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 1,
+          "course_code": "CS100",
+          "course_name": "BASIC WEB DEVELOPMENT"
+        },
+        "title": "Task126 1794933629991 moved",
+        "description": "แก้ชื่อและย้ายวิชา",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-replacement.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:38.830000Z"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+        "bytes": 346
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/summaries/7",
+      "status": 503,
+      "response": {
+        "error": {
+          "code": "STORAGE_UNAVAILABLE",
+          "message": "ระบบจัดเก็บข้อมูลไม่พร้อมใช้งาน",
+          "fields": []
+        }
+      },
+      "scenario": "SQL delete failure"
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 200,
+      "response": {
+        "id": 7,
+        "course": {
+          "id": 1,
+          "course_code": "CS100",
+          "course_name": "BASIC WEB DEVELOPMENT"
+        },
+        "title": "Task126 1794933629991 moved",
+        "description": "แก้ชื่อและย้ายวิชา",
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task126-replacement.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/7/file"
+        },
+        "created_at": "2026-11-17T16:40:33.698000Z",
+        "updated_at": "2026-11-17T16:40:38.830000Z"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+        "bytes": 346
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/summaries/9",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      },
+      "scenario": "stale UI"
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/9",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/9/file",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "DELETE",
+      "path": "/api/summaries/9",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "DELETE",
+      "path": "/api/summaries/9",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/summaries/10",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      },
+      "scenario": "stale UI"
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/10",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/10/file",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "DELETE",
+      "path": "/api/summaries/10",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "DELETE",
+      "path": "/api/summaries/10",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 200,
+      "response": {
+        "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+        "bytes": 346
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/summaries/7/file",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "DELETE",
+      "path": "/api/summaries/7",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "GET",
+      "path": "/api/courses/1/summaries",
+      "status": 200,
+      "response": {
+        "items": [],
+        "course_id": 1
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25627",
+      "method": "GET",
+      "path": "/api/summaries/8/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25627",
+      "method": "GET",
+      "path": "/api/my-summaries",
+      "status": 200,
+      "response": {
+        "items": [
+          {
+            "id": 8,
+            "course": {
+              "id": 12,
+              "course_code": "CS261",
+              "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+            },
+            "title": "Task126 1794933629991 other",
+            "description": "ข้อมูลทดสอบ Task126",
+            "academic_year": 2569,
+            "semester": 1,
+            "exam_period": "midterm",
+            "owner": {
+              "id": 3,
+              "display_name": "Student User"
+            },
+            "file": {
+              "original_name": "task126-original.pdf",
+              "content_type": "application/pdf",
+              "size_bytes": 346,
+              "read_path": "/api/summaries/8/file"
+            },
+            "created_at": "2026-11-17T16:40:34.019000Z",
+            "updated_at": "2026-11-17T16:40:34.019000Z"
+          }
+        ]
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25626",
+      "method": "DELETE",
+      "path": "/api/summaries/7",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "SUMMARY_NOT_FOUND",
+          "message": "ไม่พบสรุป",
+          "fields": []
+        }
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:25627",
+      "method": "DELETE",
+      "path": "/api/summaries/8",
+      "status": 204,
+      "response": null
+    }
+  ],
+  "snapshots": [
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "e883613e50344f629e103f2c52d4d3c6",
+      "objects": [
+        "d463f8938cb1479da7cea56820fe8ae6",
+        "e883613e50344f629e103f2c52d4d3c6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "e883613e50344f629e103f2c52d4d3c6",
+      "objects": [
+        "d463f8938cb1479da7cea56820fe8ae6",
+        "e883613e50344f629e103f2c52d4d3c6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "e883613e50344f629e103f2c52d4d3c6",
+      "objects": [
+        "d463f8938cb1479da7cea56820fe8ae6",
+        "e883613e50344f629e103f2c52d4d3c6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "e883613e50344f629e103f2c52d4d3c6",
+      "objects": [
+        "d463f8938cb1479da7cea56820fe8ae6",
+        "e883613e50344f629e103f2c52d4d3c6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "5b22bf9831974914b2f05f37c4613525",
+      "objects": [
+        "5b22bf9831974914b2f05f37c4613525",
+        "d463f8938cb1479da7cea56820fe8ae6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "5b22bf9831974914b2f05f37c4613525",
+      "objects": [
+        "5b22bf9831974914b2f05f37c4613525",
+        "d463f8938cb1479da7cea56820fe8ae6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "5b22bf9831974914b2f05f37c4613525",
+      "objects": [
+        "5b22bf9831974914b2f05f37c4613525",
+        "d463f8938cb1479da7cea56820fe8ae6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": true,
+      "file": true,
+      "key": "5b22bf9831974914b2f05f37c4613525",
+      "objects": [
+        "5b22bf9831974914b2f05f37c4613525",
+        "d463f8938cb1479da7cea56820fe8ae6"
+      ]
+    },
+    {
+      "id": 9,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "objects": [
+        "5b22bf9831974914b2f05f37c4613525",
+        "d463f8938cb1479da7cea56820fe8ae6"
+      ]
+    },
+    {
+      "id": 10,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "objects": [
+        "5b22bf9831974914b2f05f37c4613525",
+        "d463f8938cb1479da7cea56820fe8ae6"
+      ]
+    },
+    {
+      "id": 7,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "objects": [
+        "d463f8938cb1479da7cea56820fe8ae6"
+      ]
+    }
+  ],
+  "browser": "157.0.8103.79",
+  "finishedAt": "2026-11-17T16:40:59.378Z",
+  "status": "PASS"
+}
