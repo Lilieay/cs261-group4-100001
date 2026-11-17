@@ -1,0 +1,36 @@
+{
+  "sourceSha": "f347ebb73d2139a0f9f1bfa8cb2ad504ba742da5",
+  "recordedAt": "2026-11-17T16:42:11.399582+00:00",
+  "runner": "scripts/task126-u7-browser.cjs",
+  "runnerSha256": "2e5ff02aaf6a84437e84b6026e84b3c32b8f574e11ac4208bb1b50c7cce14151",
+  "environment": {
+    "dockerEngine": "29.8.2",
+    "dockerCompose": "5.5.1",
+    "sqlServer": "16.0.4305.5",
+    "python": "3.14.10",
+    "nodeContainer": "v24.22.3",
+    "playwrightCore": "1.65.1",
+    "browser": "157.0.8103.79",
+    "auth": "TU mock",
+    "frontendA": "http://127.0.0.1:25626",
+    "frontendB": "http://127.0.0.1:25627",
+    "backendA": "http://127.0.0.1:28626",
+    "composeProject": "cs261-task126-f347ebb"
+  },
+  "frontend": {
+    "command": "docker exec cs261-task126-f347ebb-frontend-1 npm test",
+    "passed": 104,
+    "failed": 0,
+    "skipped": 0
+  },
+  "backend": {
+    "command": "docker exec -e PYTHONPATH=/app cs261-task126-f347ebb-backend-1 python -m pytest -q -p no:cacheprovider /tmp/task126-tests/test_my_summaries_with_u6.py /tmp/task126-tests/test_my_summary_update_schema.py /tmp/task126-tests/test_my_summary_form.py /tmp/task126-tests/test_summaries_api.py /tmp/task126-tests/test_summary_api_errors.py /tmp/task126-tests/test_summary_storage.py",
+    "passed": 125,
+    "subtestsPassed": 16,
+    "failed": 0,
+    "warnings": [
+      "StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead."
+    ],
+    "testDoubles": "SQLite / test adapters as defined by the checked-in Unit/API tests; separate from real SQL Server browser run"
+  }
+}

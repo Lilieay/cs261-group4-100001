@@ -1,181 +1,134 @@
-# Task126: U7 – ทดสอบระบบและตรวจรับ U7
+# Task126 ผลทดสอบระบบ U7 และตรวจตามเกณฑ์การยอมรับ
 
-> เอกสารบันทึกผล System / End-to-End Test, Regression Test และ UAT ของ U7
->
-> **ข้อสำคัญ:** เอกสารนี้เป็นรายงานของ Task126 ไม่ใช่รายงาน Task121 โดยใช้ Task121 เป็นงานก่อนหน้าตามเงื่อนไขเริ่มงานเท่านั้น ผลจาก mock ไม่ถือเป็นหลักฐานยืนยันการทำงานของระบบจริง
+U7 ผ่าน System/E2E TC01–TC08 ในรอบตรวจวันที่ 17 พฤศจิกายน 2569 รวมการปฏิเสธสิทธิ์ต่างบัญชี การแก้ไข/ลบรายการที่ถูกลบจากอีกแท็บ และการย้อนข้อมูลเมื่อ SQL Server ปฏิเสธการแก้ไขหรือลบ มีผล API, SQL และ PDF ประกอบ ไม่ได้เปลี่ยนข้อกำหนด U7 หรือ application code
 
-## 1. วัตถุประสงค์
+## 1 รุ่นระบบและสภาพแวดล้อม
 
-ทดสอบระบบ U7 ที่เชื่อมต่อแล้วให้ครบ U7-TC01–TC08 ผ่านเส้นทางผู้ใช้จริง ตั้งแต่หน้าเว็บผ่าน Frontend proxy และ Backend ไปยัง SQL Server และ PDF storage ตามกรณีที่เกี่ยวข้อง ตรวจ regression เฉพาะจุดที่ Story นี้กระทบ และทำ UAT ร่วมกับ Product Owner (PO)
-
-รายงานนี้เชื่อมโยง Test Case กับผล Unit, API, Integration, System และ UAT โดยแยกผลแต่ละระดับออกจากกัน และไม่ใช้ผลจาก mock เพื่อรับรองชั้นระบบจริง
-
-## 2. เงื่อนไขก่อนเริ่มทดสอบ
-
-| รายการ | สิ่งที่ต้องตรวจ | สถานะ |
-| --- | --- | --- |
-| Task121 – เชื่อมและทดสอบระบบ U7 บน Docker | ใช้เป็น prerequisite ของ Task126 และตรวจว่าผลงานผ่าน DoD พร้อมใช้งาน | ต้องแนบ/อ้างอิงผลตรวจ Task121 |
-| Source code | Checkout branch/commit ที่ใช้ทดสอบและบันทึก SHA เต็ม | รอกรอก SHA จริง |
-| Docker environment | Frontend, Backend และ SQL Server ทำงานพร้อมใช้งาน | ผู้ทดสอบเปิดระบบผ่านหน้าเว็บได้; ให้แนบผล `docker compose ps` |
-| PDF storage | ตรวจว่า PDF สามารถอ่าน/เขียนตามกรณีทดสอบ | มีการเปิด PDF ผ่านหน้าเว็บ; การลบไฟล์จริงต้องมีผลตรวจ storage เพิ่ม |
-| Authentication | ระบุ TU Login จริงหรือ mock ตามที่ใช้จริง | ผู้ทดสอบแจ้งว่าใช้บัญชี TU Login จริงในการทดสอบสิทธิ์ต่างบัญชี; โปรดบันทึกโหมดที่ใช้ในรอบ System Test ให้ตรงกับรอบที่รายงาน |
-| Test data | เตรียมบัญชีเจ้าของและบัญชีผู้ใช้อื่น พร้อมสรุป PDF ทดสอบ | มีการใช้บัญชีผู้ใช้อื่นตรวจสอบสิทธิ์; ไม่บันทึกข้อมูลลับ |
-| Evidence directory | เก็บภาพและผล API/SQL โดยไม่เปิดเผย token หรือรหัสผ่าน | เตรียมจัดเก็บที่ `docs/U7/assets/task126/` |
-
-**ข้อควรระวัง:** ห้ามใช้ข้อมูลส่วนตัวหรือไฟล์ PDF จริงของบุคคลอื่นโดยไม่ได้รับอนุญาต และห้ามแนบ token, รหัสผ่าน หรือ secret ลงในรายงาน
-
-## 3. ข้อมูลรุ่นระบบและ Environment ที่ทดสอบ
-
-| รายการ | ค่าที่ใช้จริง |
+| รายการ | ค่าที่ตรวจจริง |
 | --- | --- |
-| วันที่/เวลาเริ่มทดสอบ (Asia/Bangkok) | 17 พฤศจิกายน 2569 (เวลาเริ่มต้นรอกรอก) |
-| วันที่/เวลาสิ้นสุด | 17 พศจิกายน 2569 |
-| Repository / Branch | test/task126-u7 |
-| Docker Engine / Docker Compose | Docker Compose environment; รุ่นรออ่านจากเครื่องที่ทดสอบ |
-| SQL Server version | SQL Server 2022 ตาม environment ที่ใช้; รุ่นย่อยรอตรวจ |
-| Browser / Version | รอกรอกชื่อและรุ่น browser ที่ใช้จริง |
-| Playwright / Version (ถ้ามี) | N/A หากทดสอบด้วย browser โดยตรง; มิฉะนั้นรอกรอก |
-| Frontend URL | `http://localhost:5000` (ตาม environment ที่เปิดใช้งาน) |
-| Backend URL | `http://localhost:8000` (สำหรับ API/Swagger หากใช้ตรวจ) |
-| Authentication mode | TU Login จริงสำหรับการทดสอบบัญชีผู้ใช้อื่นตามที่ผู้ทดสอบแจ้ง; ยืนยันโหมดของทุกกรณีในรอบทดสอบก่อนส่ง |
-| Database / PDF storage | Docker Compose SQL Server และ PDF storage; ยืนยันว่าเป็นชุดทดสอบแยกหรือไม่ |
+| Repository / Branch | `Lilieay/cs261-group4-100001` / `test/task126-u7` |
+| Source SHA ที่ build และทดสอบ | `f347ebb73d2139a0f9f1bfa8cb2ad504ba742da5` |
+| System/E2E เริ่มและสิ้นสุด Asia/Bangkok | 17/11/2026 23:40:30–23:40:59 |
+| Docker Engine / Compose | 29.8.2 / 5.5.1 |
+| SQL Server / Python / Node ใน container | 16.0.4305.5 / 3.14.10 / v24.22.3 |
+| Browser / Playwright Core | Chrome 157.0.8103.79 / 1.65.1 |
+| Frontend ของบัญชี A / B | `http://127.0.0.1:25626` / `http://127.0.0.1:25627` |
+| Backend A | `http://127.0.0.1:28626` |
+| Docker project | `cs261-task126-f347ebb` |
+| Authentication | TU mock; A และ B มี user ID ต่างกันใน SQL Server เดียวกัน ไม่ใช่ผลยืนยัน TU Login จริง |
+| SQL / PDF | ฐานข้อมูลและ PDF volume สร้างใหม่แยกจากระบบใช้งานจริง |
+| งานก่อนหน้า | [Task121 Docker integration](task121-u7-docker-integration.md) ใช้เป็น prerequisite และแนวทางจัดสภาพแวดล้อม; ผลด้านล่างมาจากการรันรอบ Task126 ใหม่ |
 
-> ก่อนส่งรายงานให้แทนค่าที่ระบุว่า “รอกรอก/รอตรวจ” ด้วยข้อมูลจริง ห้ามนำ SHA หรือรุ่นเครื่องมือจากรอบทดสอบอื่นมาใส่แทน
+รอบนี้ใช้ Chrome ผ่าน Frontend proxy ไป Backend, SQL Server และ PDF storage จริง ส่วนการยืนยันตัวตนใช้ mock เท่านั้น ชุด Unit/API ใช้ test doubles ตามไฟล์ทดสอบและแยกจากผล System/E2E
 
-## 4. ผล System / End-to-End Test: U7-TC01–TC08
+## 2 ผล System และ End to End
 
-สถานะในตารางนี้สะท้อนผลที่ผู้ทดสอบรายงานและภาพหน้าจอที่ได้รับ หาก TC ใดต้องยืนยันผลระดับ API, SQL หรือ Storage เพิ่มเติม ให้บันทึกแยกใน Actual/หมายเหตุ ไม่อนุมานผลที่ภาพไม่สามารถพิสูจน์ได้
-
-| TC | ขอบเขตที่ทดสอบ | Expected ที่ต้องยืนยัน | Actual จากการทดสอบ/หลักฐาน | Status |
-| --- | --- | --- | --- | --- |
-| U7-TC01 | ดูรายการสรุปของผู้ใช้และเปิดอ่าน PDF | ผู้ใช้เห็นรายการของตนเอง และเปิด PDF ที่ตรงกับรายการได้ | ผู้ทดสอบเปิดหน้ารายการสรุปของตนเองและเปิดอ่าน PDF ผ่านหน้าเว็บ มีภาพรายการและหน้าอ่าน PDF ประกอบ | PASS  |
-| U7-TC02 | กรณีไม่มีรายการสรุป | แสดง Empty State และทางไปเผยแพร่สรุปตามข้อกำหนด | หน้า “สรุปของฉัน” แสดงสถานะรายการว่างและทางไปเพิ่ม/เผยแพร่สรุป | PASS  |
-| U7-TC03 | แก้ไขข้อมูลสรุป | แก้ไขข้อมูลที่อนุญาตและบันทึกได้ ข้อมูลใหม่คงอยู่หลัง reload; หากไม่เลือกไฟล์ใหม่ต้องคง PDF เดิม | ผู้ทดสอบเปิดฟอร์มแก้ไข เปลี่ยนข้อมูล บันทึก และตรวจพบรายการหลังแก้ไขบนหน้าเว็บ มีภาพฟอร์มและผลหลังแก้ไข | PASS |
-| U7-TC04 | ตรวจสอบข้อมูลไม่ถูกต้อง | ข้อมูลไม่ผ่าน validation ต้องไม่ถูกบันทึก และต้องแสดงข้อผิดพลาด | เมื่อเว้นชื่อสรุปว่าง ระบบแสดงข้อความ validation ในฟอร์มแก้ไข มีภาพประกอบ | PASS  |
-| U7-TC05 | ยืนยันการลบ | เมื่อยืนยันลบ รายการและไฟล์ PDF ที่เกี่ยวข้องต้องถูกลบตาม contract | ผู้ทดสอบยืนยันการลบและตรวจหน้ารายการหลังดำเนินการ พบว่ารายการไม่แสดงแล้ว/หน้าแสดง Empty State | PASS |
-| U7-TC06 | ยกเลิกการลบ | เมื่อยกเลิก ต้องไม่ส่งคำขอลบ รายการและ PDF เดิมยังอยู่และเปิดได้ | ผู้ทดสอบเปิดกล่องยืนยัน เลือกยกเลิก และกลับมาพบรายการเดิมยังคงอยู่ | PASS |
-| U7-TC07 | สิทธิ์ผู้ใช้อื่น | ผู้ใช้ที่ไม่มีสิทธิ์ต้องไม่สามารถแก้ไขหรือลบผลงานของเจ้าของได้ | ผู้ทดสอบใช้บัญชี TU Login อีกบัญชีเข้าดูผลงานที่เผยแพร่และทดลองการลบ/จัดการของผู้อื่น ระบบไม่อนุญาตให้ลบผลงานของเจ้าของตามที่ผู้ทดสอบรายงาน | PASS  |
-| U7-TC08 | รายการหาย/ไม่มีอยู่และข้อผิดพลาดสำคัญ | การอ่าน/แก้ไข/ลบรายการที่ไม่มีอยู่ต้องตอบตาม API contract เช่น `404 SUMMARY_NOT_FOUND`; ต้องไม่แจ้งสำเร็จลวง | มีภาพผลหลังลบที่หน้าเว็บไม่แสดงรายการแล้ว แต่ภาพดังกล่าวเพียงอย่างเดียวยังไม่ยืนยัน GET/PUT/DELETE ของ ID ที่ไม่มีอยู่หรือ error response | PARTIAL – ต้องแนบ API response สำหรับกรณี not found และกรณี failure ที่อยู่ใน TC |
-
-### 4.1 รายการภาพหลักฐาน
-
-ให้ปรับชื่อไฟล์ให้ตรงกับชื่อจริงใน Repository ก่อนส่ง PR
-
-| TC | ชื่อไฟล์หลักฐานที่แนะนำ | รายละเอียด |
+| TC | วิธีตรวจและผลที่เกิดจริง | Status |
 | --- | --- | --- |
-| TC01 | `TC01-my-published-summaries.png` | หน้ารายการสรุปของเจ้าของ |
-| TC01 | `TC01-view-summary-pdf.png` | หน้าเปิดอ่าน PDF |
-| TC01 | `TC01-view-summary-pdf-actions.png` | หน้าอ่าน PDF/การดำเนินการที่เกี่ยวข้อง |
-| TC02 | `TC02-empty-summary-list.png` | หน้า Empty State |
-| TC03 | `TC03-edit-summary-form.png` | ฟอร์มแก้ไขข้อมูล |
-| TC03 | `TC03-edit-summary-success.png` | รายการหลังแก้ไข |
-| TC04 | `TC04-edit-empty-title-validation.png` | Validation เมื่อชื่อว่าง |
-| TC05 | `TC05-01-confirm-delete-summary.png` | กล่องยืนยันลบ |
-| TC05 | `TC05-02-delete-summary-success.png` | ผลหลังยืนยันลบ |
-| TC06 | `TC06-01-cancel-delete-confirmation-dialog.png` | กล่องยืนยันก่อนกดยกเลิก |
-| TC06 | `TC06-02-summary-preserved-after-cancel.png` | รายการยังอยู่หลังยกเลิก |
-| TC07 | `TC07-01-other-user-view-published-summary.png` | บัญชีอื่นเข้าดูผลงานที่เผยแพร่ |
-| TC07 | `TC07-02-other-user-modification-denied.png` | ผลปฏิเสธการแก้ไข/ลบของผู้อื่น |
+| TC01 ดูรายการและเปิด PDF | รายการของ A ไม่แสดงสรุปของ B เปิดหน้าอ่านจากรายการที่เลือกได้ ชื่อรายการตรงและ PDF ผ่าน API มี SHA-256 ตรงกับไฟล์ตั้งต้น | PASS |
+| TC02 ไม่มีรายการ | แสดง “คุณยังไม่ได้แบ่งปันสรุป PDF” และลิงก์ “แบ่งปันสรุป” ไป `upload-summary.html` | PASS |
+| TC03 แก้ไขสรุป | เปลี่ยนชื่อ/คำแนะนำ/วิชาแล้ว PUT 200; รายการย้ายวิชา อยู่หลัง reload และ login ใหม่ แก้ metadata อย่างเดียวคง storage key และ checksum เดิม เปลี่ยน PDF ได้ไฟล์ใหม่และเก็บกวาดไฟล์เก่า ปีการศึกษา/ภาคเรียน/ช่วงสอบยังอยู่ | PASS |
+| TC04 ข้อมูลไม่ถูกต้อง | ชื่อเป็นช่องว่างล้วนแสดง validation และไม่ส่ง PUT ข้อมูลเดิมไม่เปลี่ยน | PASS |
+| TC05 ยืนยันลบ | DELETE 204; รายการหายจากหน้าของฉันและหน้าวิชา GET รายละเอียด/ไฟล์และลบซ้ำได้ 404; แถวสรุป แถวไฟล์ และ PDF จริงถูกลบ โดยสรุปและ PDF ของ B ยังอยู่ | PASS |
+| TC06 ยกเลิกลบ | ปิดกล่องด้วยยกเลิก ไม่ส่ง DELETE รายการยังอยู่และ checksum ของ PDF เดิมตรง | PASS |
+| TC07 ผู้ไม่มีสิทธิ์ | B ส่ง PUT และ DELETE ไป ID ของ A ได้ `403 SUMMARY_FORBIDDEN` ทั้งสองคำขอ รายละเอียดที่อ่านกลับและ snapshot SQL/storage เหมือนก่อนทดสอบ B อ่าน PDF ที่เผยแพร่ได้แต่รายการของตนไม่มีสรุป A; ไม่มี token และ token ใช้ไม่ได้ได้ 401 โดย token ใช้ไม่ได้มี `AUTH_REQUIRED` | PASS |
+| TC08 รายการหายหรือทำรายการไม่สำเร็จ | ตรวจครบทั้ง stale PUT, stale DELETE, SQL UPDATE failure และ SQL DELETE failure ตามรายละเอียดหัวข้อ 3 | PASS |
 
-**ที่เก็บภาพ:** `docs/U7/assets/task126/`
+ผลรวม TC01–TC08: **8/8 PASS** มี 12 จุดตรวจใน [results.json](../assets/task126/system-f347ebb/results.json) รวม regression การเขียน PDF ล้มเหลว ผลเก่ากับภาพที่แนบไว้ก่อนหน้ายังคงอยู่ใน repository แต่ตารางนี้อ้างอิงรอบใหม่ข้างต้น
 
-## 5. การเชื่อมโยง Test Levels
+## 3 หลักฐานเฉพาะ TC07 และ TC08
 
-ตารางนี้เป็น mapping ของสิ่งที่ควรตรวจ ไม่ใช่การยืนยันว่าทุกระดับผ่านแล้ว ให้เติมชื่อไฟล์ทดสอบ/รายงานและผลจริงจากการรันของแต่ละระดับ
+### TC07 สิทธิ์ต่างบัญชี
 
-| ระดับการทดสอบ | TC ที่รองรับ | Test file / รายงาน / คำสั่งที่ใช้ | ผลจริง | หมายเหตุ |
-| --- | --- | --- | --- | --- |
-| Unit Test – Frontend | TC02–TC04, TC06 | รออ้างอิง test file ของ Frontend | รอแนบผลจริง | ครอบคลุม UI state/validation ตาม test ที่มีจริง |
-| Unit Test – Backend | TC03–TC08 | รออ้างอิง test file ของ Backend | รอแนบผลจริง | ครอบคลุม service/authorization/error handling ตาม test ที่มีจริง |
-| API Test | TC01, TC03–TC08 | รออ้างอิง API test report | รอแนบผลจริง | ต้องระบุ endpoint, status และ response |
-| Integration Test | TC01, TC03, TC05, TC07, TC08 | รออ้างอิงรายงาน Integration ของ U7 | รอแนบผลจริง | ตรวจ SQL Server และ PDF storage ตามกรณี |
-| System / E2E Test | TC01–TC08 | ภาพหลักฐานและขั้นตอนทดสอบในหัวข้อ 4 | ผลตามตารางหัวข้อ 4 | ต้องแยก UI evidence จาก API/DB evidence |
-| UAT – PO | TC01–TC08 ตามที่ PO ตรวจ | รอผลตรวจรับ PO | Pending PO | ต้องบันทึกชื่อ PO วันเวลา SHA และผลตรวจรับจริง |
+1. A สร้าง PDF และ B สร้างรายการควบคุมของตนเอง ผ่านหน้า upload จริง
+2. บันทึกข้อมูล A จาก GET ที่อ่านกลับหลังจัดเก็บแล้ว และ snapshot แถวสรุป/ไฟล์กับรายการ object ใน volume
+3. ใช้ session ของ B ส่ง PUT แบบ multipart ที่มีข้อมูลถูกต้อง และ DELETE ไป ID ของ A แยกกัน ทั้งคู่ได้ 403 พร้อม `SUMMARY_FORBIDDEN`
+4. GET ของ A หลังคำขอทั้งสองตรงกับก่อนทดสอบ snapshot SQL/storage ไม่เปลี่ยน PDF ที่อ่านด้วย B มี checksum เดิม หน้าของ B แสดงเฉพาะผลงานของตน
+5. ก่อน login เรียก `/api/my-summaries` ได้ 401 และเรียกด้วย token จำลองที่ใช้ไม่ได้ได้ `401 AUTH_REQUIRED`
 
-## 6. Regression Test
+หลักฐาน: [บัญชี B](../assets/task126/system-f347ebb/05-tc07-other-account.png), Method/Path/Status/Response ใน [results.json](../assets/task126/system-f347ebb/results.json) ไม่มี token หรือ cookie ในหลักฐาน
 
-| Regression ID | จุดที่อาจได้รับผลกระทบ | วิธีตรวจ | Actual / Status | หลักฐาน |
-| --- | --- | --- | --- | --- |
-| REG-U7-01 | หน้าอ่าน PDF | เปิด PDF จากรายการและตรวจว่าไฟล์ตรงกับรายการ | เปิดอ่าน PDF ผ่านหน้าเว็บได้; ยังต้องยืนยัน checksum หากกำหนด | อ้างอิงภาพ TC01 |
-| REG-U7-02 | การเผยแพร่สรุป PDF | ตรวจว่าการเผยแพร่ใหม่ยังทำงานและข้อมูลจำเป็นไม่สูญหาย | มีภาพฟอร์มเผยแพร่ประกอบ; ยังไม่ถือเป็นผล regression จนกว่าจะรันกรณีนี้ในรอบ Task126 | ภาพฟอร์มเผยแพร่ |
-| REG-U7-03 | รายการผลงานของผู้ใช้อื่น | ตรวจว่าเจ้าของ/ผู้ใช้อื่นเข้าถึงและจัดการได้ตามสิทธิ์ | มีการใช้บัญชีอื่นตรวจการเข้าถึงและการลบตามที่ผู้ทดสอบรายงาน | อ้างอิงภาพ TC07 |
-| REG-U7-04 | Metadata และ PDF storage | แก้ metadata โดยไม่เปลี่ยนไฟล์ แล้วตรวจว่าไฟล์เดิมยังอยู่ | มีการแก้ไขข้อมูลผ่าน UI; ต้องยืนยันว่า PDF เดิมไม่เปลี่ยนหากยังไม่มีหลักฐานเฉพาะ | อ้างอิงภาพ TC03 |
+### TC08 รายการถูกลบไปแล้วจากอีกแท็บ
 
-## 7. Defects และ Retest
+ทดสอบสองรายการแยกกัน โดยแท็บแรกเปิดฟอร์มแก้ไขหรือกล่องยืนยันลบค้างไว้ แล้วแท็บที่สองของ A ลบรายการเดียวกันผ่านหน้าเว็บจนได้ 204 จากนั้นกลับแท็บแรกส่งคำขอเดิม
 
-| Defect ID | TC/Regression ที่เกี่ยวข้อง | Expected | Actual | Severity / Priority | ผู้รับผิดชอบ | สถานะการแก้ | Retest result / SHA | หลักฐาน |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| - | - | - | - | - | - | รอรวบรวมผล defect จากรอบทดสอบ | - | - |
-
-หากตรวจครบทุก TC และไม่พบ defect ให้เปลี่ยนเป็น “ไม่พบ defect ในรอบทดสอบนี้” พร้อมระบุวันที่และ SHA ที่ตรวจ ไม่ควรใส่ข้อความดังกล่าวล่วงหน้า
-
-## 8. UAT กับ Product Owner (PO)
-
-ดำเนิน UAT หลัง System/E2E Test และ regression ที่เกี่ยวข้องเสร็จแล้ว ให้ PO ตรวจพฤติกรรมจากหน้าเว็บจริง บันทึกผลตามที่เกิดขึ้น ไม่กรอก Pass ล่วงหน้า
-
-| UAT ID | สิ่งที่ PO ตรวจ | Expected | Actual / ความเห็น PO | Status | หลักฐาน |
-| --- | --- | --- | --- | --- | --- |
-| UAT-U7-01 | เปิดหน้าสรุปของฉัน | แสดงรายการของบัญชีที่ Login อยู่ | รอ PO ตรวจ | Not Run | รอแนบ |
-| UAT-U7-02 | กรณีไม่มีรายการ | แสดง Empty State ถูกต้อง | รอ PO ตรวจ | Not Run | รอแนบ |
-| UAT-U7-03 | เปิด PDF | เปิดไฟล์ที่ตรงกับรายการที่เลือก | รอ PO ตรวจ | Not Run | รอแนบ |
-| UAT-U7-04 | แก้ไขข้อมูลสรุป | บันทึกข้อมูลและคงอยู่หลัง reload | รอ PO ตรวจ | Not Run | รอแนบ |
-| UAT-U7-05 | ยกเลิก/ยืนยันลบ | ยกเลิกแล้วข้อมูลอยู่; ยืนยันแล้วลบตามข้อกำหนด | รอ PO ตรวจ | Not Run | รอแนบ |
-| UAT-U7-06 | ตรวจสิทธิ์และข้อความผิดพลาด | ระบบปฏิเสธการกระทำที่ไม่มีสิทธิ์และไม่แจ้งสำเร็จลวง | รอ PO ตรวจ | Not Run | รอแนบ |
-
-### ข้อมูลผู้ตรวจรับ
-
-| รายการ | ข้อมูล |
+| กรณี | ผลจริง |
 | --- | --- |
-| Product Owner (PO) | กชพร ผดุงเกียรติวงษ์ |
-| ผู้ร่วมทดสอบ | รอกรอก |
-| วัน/เวลาตรวจรับ (Asia/Bangkok) | 17/11/2026 |
-| รุ่นระบบ / Commit SHA ที่ PO ตรวจ | รอกรอก |
-| Environment / URL | รอกรอก |
-| Authentication mode | ระบุ `TU real` หรือ `mock` |
-| ผลตรวจรับ | รอ PO ตัดสินใจ |
-| ข้อสังเกต / เงื่อนไขก่อนรับงาน | รอกรอก |
-| ลิงก์หลักฐาน UAT | รอแนบ |
+| กดบันทึกจากฟอร์มเก่า | PUT ได้ `404 SUMMARY_NOT_FOUND` หน้าแสดง “ไม่พบสรุป” และโหลดรายการล่าสุด ไม่แสดงบันทึกสำเร็จ |
+| ยืนยันลบจากกล่องเก่า | DELETE ได้ `404 SUMMARY_NOT_FOUND` หน้าแสดง “ไม่พบสรุป” และโหลดรายการล่าสุด ไม่แจ้งลบสำเร็จซ้ำ |
+| ตรวจหลังแต่ละกรณี | GET รายละเอียด/ไฟล์และ DELETE ซ้ำได้ `404 SUMMARY_NOT_FOUND`; reload ไม่พบรายการกลับมา SQL ไม่มีแถวสรุปและแถวไฟล์ |
 
-**ความเห็นจาก PO**
+หลักฐาน: [stale PUT](../assets/task126/system-f347ebb/08-tc08-stale-edit.png), [stale DELETE](../assets/task126/system-f347ebb/08-tc08-stale-delete.png) และ response ใน `results.json`
 
-รอ PO บันทึกความเห็นหลังตรวจจริง
+### TC08 การแก้ไขและลบล้มเหลวก่อนสำเร็จ
 
-**ลงชื่อ Product Owner (PO):** กชพร ผดุงเกียรติวงษ์
-**วันที่:** 17/11/2026
+ใช้ SQL trigger เฉพาะ ID ทดสอบบนฐานข้อมูลแยกเพื่อปฏิเสธ operation จริง แล้วถอน trigger หลังแต่ละกรณี ไม่ใช้การตัดเครือข่ายแทนผล rollback
 
-## 9. หลักฐานและ Artefacts
+| กรณี | ผลจริง |
+| --- | --- |
+| แก้ metadata พร้อมเปลี่ยน PDF แล้ว SQL ปฏิเสธ UPDATE ของแถวไฟล์ | PUT ได้ `503 STORAGE_UNAVAILABLE`; หน้าแสดงข้อผิดพลาด ข้อมูลที่อ่านกลับยังเป็นชุดเดิม snapshot storage เหมือนเดิมและ PDF checksum เดิม ไฟล์ใหม่ที่เตรียมไว้ถูกเก็บกวาด |
+| ยืนยันลบแล้ว SQL ปฏิเสธ DELETE | DELETE ได้ `503 STORAGE_UNAVAILABLE`; หน้าแจ้งว่ายังยืนยันผลไม่ได้และโหลดรายการล่าสุด ไม่แสดงลบสำเร็จ กลับมาพบรายการเดิม ข้อมูล แถวไฟล์ และ PDF checksum ไม่เปลี่ยน หลัง reload ยังอยู่ |
 
-| Artefact ที่ต้องส่งมอบ | ตำแหน่ง/ลิงก์ใน Repository | สถานะ |
+หน้าเว็บถือ 5xx เป็นผลที่ต้องตรวจสถานะล่าสุดก่อนทำซ้ำ การแสดงข้อความดังกล่าวสอดคล้องกับพฤติกรรมนี้ ส่วนการยืนยันว่าไม่มีการ commit มาจาก SQL trigger และการอ่าน SQL/PDF หลังคำขอ
+
+หลักฐาน: [UPDATE failure](../assets/task126/system-f347ebb/06-tc08-update-failure.png), [DELETE failure](../assets/task126/system-f347ebb/07-tc08-delete-failure.png), response และ snapshot ใน `results.json`
+
+## 4 Test Levels และ Regression
+
+| ระดับ | ชุดที่รันในรอบนี้ | ผล |
 | --- | --- | --- |
-| ชุดทดสอบหรือขั้นตอน System/E2E ที่ทำซ้ำได้ | รอระบุ path ของ test script หรือขั้นตอนทดสอบ | รอจัดเก็บ |
-| รายงาน TC พร้อม Expected/Actual/Status | `docs/U7/U7_Test_Report.md` | เอกสารฉบับนี้ |
-| SHA และ Environment ที่ใช้ทดสอบ | หัวข้อ 3 | รอกรอกค่าจริง |
-| ภาพหลักฐานแต่ละ TC | `docs/U7/assets/task126/` | มีภาพ UI ตามรายการในหัวข้อ 4; ตรวจชื่อ/ไฟล์จริงก่อน commit |
-| ผล Unit/API/Integration ที่เชื่อมกับ TC | หัวข้อ 5 พร้อมลิงก์รายงาน | รออ้างอิงผลจริง |
-| Defect และ Retest | หัวข้อ 7 | รอผลจากรอบทดสอบ |
-| ผล UAT พร้อม PO/วันเวลา/รุ่นระบบ | หัวข้อ 8 | รอ PO ตรวจ |
+| Frontend Unit / proxy | `npm test` ภายใน Frontend image ของ SHA ที่ระบุ รวม U7 client, form และ proxy | 104 ผ่าน, 0 ล้มเหลว, 0 ข้าม |
+| Backend Unit / API | `test_my_summaries_with_u6.py`, `test_my_summary_update_schema.py`, `test_my_summary_form.py`, `test_summaries_api.py`, `test_summary_api_errors.py`, `test_summary_storage.py` | 125 ผ่าน และ 16 subtests ผ่าน; มี Starlette/httpx deprecation warning 1 รายการ ไม่ใช่ test failure |
+| System / Integration | `scripts/task126-u7-browser.cjs` ผ่าน Chrome → proxy → Backend → SQL/PDF จริง | TC01–TC08 ผ่านครบ; JSON มี 12 จุดตรวจ |
+| Regression PDF write failure | เปลี่ยนสิทธิ์ volume แยกเป็นอ่านอย่างเดียวชั่วคราว แล้วแก้ข้อมูลพร้อมแนบ PDF ใหม่ | 503 `STORAGE_UNAVAILABLE`; ฟอร์มยังมีค่าที่กรอกและไฟล์ที่เลือก SQL/PDF เดิมยังอยู่ คืน permission เดิมแล้ว |
+| Regression การเผยแพร่/อ่าน/รายการวิชา | สร้าง PDF ใหม่ผ่าน UI เปิดไฟล์ เปลี่ยนวิชา ตรวจหน้ารายวิชา และตรวจสรุปของ B หลังลบ A | ผ่านในรอบเดียวกัน |
 
-## 10. สรุปผลและสถานะปิด Task126
+คำสั่ง รุ่นเครื่องมือ จำนวนผล และ SHA-256 ของ runner อยู่ใน [verification.json](../assets/task126/system-f347ebb/verification.json) ผล Unit/API ใช้ SQLite และ adapters ของชุดทดสอบ ไม่ใช้แทนหลักฐาน SQL Server จริงในหัวข้อ 2–3
 
-| เกณฑ์ | สถานะ |
-| --- | --- |
-| Task121 ผ่าน DoD และพร้อมใช้ก่อนเริ่ม Task126 | ต้องอ้างอิงผลตรวจ Task121 |
-| System/E2E ครบ U7-TC01–TC08 | มีผล UI สำหรับ TC01–TC07; TC08 ยังต้องแนบผล API/error ตาม Contract |
-| Regression ที่เกี่ยวข้อง | มีบางส่วนจากการเปิดอ่าน/แก้ไข/สิทธิ์; ต้องยืนยันกรณีที่เหลือ |
-| ผล Unit/API/Integration เชื่อมโยงกับ TC แล้ว | รออ้างอิงรายงานและผลจริง |
-| Defect ได้รับการแก้และ Retest แล้ว | รอรวบรวมผล |
-| SHA/Environment/Auth mode และหลักฐานครบ | รอกรอกและตรวจสอบ |
-| UAT กับ PO เสร็จและมีผลตรวจรับจริง | รอ PO ตรวจ |
+## 5 ผลตรวจตามเกณฑ์การยอมรับ
 
-**สถานะ Task126:** In Progress – มีหลักฐานจากการทดสอบหน้าเว็บจริงสำหรับหลายกรณีแล้ว แต่ยังไม่ควรปิดงานจนกว่าจะยืนยัน TC08 ตาม Contract, เชื่อมผล Unit/API/Integration, บันทึก SHA/Environment/Auth mode, ตรวจ Regression และได้รับผล UAT จาก PO
+| เกณฑ์ | ผลที่ตรวจได้จากรอบนี้ | Status |
+| --- | --- | --- |
+| แสดงรายการของบัญชีที่ login | แยกรายการ A/B และแสดง empty state ได้ | PASS |
+| เปิด PDF ที่ตรงรายการ | หน้าอ่านและ checksum ตรงไฟล์ที่เลือก | PASS |
+| แก้ไขแล้วข้อมูลอยู่หลังโหลดใหม่ | ชื่อ/วิชา/ไฟล์ถูกต้องหลัง reload และ login ใหม่ | PASS |
+| ยกเลิกและยืนยันลบ | ยกเลิกไม่มีคำขอลบ ยืนยันแล้วข้อมูลและไฟล์หาย | PASS |
+| ป้องกันสิทธิ์และแจ้งข้อผิดพลาด | ต่างบัญชี 403, ไม่มีสิทธิ์ login 401, รายการหาย 404, บันทึก/ลบล้มเหลว 503; ไม่แจ้งสำเร็จลวง | PASS |
 
----
+**ผลตรวจตามเกณฑ์การทำงาน:** ผ่านในสภาพแวดล้อมที่ระบุข้างต้น
 
-## หมายเหตุสำหรับผู้จัดทำรายงาน
+**การยืนยัน UAT โดย Product Owner:** ยังไม่มีผลยืนยันหรือลายมือชื่อของ PO สำหรับรอบนี้ ตารางนี้บันทึกพฤติกรรมจากการรัน System/E2E ไม่ใช่บันทึกการเข้าร่วมตรวจหรือการลงชื่อของบุคคล
 
-1. Task121 เป็นงานก่อนหน้าและเป็นเงื่อนไขก่อนเริ่ม Task126 เท่านั้น ไม่ใช่รายงานผลทดสอบของ Task126
-2. ห้ามคัดลอกผล Pass จาก Unit/API/Integration มาใส่เป็นผล System/E2E หรือ UAT
-3. ถ้ารันด้วย TU mock ให้ระบุว่าเป็น mock และจำกัดข้อสรุปเฉพาะสิ่งที่ mock ทดสอบได้ ห้ามใช้แทนการรับรอง TU Login จริง
-4. บันทึก SHA เต็มของ source ที่รันจริงทุกครั้ง หากแก้โค้ดหรือ test runner แล้วรันซ้ำ ให้บันทึก SHA รอบใหม่
-5. ถ้าพบ defect ให้บันทึกผลก่อนแก้และผล Retest หลังแก้แยกกัน
-6. ภาพหน้าจอยืนยัน UI ได้ แต่ไม่ยืนยัน HTTP status, การเปลี่ยนแปลงใน SQL Server, การลบไฟล์จริง หรือ checksum เว้นแต่มีหลักฐานเฉพาะประกอบ
+## 6 Defects และการคืนสภาพแวดล้อม
+
+ไม่พบ application defect ในกรณีที่รันรอบนี้ ไม่ได้แก้ application code ระหว่างทดสอบ มีการปรับ runner ก่อนรอบที่ผ่านให้เปรียบเทียบข้อมูลที่อ่านกลับจาก SQL Server รองรับการสร้างหลายแท็บ และตรวจข้อความหลัง 5xx ตามพฤติกรรมโหลดรายการล่าสุดของหน้าเว็บ
+
+หลังจบถอน SQL trigger ทดสอบ คืนสิทธิ์ PDF root เป็น 755 และลบ fixture ที่สร้างเองแล้ว ตรวจ `summaries = 0`, `summary_files = 0`, test triggers = 0 และ PDF objects ว่าง ผลอยู่ใน [cleanup.json](../assets/task126/system-f347ebb/cleanup.json) ปิดเฉพาะ containers/network ของ project ทดสอบหลังเก็บหลักฐาน เก็บ volumes ไว้
+
+## 7 วิธีรันซ้ำ
+
+ใช้ source SHA ข้างต้นกับ runner ที่แนบใน PR นี้ ตั้ง project และ ports ตามหัวข้อ 1 และตั้ง `MSSQL_SA_PASSWORD` เป็นค่าใหม่ใน environment ของ process ก่อนเปิด Compose ห้ามใช้ฐานข้อมูลหรือ PDF volume ที่มีข้อมูลใช้งาน สร้าง project แยกซึ่งชื่อขึ้นต้น `cs261-task126-` และมีฐานข้อมูลว่าง
+
+```powershell
+$env:TU_API_MODE = 'mock'
+$env:SQLSERVER_HOST_PORT = '21626'
+$env:BACKEND_HOST_PORT = '28626'
+$env:FRONTEND_HOST_PORT = '25626'
+$project = 'cs261-task126-f347ebb'
+docker compose -p $project up -d --build --wait
+docker compose -p $project run -d --no-deps --name "$project-backend-b" -e TU_MOCK_USERNAME=6800000001 backend
+docker compose -p $project run -d --no-deps --name "$project-frontend-b" -e "BACKEND_URL=http://${project}-backend-b:8000" -p 127.0.0.1:25627:5000 frontend
+```
+
+รอ Backend B พร้อม แล้วใช้ Node กับ Playwright Core 1.65.1 และ Chrome ที่ติดตั้งในเครื่อง โดยกำหนด path ของ package และที่เก็บหลักฐานใหม่ให้ตรงกับเครื่อง
+
+```powershell
+$env:TASK126_PROJECT = $project
+$env:TASK126_PLAYWRIGHT = '<absolute path to playwright-core>'
+$env:TASK126_EVIDENCE = '<absolute path to new evidence directory>'
+node scripts/task126-u7-browser.cjs
+```
+
+สคริปต์ใช้บัญชี mock สองบัญชีและ PDF ที่สร้างขึ้นเอง เปลี่ยน permission/สร้าง trigger เฉพาะใน project ทดสอบ คืน permission และถอน trigger ใน `finally` และลบรายการที่สร้างเอง เก็บ stdout, `results.json` และตรวจ SQL/storage หลังจบ ก่อนปิดชุดทดสอบด้วย `docker compose -p $project down --remove-orphans` โดยไม่ลบ volumes
+
+**สถานะ Task126:** System/E2E และ regression ที่ระบุเสร็จแล้ว พร้อมหลักฐาน TC01–TC08; การยืนยัน UAT โดย PO ยังไม่มีบันทึก
