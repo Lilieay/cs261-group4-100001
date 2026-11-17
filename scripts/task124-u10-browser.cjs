@@ -147,7 +147,8 @@ async function checkOpen(page,t) {
   }
   const back=page.locator(t.kind==='guide'?'#readingBack':'#summary-back');
   assert.equal(new URL(await back.getAttribute('href'),page.url()).pathname,'/saved-courses.html');
-  const label=t.kind==='guide'?'guide':`summary-${fixtures.filter(row=>row.kind==='summary').findIndex(row=>row.id===t.id)+1}`;
+  const label=t.kind==='guide'?`guide-${fixtures.filter(row=>row.kind==='guide').findIndex(row=>row.id===t.id)+1}`
+    :`summary-${fixtures.filter(row=>row.kind==='summary').findIndex(row=>row.id===t.id)+1}`;
   await shot(page,`02-open-${label}`);await back.click();await readyList(page);
 }
 async function main() {
@@ -167,18 +168,27 @@ with engine.connect() as c:
     const users=[await login(pages[0],0),await login(pages[1],1)];assert.notEqual(users[0],users[1]);
     baseline=snapshot();assert.equal(baseline.testTrigger,null);
     await list(pages[0],0);await pages[0].getByText('ยังไม่มีรายการที่บันทึก',{exact:true}).waitFor();
-    assert.equal(await pages[0].getByRole('link',{name:'ค้นหารายวิชา',exact:true}).getAttribute('href'),'courses.html');
+    const emptyList=await api(pages[0],'/api/saved-items');
+    assert.equal(emptyList.status,200);assert.deepEqual(emptyList.data,{items:[]});
+    const searchLink=pages[0].getByRole('link',{name:'ค้นหารายวิชา',exact:true});
+    assert.equal(await searchLink.getAttribute('href'),'courses.html');
     const anonymous=await api(pages[0],'/api/saved-items','GET',undefined,true);assert.equal(anonymous.status,401);
-    report('empty UI and search link; anonymous list rejected; two SQL users',{userIds:users});await shot(pages[0],'01-empty');
+    await shot(pages[0],'01-empty');
+    await Promise.all([pages[0].waitForURL('**/courses.html'),searchLink.click()]);
+    assert.equal(new URL(pages[0].url()).pathname,'/courses.html');
+    report('U10-TC03: A GETs 200 empty list and the actual search link opens the course search page; anonymous list is 401',
+      {userIds:users,listStatus:emptyList.status,items:emptyList.data.items,searchPath:new URL(pages[0].url()).pathname});
+    await list(pages[0],0);
     const course=(await api(pages[0],'/api/courses?search=CS261')).data.find(c=>c.course_code==='CS261');assert(course);
     const guide=await publish(pages[0],0,'guide',course.id);
     const summary=await publish(pages[0],0,'summary',course.id,144);
     const secondPdf=await publish(pages[0],0,'summary',course.id,240);
+    const secondGuide=await publish(pages[0],0,'guide',course.id);
     const other=await publish(pages[1],1,'guide',course.id);
     const content=contentOnly(snapshot());
-    for(const t of [guide,summary,secondPdf])await save(pages[0],t);
-    for(const t of fixtures)await save(pages[1],t);
-    await list(pages[0],0);assert.equal(await pages[0].locator('.saved-card').count(),3);
+    for(const t of [guide,secondGuide,summary,secondPdf])await save(pages[0],t);
+    for(const t of [guide,summary,secondPdf,other])await save(pages[1],t);
+    await list(pages[0],0);assert.equal(await pages[0].locator('.saved-card').count(),4);
     assert.equal(await pages[0].locator('.saved-course-group').count(),1);assert.equal(await card(pages[0],other).count(),0);
     await shot(pages[0],'02-grouped-list');
     const courseLink=pages[0].locator('.saved-course-group h2 a');
@@ -187,12 +197,24 @@ with engine.connect() as c:
     assert.equal(await pages[0].locator('#courseName').innerText(), `${course.course_code} ${course.course_name}`);
     report('course page displays selected course code and name', {code:course.course_code,name:course.course_name});
     await pages[0].goBack();await readyList(pages[0]);
-    for(const t of [guide,summary,secondPdf])await checkOpen(pages[0],t);
-    report('list groups one course and three distinct works; Guide alias and two different PDF checksums open exact selection');
-    await login(pages[0],0);await list(pages[0],0);assert.equal(await pages[0].locator('.saved-card').count(),3);
+    for(const t of [guide,secondGuide,summary,secondPdf])await checkOpen(pages[0],t);
+    report('U10-TC02: two Guides and two different PDFs are grouped; second Guide and selected PDFs open exact items');
+    await login(pages[0],0);await list(pages[0],0);assert.equal(await pages[0].locator('.saved-card').count(),4);
     await list(pages[1],1);assert.equal(await pages[1].locator('.saved-card').count(),4);
+    assert.equal(await card(pages[1],secondGuide).count(),0,'B must not have A-only Guide G2');
     await shot(pages[1],'04-user-b-list');
-    report('reload and new Bearer session preserve list; second account has its own list');
+    const otherUserDelete=await api(pages[1],statePath(secondGuide),'DELETE');
+    assert.equal(otherUserDelete.status,200);assert.equal(otherUserDelete.data.saved,false);
+    assert.deepEqual(bookmarkUsers(secondGuide),[users[0]],'B must not remove A-only G2 bookmark');
+    await list(pages[0],0);await card(pages[0],secondGuide).waitFor();
+    const invalidToken=await pages[1].evaluate(async()=>{
+      const r=await fetch('/api/saved-items',{headers:{Authorization:'Bearer invalid-task129-token'},cache:'no-store'});
+      return {status:r.status,body:await r.json()};
+    });
+    assert.equal(invalidToken.status,401);
+      report('U10-TC04: B sees only own list; cannot remove A-only G2; A still sees it; invalid token returns 401',
+      {guideId:secondGuide.id,deleteStatus:otherUserDelete.status,saved:otherUserDelete.data.saved,
+        bookmarkUsers:bookmarkUsers(secondGuide),invalidTokenStatus:invalidToken.status});
     for(const t of [guide,summary]) {
       await list(pages[0],0);deleteFault(t,users[0],true);
       try {
@@ -215,6 +237,17 @@ with engine.connect() as c:
       assert.deepEqual(bookmarkUsers(t),[users[1]]);
       const repeat=await api(pages[0],statePath(t),'DELETE');assert.equal(repeat.status,200);assert.equal(repeat.data.saved,false);
       assert.deepEqual(contentOnly(snapshot()),content);
+      if(t.kind==='guide')report('U10-TC07: A removes G1 twice; only A bookmark is removed and all source data plus B bookmark remain',
+        {firstDeleteStatus:200,repeatDeleteStatus:repeat.status,repeatSaved:repeat.data.saved,
+          remainingBookmarkUsers:bookmarkUsers(t),guidePresent:query('SELECT COUNT(*) FROM dbo.guides WHERE id=?',[t.id])[0][0]===1,
+          coursePresent:query('SELECT COUNT(*) FROM dbo.courses WHERE id=?',[t.course])[0][0]===1,
+          summaryAndPdfUnchanged:true});
+      if(t.kind==='guide') {
+        await list(pages[0],0);assert.equal(await card(pages[0],t).count(),0);
+        await shot(pages[0],'07-guide-remove-repeated-a');
+        await list(pages[1],1);await card(pages[1],t).waitFor();
+        await shot(pages[1],'07-guide-remove-repeated-b');
+      }
       await pages[0].reload();await readyList(pages[0]);assert.equal(await card(pages[0],t).count(),0);
       await save(pages[0],t);
       report(`${t.kind}: SQL DELETE rollback, UI error/reload, remove/repeat, content and other account preserved`);
@@ -229,8 +262,8 @@ with engine.connect() as c:
       const r=await api(pages[0],'/api/saved-items');assert.equal(r.status,503);
       await shot(pages[0],'04-list-sql-failure');
     } finally { sql("EXEC sp_rename 'dbo.task124_saved_summaries_unavailable', 'saved_summaries'");renamed=false; }
-    await pages[0].locator('#saved-retry').click();await readyList(pages[0]);assert.equal(await pages[0].locator('.saved-card').count(),3);
-    report('real SELECT failure shows error rather than empty or partial list; retry recovers all three bookmarks');
+    await pages[0].locator('#saved-retry').click();await readyList(pages[0]);assert.equal(await pages[0].locator('.saved-card').count(),4);
+    report('real SELECT failure shows error rather than empty or partial list; retry recovers all four bookmarks');
     // Forward DELETE to the real backend, then discard only the browser response.
     for(const t of [guide,summary]) {
       await list(pages[0],0);let upstreamStatus;
@@ -273,11 +306,13 @@ with engine.connect() as c:
     assert.equal((await api(pages[0],'/api/saved-items?user_id='+users[1])).status,422);
     assert.equal((await api(pages[0],statePath(secondPdf),'DELETE',undefined,true)).status,401);
     await list(pages[0],0);await removeUi(pages[0],secondPdf);
+    assert.equal(await card(pages[0],secondGuide).count(),1);
+    await removeUi(pages[0],secondGuide);
     await pages[0].getByText('ยังไม่มีรายการที่บันทึก',{exact:true}).waitFor();
     await login(pages[0],0);await list(pages[0],0);assert.equal(await pages[0].locator('.saved-card').count(),0);
     await list(pages[1],1);await card(pages[1],secondPdf).waitFor();await card(pages[1],other).waitFor();
     const stillThere=await api(pages[0],`/api/summaries/${secondPdf.id}`);assert.equal(stillThere.status,200);
-    report('invalid IDs/type/user override rejected; no-token DELETE rejected; empty state persists; other bookmarks and PDF remain');
+    report('invalid IDs/type/user override rejected; no-token DELETE rejected; A ends empty; B retains its own PDF and Guide');
     await shot(pages[0],'06-final-empty');completed=true;
   } catch(error){console.error('Integration failed:',error.message);throw error;}
   finally {
@@ -288,7 +323,8 @@ with engine.connect() as c:
       if(baseline){assert.deepEqual(snapshot(),baseline);cleaned=true;report('cleanup restored baseline SQL rows and PDF checksums; test trigger absent');}
     } finally {
       await browser.close();writeFileSync(path.join(evidence,'results.json'),JSON.stringify({passed:completed&&cleaned,
-        sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),environment,
+        appSha:process.env.TASK129_APP_SHA||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
+        testRunnerSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),environment,
         authMode:'TU mock; two backend processes; distinct SQL user IDs',project,date:new Date().toISOString(),results,
         fixtures:fixtures.map(({id,kind,owner,title,sha256,deleted})=>({id,kind,owner,title,sha256,deleted}))},null,2)+'\n');
     }
