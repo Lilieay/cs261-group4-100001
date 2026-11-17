@@ -2,7 +2,7 @@
   "sourceSha": "f347ebb73d2139a0f9f1bfa8cb2ad504ba742da5",
   "recordedAt": "2026-11-17T16:42:11.399582+00:00",
   "runner": "scripts/task126-u7-browser.cjs",
-  "runnerSha256": "2e5ff02aaf6a84437e84b6026e84b3c32b8f574e11ac4208bb1b50c7cce14151",
+  "runnerSha256": "05fd2f9d24aa25645c38cdfa10d6e56e7a671a7ab284921ba0314bce46dbcae2",
   "environment": {
     "dockerEngine": "29.8.2",
     "dockerCompose": "5.5.1",
@@ -32,5 +32,7 @@
       "StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead."
     ],
     "testDoubles": "SQLite / test adapters as defined by the checked-in Unit/API tests; separate from real SQL Server browser run"
-  }
+  },
+  "executedRunnerSha256": "2e5ff02aaf6a84437e84b6026e84b3c32b8f574e11ac4208bb1b50c7cce14151",
+  "runnerHashFormat": "runnerSha256 is Git blob with LF; executedRunnerSha256 is the Windows working file with CRLF; only line endings differ"
 }
