@@ -6,6 +6,7 @@ const {createHash} = require('node:crypto');
 const {mkdirSync, writeFileSync} = require('node:fs');
 const path = require('node:path');
 const {chromium} = require(process.env.TASK127_PLAYWRIGHT || 'playwright-core');
+const {validateExpiringBackend,cleanupFixtures,throwFailure} = require('./task127-support.cjs');
 const project = process.env.TASK127_PROJECT;
 assert.match(project || '', /^cs261-task127-[a-z0-9-]+$/);
 const backend = `${project}-backend-1`;
@@ -175,13 +176,20 @@ async function main() {
     assert(ports['5000/tcp'].some(p=>p.HostPort===String(31800+i)&&['127.0.0.1','0.0.0.0'].includes(p.HostIp)));
     assert.equal(execFileSync('docker',['exec',front,'printenv','BACKEND_URL'],{encoding:'utf8'}).trim(),`http://backend${suffix}:8000`);
   }
+  const expiringBackend = `${project}-backend-expiring-1`;
+  const expiringRecord = JSON.parse(execFileSync('docker',['inspect','--format',
+    '{"project":{{json (index .Config.Labels "com.docker.compose.project")}},"service":{{json (index .Config.Labels "com.docker.compose.service")}},"running":{{json .State.Running}},"ports":{{json .NetworkSettings.Ports}}}',expiringBackend],{encoding:'utf8'}));
+  expiringRecord.mode=execFileSync('docker',['exec',expiringBackend,'printenv','TU_API_MODE'],{encoding:'utf8'}).trim();
+  expiringRecord.ttl=execFileSync('docker',['exec',expiringBackend,'printenv','AUTH_SESSION_TTL_SECONDS'],{encoding:'utf8'}).trim();
+  validateExpiringBackend(expiringRecord,project); // Before browser launch or any Login.
   assert.equal(py("from app.db import engine\nwith engine.connect() as c:\n    print(c.exec_driver_sql(\"SELECT OBJECT_ID('dbo.task127_review_failure','TR')\").scalar())"),'None');
   const browser=await chromium.launch({channel:process.env.TASK127_BROWSER||'chrome',headless:true});
   const contexts=await Promise.all([0,1,2].map(()=>browser.newContext({viewport:{width:1440,height:1000}})));
   const pages=await Promise.all(contexts.map(c=>c.newPage()));
-  const environment={browser:browser.version(),docker:execFileSync('docker',['version','--format','{{.Server.Version}}'],{encoding:'utf8'}).trim(),
+  const environment={browser:browser.version(),expiringBackend:expiringRecord,docker:execFileSync('docker',['version','--format','{{.Server.Version}}'],{encoding:'utf8'}).trim(),
     sqlServer:py("from app.db import engine\nwith engine.connect() as c:\n    print(c.exec_driver_sql(\"SELECT CAST(SERVERPROPERTY('ProductVersion') AS VARCHAR)\").scalar())")};
-  let baseline,completed=false,cleanup=false,expiredToken;
+  let baseline,completed=false,cleanup=false,expiredToken,primaryError;
+  let cleanupOutcome={errors:[],remaining:[]};
   try {
     const users=[];for(let i=0;i<3;i++)users.push(await login(pages[i],i));
     assert.equal(new Set(users.map(u=>u.id)).size,3);
@@ -257,16 +265,20 @@ async function main() {
         const otherBefore=sqlReview(otherReview.id);
         await open(pages[1],t,1);await action(pages[1],'edit').click();await action(pages[1],'delete').click();
         await action(pages[1],'cancel-delete').click();assert(sqlReview(review.id));
-        await action(pages[1],'cancel-editor').click();await deleteReviewUi(pages[1],review.id);
-        assert.equal(sqlReview(review.id),null);assert.deepEqual(sqlReview(otherReview.id),otherBefore);
-        await open(pages[1],t,1);assert((await pages[1].locator('[data-review-entries]').innerText()).includes('รีวิวของ X'));
+        await action(pages[1],'cancel-editor').click();const deletedId=review.id;await deleteReviewUi(pages[1],deletedId);
+        assert.equal(sqlReview(deletedId),null);assert.deepEqual(sqlReview(otherReview.id),otherBefore);
+        const current=await api(pages[1],endpoint(t));assert.equal(current.status,200);
+        assert(!current.data.items.some(r=>r.id===deletedId));assert(current.data.items.some(r=>r.id===otherReview.id));
+        await open(pages[1],t,1);assert.equal(await pages[1].locator('[data-review-own-entry] .review-entry').count(),0);
+        const visible=pages[1].locator('[data-review-entries] .review-entry');assert.equal(await visible.count(),1);
+        assert.equal(await visible.locator('[data-review-comment]').innerText(),'รีวิวของ X');
         assert.deepEqual(contentState(),before);await screenshotTc(pages[1],kind,'U8-TC05');
         if(kind==='summary') {
           const bytes=await pages[1].locator('#summary-pdf').evaluate(async frame=>[...new Uint8Array(await (await fetch(frame.src.split('#')[0])).arrayBuffer())]);
           assert.equal(digest(Buffer.from(bytes)),digest(originalPdf));
         }
         await action(pages[1],'add').click();review=await submit(pages[1],t,'POST',4,'หลังลบสร้างใหม่');
-        return {otherReviewSql:sqlReview(otherReview.id),newReviewId:review.id,contentUnchanged:true};
+        return {deletedId,getStatus:current.status,remainingReviewIds:current.data.items.map(r=>r.id),visibleOtherReviews:1,otherReviewSql:sqlReview(otherReview.id),newReviewId:review.id,contentUnchanged:true};
       });
       await tc(kind,'U8-TC06','other user cannot mutate; missing and genuinely TTL-expired tokens reject POST/PUT/DELETE; forged author rejected',async()=>{
         const saved=sqlReview(review.id);
@@ -313,18 +325,23 @@ async function main() {
           assert.equal((await api(pages[2],endpoint(control))).data.items.length,0);
           assert.match(await pages[2].locator('[data-review-message]').innerText(),/ไม่สามารถ|ไม่สำเร็จ|ไม่ทราบ/);
         }finally{fault(control,false);}
-        await open(pages[1],t,1);await action(pages[1],'edit').click();const saved=sqlReview(review.id);fault(t,true);
+        await open(pages[1],t,1);await action(pages[1],'edit').click();const saved=sqlReview(review.id);let refreshedReview;fault(t,true);
         try {
           await pages[1].locator('#star-1').check();await pages[1].locator('#review-comment').fill('ไม่ควรบันทึก');
           let sawFailure=false;const observe=r=>{if(r.status()===503&&r.request().method()==='PUT')sawFailure=true;};pages[1].on('response',observe);
           try {
             const fresh=pages[1].waitForResponse(r=>sawFailure&&r.request().method()==='GET'&&new URL(r.url()).pathname===endpoint(t));
             const fail=pages[1].waitForResponse(r=>r.request().method()==='PUT'&&new URL(r.url()).pathname===`/api/reviews/${review.id}`);
-            await pages[1].locator('dialog[open] [type=submit]').click();assert.equal((await fail).status(),503);assert.equal((await fresh).status(),200);
+            await pages[1].locator('dialog[open] [type=submit]').click();assert.equal((await fail).status(),503);
+            const latest=await fresh;assert.equal(latest.status(),200);
+            refreshedReview=(await latest.json()).items.find(r=>r.id===review.id);assert(refreshedReview);
+            assert.deepEqual([refreshedReview.id,refreshedReview.rating,refreshedReview.comment],[saved[0],saved[4],saved[5]]);
           }finally{pages[1].off('response',observe);}
           await pages[1].waitForFunction(()=>document.querySelector('dialog[open]')?.getAttribute('aria-busy')==='false');
           assert.match(await pages[1].locator('[data-review-message]').innerText(),/โหลดข้อมูลล่าสุดแล้ว/);assert.deepEqual(sqlReview(review.id),saved);
+          await action(pages[1],'cancel-editor').click();await own(pages[1],saved[4],saved[5]);
           await screenshotTc(pages[1],kind,'U8-TC09');
+          await action(pages[1],'edit').click();
           await action(pages[1],'delete').click();const fail=pages[1].waitForResponse(r=>r.request().method()==='DELETE'&&new URL(r.url()).pathname===`/api/reviews/${review.id}`);
           await action(pages[1],'confirm-delete').click();assert.equal((await fail).status(),503);
           await pages[1].waitForFunction(()=>document.querySelector('dialog[open]')?.getAttribute('aria-busy')==='false');
@@ -333,24 +350,35 @@ async function main() {
         }finally{fault(t,false);}
         assert.deepEqual(contentState(),before);await removeTarget(pages[0],t);
         assert.equal(sqlReview(review.id),null);assert.equal(sqlReview(otherReview.id),null);
-        for(const method of ['GET','POST'])assert.equal((await api(pages[1],endpoint(t),method,method==='POST'?{rating:5}:undefined)).status,404);
-        for(const method of ['PUT','DELETE'])assert.equal((await api(pages[1],`/api/reviews/${review.id}`,method,method==='PUT'?{rating:5}:undefined)).status,404);
+        const missingCodes={};
+        for(const method of ['GET','POST']) {
+          const r=await api(pages[1],endpoint(t),method,method==='POST'?{rating:5}:undefined);assert.equal(r.status,404);
+          assert.equal(r.data.error.code,`${kind.toUpperCase()}_NOT_FOUND`);missingCodes[method]=r.data.error.code;
+        }
+        for(const method of ['PUT','DELETE']) {
+          const r=await api(pages[1],`/api/reviews/${review.id}`,method,method==='PUT'?{rating:5}:undefined);assert.equal(r.status,404);
+          assert.equal(r.data.error.code,'REVIEW_NOT_FOUND');missingCodes[method]=r.data.error.code;
+        }
         assert.equal((await api(pages[1],endpoint(control))).data.items.length,0);
-        return {sqlCreateUpdateDeleteRejected:true,targetRemoved:t.removed,deletedReview:sqlReview(review.id),deletedOtherReview:sqlReview(otherReview.id),controlCount:0};
+        return {refreshedReview,originalVisibleAfterCancel:true,missingCodes,sqlCreateUpdateDeleteRejected:true,targetRemoved:t.removed,deletedReview:sqlReview(review.id),deletedOtherReview:sqlReview(otherReview.id),controlCount:0};
       });
     }
     completed=true;
-  } catch(error){console.error('System test failed:',error.message);throw error;}
+  } catch(error){primaryError=error;console.error('System test failed:',error.message);}
   finally {
-    try {
-      fault({id:1,kind:'guide'},false);
-      for(const t of [...targets].reverse())if(!t.removed)await removeTarget(pages[0],t);
-      if(baseline){assert.deepEqual(snapshot(),baseline);cleanup=true;}
-    }finally{
-      await browser.close();writeFileSync(path.join(evidence,'system-results.json'),JSON.stringify({passed:completed&&cleanup,cleanupPassed:cleanup,
+    cleanupOutcome=await cleanupFixtures(targets,t=>removeTarget(pages[0],t),()=>fault({id:1,kind:'guide'},false),()=>{
+      if(baseline)assert.deepEqual(snapshot(),baseline);
+    });
+    try{await browser.close();}catch(error){cleanupOutcome.errors.push({phase:'browser',message:error.message});}
+    cleanup=Boolean(baseline)&&cleanupOutcome.errors.length===0;
+    try{writeFileSync(path.join(evidence,'system-results.json'),JSON.stringify({passed:completed&&cleanup,cleanupPassed:cleanup,
+        primaryFailure:primaryError?{name:primaryError.name,message:primaryError.message}:null,
+        cleanupErrors:cleanupOutcome.errors,remainingFixtures:cleanupOutcome.remaining,
         sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),environment,project,date:new Date().toISOString(),
         authMode:'TU mock; three role accounts plus a real 1-second session for TTL expiry',uat:{status:'PENDING',reason:'No PO acceptance session performed'},cases},null,2)+'\n');
-    }
+    }catch(error){cleanupOutcome.errors.push({phase:'report',message:error.message});}
   }
+  if(cleanupOutcome.errors.length)console.error('Cleanup errors / remaining fixture IDs:',JSON.stringify(cleanupOutcome));
+  throwFailure(primaryError,cleanupOutcome.errors);
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});
