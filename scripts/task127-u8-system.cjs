@@ -205,15 +205,18 @@ async function main() {
         await open(pages[2],t,2);assert((await pages[2].locator('[data-review-entries]').innerText()).includes('อ่านง่ายและตรงประเด็น'));
         assert.deepEqual(sqlReview(review.id).slice(4),[5,'อ่านง่ายและตรงประเด็น']);
         await screenshotTc(pages[1],kind,'U8-TC01');
+        return {reviewId:review.id,sql:sqlReview(review.id),visibleToThirdUser:true,reloaded:true,newSession:true};
       });
       await tc(kind,'U8-TC02','1 and 5 stars without comment save null and survive reload',async()=>{
         await deleteReviewUi(pages[1],review.id);
-        for(const rating of [1,5]) {
+        const observed=[];for(const rating of [1,5]) {
           await open(pages[1],t,1);await action(pages[1],'add').click();
           const r=await submit(pages[1],t,'POST',rating,'');assert.equal(r.comment,null);
           await open(pages[1],t,1);await own(pages[1],rating,null);assert.deepEqual(sqlReview(r.id).slice(4),[rating,null]);
+          observed.push({id:r.id,rating:r.rating,comment:r.comment,sql:sqlReview(r.id)});
           await screenshotTc(pages[1],kind,'U8-TC02',`-${rating}-stars`);await deleteReviewUi(pages[1],r.id);
         }
+        return observed;
       });
       await tc(kind,'U8-TC03','UI blocks missing stars; POST and PUT reject missing/0/6/-1/2.5 and preserve data',async()=>{
         await open(pages[1],t,1);await action(pages[1],'add').click();
@@ -235,16 +238,19 @@ async function main() {
           assert.deepEqual(sqlReview(review.id).slice(4),[4,'เดิม']);
         }
         await open(pages[1],t,1);await own(pages[1],4,'เดิม');await screenshotTc(pages[1],kind,'U8-TC03');
+        return {uiPostsWithoutRating:writes,rejectedRatings:['missing',0,6,-1,2.5],unchangedSql:sqlReview(review.id)};
       });
       await tc(kind,'U8-TC04','stars-only, text-only and both edits keep review ID/author/target; clearing text works',async()=>{
-        for(const [rating,comment] of [[3,'เดิม'],[3,'ข้อความใหม่'],[4,'แก้ทั้งสอง'],[4,'']]) {
+        const observed=[];for(const [rating,comment] of [[3,'เดิม'],[3,'ข้อความใหม่'],[4,'แก้ทั้งสอง'],[4,'']]) {
           await open(pages[1],t,1);await action(pages[1],'edit').click();
           const r=await submit(pages[1],t,'PUT',rating,comment);
           assert.equal(r.id,review.id);assert.equal(r.author.id,review.author.id);assert.equal(r.target_id,t.id);
           await open(pages[1],t,1);await own(pages[1],rating,comment);
           assert.deepEqual(sqlReview(r.id).slice(4),[rating,comment||null]);
+          observed.push({id:r.id,author:r.author.id,rating:r.rating,comment:r.comment,target:r.target_id});
         }
         await screenshotTc(pages[1],kind,'U8-TC04');
+        return observed;
       });
       await tc(kind,'U8-TC05','cancel preserves own review; delete removes only own while another reviewer and content remain',async()=>{
         await open(pages[2],t,2);await action(pages[2],'add').click();otherReview=await submit(pages[2],t,'POST',3,'รีวิวของ X');
@@ -260,6 +266,7 @@ async function main() {
           assert.equal(digest(Buffer.from(bytes)),digest(originalPdf));
         }
         await action(pages[1],'add').click();review=await submit(pages[1],t,'POST',4,'หลังลบสร้างใหม่');
+        return {otherReviewSql:sqlReview(otherReview.id),newReviewId:review.id,contentUnchanged:true};
       });
       await tc(kind,'U8-TC06','other user cannot mutate; missing and genuinely TTL-expired tokens reject POST/PUT/DELETE; forged author rejected',async()=>{
         const saved=sqlReview(review.id);
@@ -278,6 +285,7 @@ async function main() {
         assert.deepEqual(sqlReview(review.id),saved);await open(pages[2],t,2);
         assert((await pages[2].locator('[data-review-entries]').innerText()).includes('หลังลบสร้างใหม่'));
         await screenshotTc(pages[2],kind,'U8-TC06');
+        return {thirdUser:users[2].id,unchangedSql:sqlReview(review.id),expiredSessionTtlSeconds:1,missingAndExpiredRejected:true};
       });
       await tc(kind,'U8-TC07','owner UI has no add button; direct self-review is 403 and does not write',async()=>{
         const saved=(await api(pages[0],endpoint(t))).data;
@@ -285,6 +293,7 @@ async function main() {
         assert.equal(await pages[0].locator('[data-review-owner-note]').isVisible(),true);
         const r=await api(pages[0],endpoint(t),'POST',{rating:5});assert.equal(r.status,403);assert.equal(r.data.error.code,'SELF_REVIEW_FORBIDDEN');
         assert.deepEqual((await api(pages[0],endpoint(t))).data,saved);await screenshotTc(pages[0],kind,'U8-TC07');
+        return {httpStatus:r.status,error:r.data.error.code,ownerAddButtonVisible:false};
       });
       await tc(kind,'U8-TC08','duplicate POST is 409 and preserves original review; works remain isolated',async()=>{
         const saved=sqlReview(review.id);
@@ -293,6 +302,7 @@ async function main() {
         assert.equal((await api(pages[1],endpoint(t))).data.items.filter(x=>x.author.id===users[1].id).length,1);
         assert.equal((await api(pages[1],endpoint(control))).data.items.length,0);
         await open(pages[1],t,1);await screenshotTc(pages[1],kind,'U8-TC08');
+        return {httpStatus:r.status,error:r.data.error.code,unchangedSql:sqlReview(review.id),controlCount:0};
       });
       await tc(kind,'U8-TC09','SQL create/update/delete failure retains data and UI error; deleted target/review return 404',async()=>{
         await open(pages[2],control,2);await action(pages[2],'add').click();fault(control,true);
@@ -326,6 +336,7 @@ async function main() {
         for(const method of ['GET','POST'])assert.equal((await api(pages[1],endpoint(t),method,method==='POST'?{rating:5}:undefined)).status,404);
         for(const method of ['PUT','DELETE'])assert.equal((await api(pages[1],`/api/reviews/${review.id}`,method,method==='PUT'?{rating:5}:undefined)).status,404);
         assert.equal((await api(pages[1],endpoint(control))).data.items.length,0);
+        return {sqlCreateUpdateDeleteRejected:true,targetRemoved:t.removed,deletedReview:sqlReview(review.id),deletedOtherReview:sqlReview(otherReview.id),controlCount:0};
       });
     }
     completed=true;
