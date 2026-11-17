@@ -13,6 +13,7 @@ const ownerUrl = 'http://127.0.0.1:26800';
 const otherUrl = 'http://127.0.0.1:26801';
 const evidence = process.env.TASK120_EVIDENCE;
 const tag = `Task120 ${Date.now()}`;
+const ownerUsername = '6800000000';
 const password = '0000000000000'; // Documented local mock account only.
 const digest = data => createHash('sha256').update(data).digest('hex');
 const report = message => console.log(`PASS ${message}`);
@@ -161,6 +162,30 @@ async function screenshot(page, name) {
 }
 
 
+async function cleanupSummaries(owner, createdIds) {
+  if (!createdIds.size) return;
+  let id;
+  try {
+    for (id of createdIds) {
+      const route = '/api/summaries/' + id;
+      let response = await request(owner, route, 'DELETE');
+      if (response.status === 401) {
+        await login(owner, ownerUrl, ownerUsername);
+        response = await request(owner, route, 'DELETE');
+      }
+      assert.equal(response.status, 204, JSON.stringify(response));
+      const cleaned = inspectSummary(id);
+      assert(!cleaned.summary && !cleaned.file);
+      createdIds.delete(id);
+    }
+    assert.deepEqual(inspectSummary(id).objects, []);
+    report('Cleanup removed the fixture SQL rows and PDF files');
+  } catch (error) {
+    const remaining = [...createdIds].join(', ') || 'none unconfirmed';
+    throw new Error('Cleanup failed. Remaining summary IDs: ' + remaining, {cause: error});
+  }
+}
+
 async function main() {
   verifyStack();
   report('Both browser ports and proxy backends belong to the selected mock Docker stack');
@@ -168,8 +193,9 @@ async function main() {
   const owner = await browser.newPage();
   const reader = await browser.newPage();
   const createdIds = new Set();
+  const failures = [];
   try {
-    const a = await login(owner, ownerUrl, '6800000000');
+    const a = await login(owner, ownerUrl, ownerUsername);
     const b = await login(reader, otherUrl, '6800000001');
     assert.notEqual(a, b);
     const published = await submitSummary(owner, ownerUrl, tag, original, createdIds);
@@ -240,7 +266,7 @@ BEGIN ;THROW 51020, 'Task120 publish failure', 1; END END`);
     report('Unauthenticated PDF read and unknown course publish are rejected');
 
     execFileSync('docker', ['compose', '-p', project, 'up', '-d', '--wait', '--no-deps', '--force-recreate', 'backend'], {stdio: 'inherit', timeout: 120000});
-    assert.equal(await login(owner, ownerUrl, '6800000000'), a);
+    assert.equal(await login(owner, ownerUrl, ownerUsername), a);
     const detail = await request(owner, route);
     assert.equal(detail.status, 200);
     assert.equal(detail.data.title, tag);
@@ -250,19 +276,12 @@ BEGIN ;THROW 51020, 'Task120 publish failure', 1; END END`);
     assert.equal(reopened.status, 200);
     assert.equal(digest(Buffer.from(reopened.data)), digest(original.buffer));
     report('Backend recreated with existing volume, fresh login retrieves unchanged metadata and PDF');
-  } finally {
-    try {
-      for (const id of createdIds) {
-        const response = await request(owner, '/api/summaries/' + id, 'DELETE');
-        assert.equal(response.status, 204, JSON.stringify(response));
-        const cleaned = inspectSummary(id);
-        assert(!cleaned.summary && !cleaned.file);
-      }
-      if (createdIds.size) {
-        assert.deepEqual(inspectSummary(createdIds.values().next().value).objects, []);
-        report('Cleanup removed the fixture SQL rows and PDF files');
-      }
-    } finally { await browser.close(); }
+  } catch (error) {
+    failures.push(error);
   }
+  await cleanupSummaries(owner, createdIds).catch(error => failures.push(error));
+  await browser.close().catch(error => failures.push(error));
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) throw new AggregateError(failures, failures[0].message);
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
