@@ -106,3 +106,24 @@ docker compose --env-file .env -p $task124Project -f compose.yaml -f compose.tas
 รอบแก้ PR #137 เปลี่ยนจากฐานเก่า `89a60fa` เป็นโค้ดที่รวม #135 แล้ว เพิ่ม stack preflight, trigger ownership, การตรวจชื่อวิชาบนหน้าและ blob ที่ตัวอ่านใช้จริง และ GET หลัง DELETE 503 ทั้ง Guide/PDF อัปเดตภาพทั้งหมดให้ตรงหน้า Task119 ล่าสุดแล้ว
 
 ส่งงานจาก `feat/u10-saved-courses-backend` เดิมเข้า `sprint2` รอสมาชิกอีกคน review ก่อน merge ผล Integration รอบนี้พร้อมให้ตรวจ แต่ไม่ได้อ้างว่า PR ผ่าน review/merge แล้ว
+
+
+| รายการ | รายละเอียด |
+|---|---|
+| Product Owner (PO) | กชพร ผดุงเกียรติวงษ์ |
+| วันที่ตรวจรับ | 17/11/2026 |
+| Task | Task124: U10 Integration Testing |
+| Source Commit | `ee56764bb03f74599e4c9b84b1f878820664a822` |
+
+
+**ผลการตรวจรับ:** [Accepted / Accepted with Issues / Rejected]
+
+**ความคิดเห็นจาก PO:**
+
+ไม่มี
+
+ลงชื่อ Product Owner (PO): กชพร ผดุงเกียรติวงษ์
+
+ชื่อ-นามสกุล: กชพร ผดุงเกียรติวงษ์
+
+วันที่: 17/11/2026
