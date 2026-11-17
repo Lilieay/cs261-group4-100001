@@ -6,7 +6,7 @@
 
 รายงานนี้เชื่อมหลักฐาน Unit/API/Integration และ System ของ U10-TC01–TC07 ตาม Task99 รุ่นปัจจุบัน โดยแยก revision ของแอปกับ test runner: แอป `0c63713d6764e95b7f19a8edc980b3420d2e8f13`, runner `082d5567e3c997cc6483605e5859d9bbcefa7045`. Runner revisions เพิ่มเฉพาะ test scripts; application code ที่ทดสอบตรงกับ app SHA.
 
-**สถานะ Task129: System/E2E และ regression ผ่าน; รอ UAT จาก PO ก่อนปิด DoD** — รัน stack แยก, Browser/API/SQL Server tests และ U10 Unit/API บน SHA ปัจจุบันแล้ว โดยใช้ TU mock สองบัญชี (ไม่ใช่ TU จริง) ยังไม่มีบันทึก UAT ที่ PO ตรวจจริง จึงยังปิดงานไม่ได้
+**สถานะ Task129: System/E2E และ regression ผ่าน และ PO รับ U10 แล้ว** ดู [บันทึกการตรวจรับ](task129-uat-record.md) สำหรับรายละเอียด
 
 ## รุ่นและสภาพแวดล้อมของหลักฐานเดิม
 
@@ -16,7 +16,7 @@
 | Frontend regression | App SHA `0c63713...` | Node.js 24.22.3; proxy tests ใช้ local TCP mock servers | **104 passed, 0 failed**, 0.60 วินาที |
 | Safety guard tests | Runner SHA `082d556...` | Node.js 24.22.3; Docker metadata mocked เฉพาะ guard test | **10 passed, 0 failed**, 0.07 วินาที; เป็น guard/unit evidence ไม่ใช่ System proof |
 | Browser/Integration/System E2E | App SHA `0c63713...`; Runner SHA `082d556...` | Docker Engine 29.9.3; SQL Server 2022 16.0.4325.4; Chrome 157.0.8103.79; Playwright Core 1.65.1; TU mock สองบัญชี; Backend, SQL Server และ PDF volume จริง | [ผล JSON](../assets/task129/results.json), [ผล boundary](../assets/task129/boundary-results.json), [ผล PUT response failure](../assets/task129/second-put-failure-results.json), [ผล cleanup failure](../assets/task129/cleanup-failed-results.json), [ภาพหลักฐาน](../assets/task129/) |
-| UAT กับ PO | — | **ยังไม่ได้ตรวจรับ** | รอ PO/ผู้ทดสอบบันทึกผลจริงด้านล่าง |
+| UAT กับ PO | ไม่มี SHA จากรอบ UAT ในบันทึก | **รับ** | [บันทึกมติ](task129-uat-record.md) |
 
 ผล Unit/API รอบนี้ยืนยันชุด U10 43 passed, 1 warning (Starlette แจ้ง deprecation ของการใช้ httpx กับ TestClient); ไม่ได้รัน Backend test suite ทั้งหมดใน Task129. Frontend regression มี 104 passed, 0 failed. System/E2E ใช้ SQL Server และ PDF volume จริง แต่ Login ใช้ TU mock; จึงไม่ใช่การยืนยันกับ TU authentication service จริง.
 
@@ -142,7 +142,7 @@ node --test frontend/src/*.test.js
 
 | PO/ผู้ตรวจ | ผู้ทดสอบ | วันเวลา (เขตเวลา) | SHA/รุ่นระบบ | ผลตรวจรับจริง/ข้อสังเกต | หลักฐาน/ลิงก์ |
 |---|---|---|---|---|---|
-| รอดำเนินการ | รอดำเนินการ | รอดำเนินการ | `0c63713...` | System/E2E ผ่านตามหลักฐาน แต่ยังไม่ได้ทำ UAT; ยังไม่ถือว่าตรวจรับ | ใช้ [แบบบันทึก UAT](task129-uat-record.md) และแนบหลักฐานเมื่อทำจริง |
+| กชพร ผดุงเกียรติวงษ์ | ไม่ได้บันทึก | บันทึกมติ 17 พฤศจิกายน 2569 (Asia/Bangkok) | ไม่มี SHA จากรอบ UAT ในบันทึก | รับ | [บันทึกผล UAT](task129-uat-record.md) |
 
 แนวทาง UAT ที่เตรียมไว้: ให้ PO Login บน frontend A ด้วยบัญชี TU mock สำหรับทดสอบ, บันทึก Guide สองรายการและ PDF หนึ่งรายการในวิชาเดียวกัน, เปิดหน้ารายการที่บันทึก, ตรวจกลุ่มวิชาและเปิดผลงานตรงชิ้น; ลองรายการว่าง/อีกบัญชี, ยืนยันว่าไม่มี token ได้ 401, ตรวจ ID ผิด/รายการไม่มีอยู่, แล้วให้ผู้ทดสอบตรวจเส้นทาง error ที่มีหลักฐาน SQL จริงใน E2E. PO ต้องยืนยันผลจากการสาธิตจริงและบันทึกชื่อ/เวลา/ผล/ข้อสังเกต ไม่ใช้รายงานนี้กรอกแทน.
 
@@ -155,4 +155,4 @@ node --test frontend/src/*.test.js
 - [x] บันทึก issue ของ test runner และ retest; ไม่พบ defect ผลิตภัณฑ์ที่ทำให้ TC fail
 - [ ] ทำ UAT กับ PO และบันทึกผลตรวจรับจริง
 
-Artefact ขั้นตอนทดสอบซ้ำ, ผล System/E2E รุ่นปัจจุบัน, หลักฐาน, การเชื่อม Unit/API/Integration, บันทึก retest และ [แบบบันทึก UAT](task129-uat-record.md) จัดทำแล้ว. ผล UAT กับ PO ยังรอการตรวจจริง จึงยังไม่ครบ Artefact to deliver และยังปิด DoD ไม่ได้.
+มีผล System/E2E หลักฐาน ขั้นตอนรันซ้ำ และ [บันทึกมติ UAT](task129-uat-record.md) ส่วน SHA ของรอบ UAT และหลักฐานรายเคสยังไม่ได้แนบ
