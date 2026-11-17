@@ -1,11 +1,17 @@
 {
-  "sourceSha": "0c63713d6764e95b7f19a8edc980b3420d2e8f13",
+  "appSha": "0c63713d6764e95b7f19a8edc980b3420d2e8f13",
+  "testRunnerSha": "082d5567e3c997cc6483605e5859d9bbcefa7045",
+  "runnerFile": "scripts/task129-u10-boundary-check.cjs",
   "project": "cs261-task124-0c63713",
   "authMode": "TU mock account A; browser login; SQL Server real",
+  "failureInjection": {
+    "secondPutResponse": false,
+    "cleanupRequest": false
+  },
   "cases": [
     {
       "id": "U10-TC01",
-      "expected": "PUT twice: 200 saved=true both times; one saved_guides relation; Guide and Course remain",
+      "expected": "PUT twice: 200 saved=true both times; one relation; Guide and Course remain",
       "actual": "status 200/200; saved true/true; relation count 1; Guide and Course present",
       "status": "PASS",
       "guideId": 1,
@@ -13,13 +19,18 @@
     },
     {
       "id": "U10-TC05",
-      "expected": "Missing target: 404 GUIDE_NOT_FOUND; invalid IDs: 422; no bookmark or unrelated rows created",
-      "actual": "missing 404 GUIDE_NOT_FOUND; invalid [{\"value\":\"0\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"},{\"value\":\"-1\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"},{\"value\":\"not-a-number\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"}]; saved relations otherwise unchanged",
+      "expected": "Missing target: 404 GUIDE_NOT_FOUND; invalid IDs: 422; no extra relation created",
+      "actual": "missing 404 GUIDE_NOT_FOUND; invalid IDs [{\"value\":\"0\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"},{\"value\":\"-1\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"},{\"value\":\"not-a-number\",\"status\":422,\"code\":\"INVALID_PARAMETERS\"}]; saved rows otherwise unchanged",
       "status": "PASS",
       "missingId": 1004
     }
   ],
-  "cleanup": "PASS: removed only this test bookmark; baseline saved_guides restored",
-  "completedAt": "2026-11-17T09:36:35.097Z",
+  "cleanup": {
+    "status": "PASS",
+    "baselineRestored": true,
+    "detail": "DELETE completed and saved_guides exactly matches pre-PUT baseline"
+  },
+  "browserClosed": true,
+  "completedAt": "2026-11-17T12:53:07.209Z",
   "passed": true
 }
