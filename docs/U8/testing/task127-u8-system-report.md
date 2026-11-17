@@ -1,6 +1,6 @@
 # Task127 — System/E2E และการตรวจรับ U8
 
-สถานะ: **System/E2E ผ่าน รอ PO ทำ UAT ยังไม่ปิด Task127**
+**สถานะ: System/E2E ผ่าน และ PO รับ U8 แล้ว**
 
 ทดสอบวันที่ 17 พฤศจิกายน 2569 (Asia/Bangkok) ใช้ฐาน `sprint2` ที่ `0c63713` ซึ่งรวม Task122 PR #132 ที่ผ่าน review แล้ว รอบแก้ตาม review ใช้ชุด System ที่ `a945503` ผลแต่ละ TC พร้อม expected/actual/status และลิงก์ภาพอยู่ใน [system-results.json](../assets/task127/system-results.json) และ [ตาราง CSV](task127-tc-results.csv) เวลา JSON เป็น UTC
 
@@ -13,7 +13,7 @@
 - System ใช้ Chrome 142.0.7444.176, Docker 29.8.2, SQL Server 2022 16.0.4305.5 และ PDF volume จริง Login เป็น **TU mock** ไม่ได้เชื่อม TU จริง
 - การทดสอบ token หมดอายุใช้ Backend แยกที่ TTL 1 วินาที ออก session ผ่าน Login API จริง รอให้หมดอายุแล้วตรวจ HTTP 401 ไม่ใช้ token ปลอมหรือ mock เวลา
 - Cleanup ผ่าน แถวข้อมูลกับไฟล์/checksum กลับเท่า baseline หลัง Login ไม่มี trigger ทดสอบค้าง บัญชี mock คงไว้รันซ้ำ
-- UAT: **PENDING** ไม่มีผลตรวจรับจริงจาก PO ในรอบนี้ การยืนยัน Requirement ใน Task97 ไม่ใช่การยอมรับระบบรุ่นนี้
+- มติ UAT **รับ** บันทึกวันที่ 17 พฤศจิกายน 2569 ดู [บันทึกผล UAT](task127-uat-record.md)
 
 ## TC และระดับทดสอบที่รองรับ
 
@@ -90,6 +90,6 @@ DB string นี้เป็น placeholder ที่ไม่เชื่อม
 
 ปิดเฉพาะชุดทดสอบหลังเก็บหลักฐานด้วย `docker compose --env-file .env -p $task127Project -f compose.yaml -f compose.task127.yaml down --remove-orphans` โดยคง volumes ไว้รันซ้ำ
 
-## งานที่เหลือก่อนปิด
+## บันทึกการตรวจรับ
 
-ให้ PO ทำ [ขั้นตอน UAT และกรอกผลจริง](task127-uat-record.md) ตรวจ [รายการข้อบกพร่อง/Retest](task127-defects-and-retest.md) แล้วบันทึก SHA วันเวลา และผลตรวจรับ ไม่ติ๊ก DoD ข้อ UAT หรือ artefact ผล UAT จากการที่สคริปต์ผ่าน หรือจากมติ Requirement เดิม
+ดู [มติและผล UAT](task127-uat-record.md) และ [รายการข้อบกพร่องและผล Retest ของ System/E2E](task127-defects-and-retest.md) เอกสาร UAT ยังขาด SHA รุ่นระบบ สภาพแวดล้อม และหลักฐานรายเคส
