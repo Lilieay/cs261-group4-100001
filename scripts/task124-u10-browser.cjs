@@ -33,6 +33,11 @@ report('preflight verifies frontend port owners and A/B proxies on the selected 
 function sql(statement) {
   py(`from app.db import engine\nwith engine.begin() as c:\n    c.exec_driver_sql(${JSON.stringify(statement)})`);
 }
+function query(statement,params=[]) {
+  return JSON.parse(py(`import json\nfrom app.db import engine\nwith engine.connect() as c:\n`
+    + `    rows=c.exec_driver_sql(${JSON.stringify(statement)},tuple(${JSON.stringify(params)})).fetchall()\n`
+    + `    print(json.dumps([list(row) for row in rows]))`));
+}
 const ownedTrigger = new OwnedDeleteTrigger(sql);
 function snapshot() {
   return JSON.parse(py(`import json, hashlib
