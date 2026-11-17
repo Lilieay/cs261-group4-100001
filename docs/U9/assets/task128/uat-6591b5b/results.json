@@ -1,0 +1,102 @@
+{
+  "versions": {
+    "appSha": "6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e",
+    "runnerSha": "6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e",
+    "chrome": "157.0.8103.79",
+    "node": "v24.18.0",
+    "docker": "29.8.2",
+    "sqlImage": "mcr.microsoft.com/mssql/server:2022-latest",
+    "authMode": "TU mock only"
+  },
+  "results": [
+    {
+      "id": "U9-TC06",
+      "status": "Pass",
+      "actual": "guide UI PUT 200, same card after reload and login, one SQL bookmark"
+    },
+    {
+      "id": "U9-TC07",
+      "status": "Pass",
+      "actual": "summary UI PUT 200, same card after reload and login, one SQL bookmark"
+    },
+    {
+      "id": "U9-TC08",
+      "status": "Pass",
+      "actual": "Guide and PDF under CS261 and CS101, four distinct cards and four review counts"
+    },
+    {
+      "id": "U9-TC09",
+      "status": "Pass",
+      "actual": "Both types return PUT 200 twice, display already saved, and keep one bookmark each"
+    },
+    {
+      "id": "U9-TC10",
+      "status": "Pass",
+      "actual": "Both types reject missing/invalid/revoked token (401), invalid input/forged owner (422), missing target (404); B stays empty"
+    },
+    {
+      "id": "U9-TC11",
+      "status": "Pass",
+      "actual": "Both UI PUTs return 503. B sees the error and GET confirms each attempted item is unsaved. Existing B Guide/PDF remain in UI and SQL; A is unchanged.",
+      "details": [
+        {
+          "attempted": {
+            "kind": "guide",
+            "id": 5,
+            "putStatus": 503,
+            "saved": false
+          },
+          "retainedByB": [
+            {
+              "kind": "guide",
+              "id": 6,
+              "ui": true,
+              "sql": true
+            },
+            {
+              "kind": "summary",
+              "id": 2,
+              "ui": true,
+              "sql": true
+            }
+          ],
+          "ownerAUnchanged": true
+        },
+        {
+          "attempted": {
+            "kind": "summary",
+            "id": 1,
+            "putStatus": 503,
+            "saved": false
+          },
+          "retainedByB": [
+            {
+              "kind": "guide",
+              "id": 6,
+              "ui": true,
+              "sql": true
+            },
+            {
+              "kind": "summary",
+              "id": 2,
+              "ui": true,
+              "sql": true
+            }
+          ],
+          "ownerAUnchanged": true
+        }
+      ]
+    },
+    {
+      "id": "U9-TC12",
+      "status": "Pass",
+      "actual": "Legacy Guide and typed Summary coexist in one course; typed Guide PUT does not duplicate legacy row"
+    }
+  ],
+  "testError": null,
+  "cleanup": {
+    "status": "Pass",
+    "failedFixtures": [],
+    "baselineError": null
+  }
+}

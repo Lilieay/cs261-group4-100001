@@ -92,4 +92,4 @@ DB string นี้เป็น placeholder ที่ไม่เชื่อม
 
 ## บันทึกการตรวจรับ
 
-ดู [มติและผล UAT](task127-uat-record.md) และ [รายการข้อบกพร่องและผล Retest ของ System/E2E](task127-defects-and-retest.md) เอกสาร UAT ยังขาด SHA รุ่นระบบ สภาพแวดล้อม และหลักฐานรายเคส
+ดู [บันทึกการตรวจรับ](task127-uat-record.md) สำหรับมติ PO และผลรอบตรวจยืนยันผ่าน Chrome ที่ SHA `6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e` ครบ 18/18 เคส พร้อม [ผล JSON ใหม่](../assets/task127/uat-6591b5b/system-results.json) และผลคืนข้อมูล
