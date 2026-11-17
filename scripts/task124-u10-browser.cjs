@@ -191,6 +191,7 @@ with engine.connect() as c:
     report('list groups one course and three distinct works; Guide alias and two different PDF checksums open exact selection');
     await login(pages[0],0);await list(pages[0],0);assert.equal(await pages[0].locator('.saved-card').count(),3);
     await list(pages[1],1);assert.equal(await pages[1].locator('.saved-card').count(),4);
+    await shot(pages[1],'04-user-b-list');
     report('reload and new Bearer session preserve list; second account has its own list');
     for(const t of [guide,summary]) {
       await list(pages[0],0);deleteFault(t,users[0],true);
