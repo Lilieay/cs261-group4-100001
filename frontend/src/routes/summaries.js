@@ -1,6 +1,7 @@
 const express = require('express');
 const {pdf} = require('../../public/js/app-config');
 const {validId, hasQuery, rejectUnusedParameters, errorResponse: summaryError} = require('../http/request');
+
 function registerSummaryRoutes(app, proxy) {
   const proxySummary = (req, res, target, options = {}) => proxy(req, res, target, {
     errorCode: 'UPSTREAM_UNAVAILABLE', errorMessage: 'เชื่อมต่อบริการสรุป PDF ไม่สำเร็จ', ...options

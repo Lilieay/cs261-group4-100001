@@ -314,7 +314,7 @@
       renderList(state, method === 'DELETE' ? 'ลบรีวิวแล้ว' : 'บันทึกรีวิวแล้ว');
     } catch (error) {
       if (error.status === 0 || error.status >= 500) {
-          const operation = method === 'DELETE' ? 'ลบรีวิว' : 'บันทึกรีวิว';
+        const operation = method === 'DELETE' ? 'ลบรีวิว' : 'บันทึกรีวิว';
         const outcome = (error.status === 503 && error.message) || `ยังยืนยันผลการ${operation}ครั้งนี้ไม่ได้`;
         state.pending = {previous, outcome};
         await reconcile(state);

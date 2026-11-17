@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('node:path');
+
 function registerPages(app) {
   const publicRoot = path.join(__dirname, '../../public');
   const pages = ['index', 'login', 'courses', 'choose-courses', 'read-courses',

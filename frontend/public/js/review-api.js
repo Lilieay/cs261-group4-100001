@@ -14,7 +14,7 @@
     let result;
     try {
       result = await window.HttpClient.request(path, {
-        method, token, timeoutMs: 15000,
+        method, token, timeoutMs: window.AppConfig.requestTimeoutMs,
         ...(body && {headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
       });
     } catch (_) {

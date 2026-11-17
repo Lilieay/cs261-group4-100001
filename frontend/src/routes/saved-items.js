@@ -1,4 +1,5 @@
 const {validId, rejectUnusedParameters, errorResponse: savedItemError} = require('../http/request');
+
 function registerSavedItemRoutes(app, proxy) {
   app.all(['/api/saved-guides', '/api/saved-guides/:guideId'], (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -17,13 +18,11 @@ function registerSavedItemRoutes(app, proxy) {
     const methods = req.params.id === undefined ? ['GET'] : ['GET', 'PUT', 'DELETE'];
     if (!methods.includes(req.method)) {
       res.set('Allow', methods.join(', '));
-      return res.set('Cache-Control', 'no-store').status(405).json({
-        error: {code: 'METHOD_NOT_ALLOWED', message: 'ไม่รองรับคำขอนี้', fields: []}
-      });
+      return savedItemError(res, 405, 'METHOD_NOT_ALLOWED', 'ไม่รองรับคำขอนี้');
     }
     if (!/^Bearer\s+\S+$/i.test(req.get('authorization') || '')) {
       res.set({'Cache-Control': 'no-store', 'WWW-Authenticate': 'Bearer'});
-      return res.status(401).json({error: {code: 'AUTH_REQUIRED', message: 'กรุณาเข้าสู่ระบบ', fields: []}});
+      return savedItemError(res, 401, 'AUTH_REQUIRED', 'กรุณาเข้าสู่ระบบ');
     }
     return rejectUnusedParameters(req, res, next);
   }, (req, res) => {
@@ -38,9 +37,7 @@ function registerSavedItemRoutes(app, proxy) {
     });
   });
   app.all(/^\/api\/saved-items(?:\/|$)/i, (req, res) => {
-    return res.set('Cache-Control', 'no-store').status(404).json({
-      error: {code: 'ROUTE_NOT_FOUND', message: 'ไม่พบเส้นทางรายการที่บันทึก', fields: []}
-    });
+    return savedItemError(res, 404, 'ROUTE_NOT_FOUND', 'ไม่พบเส้นทางรายการที่บันทึก');
   });
 }
 

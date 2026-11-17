@@ -1,4 +1,5 @@
 const {validId} = require('../http/request');
+
 function registerCourseRoutes(app, proxy) {
   app.get(['/api/courses', '/api/courses/:courseId'], (req, res) => {
     res.set('Cache-Control', 'no-store');

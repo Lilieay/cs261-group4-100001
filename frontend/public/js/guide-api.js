@@ -61,7 +61,7 @@
     let payload;
     try {
       ({response, payload} = await window.HttpClient.request(target, {
-        method, token, timeoutMs: config.timeoutMs || 15000,
+        method, token, timeoutMs: config.timeoutMs || window.AppConfig.requestTimeoutMs,
         ...(body === undefined ? {} : {headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
       }));
     } catch (_) {

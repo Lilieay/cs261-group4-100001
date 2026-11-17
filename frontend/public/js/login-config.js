@@ -4,5 +4,5 @@ window.LoginConfig = Object.freeze({
   loginPath: '/api/auth/login',
   tokenStorageKey: 'access_token',
   successUrl: 'courses.html',
-  timeoutMs: 15000
+  timeoutMs: window.AppConfig.requestTimeoutMs
 });

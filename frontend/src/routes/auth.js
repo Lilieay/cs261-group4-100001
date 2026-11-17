@@ -1,4 +1,5 @@
 const express = require('express');
+
 function registerAuthRoutes(app, proxy) {
   app.use('/api/auth', express.json({limit: '8kb'}));
   for (const [method, route] of [['post', '/login'], ['get', '/status'], ['get', '/me'], ['post', '/logout']]) {
