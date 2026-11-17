@@ -1,0 +1,48 @@
+{
+  "versions": {
+    "sha": "0c63713d6764e95b7f19a8edc980b3420d2e8f13",
+    "chrome": "157.0.8103.51",
+    "node": "v24.21.0",
+    "docker": "29.8.2",
+    "sqlImage": "mcr.microsoft.com/mssql/server:2022-latest",
+    "authMode": "TU mock only"
+  },
+  "results": [
+    {
+      "id": "U9-TC06",
+      "status": "Pass",
+      "actual": "guide UI PUT 200, same card after reload and login, one SQL bookmark"
+    },
+    {
+      "id": "U9-TC07",
+      "status": "Pass",
+      "actual": "summary UI PUT 200, same card after reload and login, one SQL bookmark"
+    },
+    {
+      "id": "U9-TC08",
+      "status": "Pass",
+      "actual": "Guide and PDF under CS261 and CS101, four distinct cards and four review counts"
+    },
+    {
+      "id": "U9-TC09",
+      "status": "Pass",
+      "actual": "Both types return PUT 200 twice, display already saved, and keep one bookmark each"
+    },
+    {
+      "id": "U9-TC10",
+      "status": "Pass",
+      "actual": "Both types reject missing/invalid/revoked token (401), invalid input/forged owner (422), missing target (404); B stays empty"
+    },
+    {
+      "id": "U9-TC11",
+      "status": "Pass",
+      "actual": "SQL trigger causes both UI PUTs to return 503; GET shows B unsaved, A bookmarks stay, no UI success message"
+    },
+    {
+      "id": "U9-TC12",
+      "status": "Pass",
+      "actual": "Legacy Guide and typed Summary coexist in one course; typed Guide PUT does not duplicate legacy row"
+    }
+  ],
+  "cleanup": "Pass"
+}
