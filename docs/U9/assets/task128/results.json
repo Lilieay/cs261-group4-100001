@@ -1,6 +1,7 @@
 {
   "versions": {
-    "sha": "0c63713d6764e95b7f19a8edc980b3420d2e8f13",
+    "appSha": "0c63713d6764e95b7f19a8edc980b3420d2e8f13",
+    "runnerSha": "93f2caef37aa0877a3fbeeba7ee32eb6f9a47e42",
     "chrome": "157.0.8103.51",
     "node": "v24.21.0",
     "docker": "29.8.2",
@@ -36,7 +37,55 @@
     {
       "id": "U9-TC11",
       "status": "Pass",
-      "actual": "SQL trigger causes both UI PUTs to return 503; GET shows B unsaved, A bookmarks stay, no UI success message"
+      "actual": "Both UI PUTs return 503. B sees the error and GET confirms each attempted item is unsaved. Existing B Guide/PDF remain in UI and SQL; A is unchanged.",
+      "details": [
+        {
+          "attempted": {
+            "kind": "guide",
+            "id": 5,
+            "putStatus": 503,
+            "saved": false
+          },
+          "retainedByB": [
+            {
+              "kind": "guide",
+              "id": 6,
+              "ui": true,
+              "sql": true
+            },
+            {
+              "kind": "summary",
+              "id": 2,
+              "ui": true,
+              "sql": true
+            }
+          ],
+          "ownerAUnchanged": true
+        },
+        {
+          "attempted": {
+            "kind": "summary",
+            "id": 1,
+            "putStatus": 503,
+            "saved": false
+          },
+          "retainedByB": [
+            {
+              "kind": "guide",
+              "id": 6,
+              "ui": true,
+              "sql": true
+            },
+            {
+              "kind": "summary",
+              "id": 2,
+              "ui": true,
+              "sql": true
+            }
+          ],
+          "ownerAUnchanged": true
+        }
+      ]
     },
     {
       "id": "U9-TC12",
@@ -44,5 +93,10 @@
       "actual": "Legacy Guide and typed Summary coexist in one course; typed Guide PUT does not duplicate legacy row"
     }
   ],
-  "cleanup": "Pass"
+  "testError": null,
+  "cleanup": {
+    "status": "Pass",
+    "failedFixtures": [],
+    "baselineError": null
+  }
 }

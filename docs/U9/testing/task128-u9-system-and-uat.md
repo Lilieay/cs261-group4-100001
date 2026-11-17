@@ -1,6 +1,13 @@
 # ผลทดสอบระบบและตรวจรับ U9 Task128
 
-ทดสอบวันที่ 17 พฤศจิกายน 2569 (เวลาไทย) บน branch `test/task128-u9` จาก `sprint2` ที่ SHA `0c63713d6764e95b7f19a8edc980b3420d2e8f13` ซึ่งรวม Task123 ผ่าน PR #136 แล้ว ใช้ Chrome 157.0.8103.51, Playwright Core 1.65.1, Node 24.21.0, Docker Engine 29.8.2 และ SQL Server 2022 16.0.4295.3
+ทดสอบและรัน System Test ซ้ำวันที่ 17 พฤศจิกายน 2569 (เวลาไทย) บน branch `test/task128-u9` ใช้ Chrome 157.0.8103.51, Playwright Core 1.65.1, Node 24.21.0, Docker Engine 29.8.2 และ SQL Server 2022 16.0.4295.3
+
+| Revision | SHA ที่ใช้ |
+| --- | --- |
+| แอปและ Compose | `0c63713d6764e95b7f19a8edc980b3420d2e8f13` จาก `sprint2` ซึ่งรวม Task123 ผ่าน PR #136 |
+| Test runner รอบแก้ PR #140 | `93f2caef37aa0877a3fbeeba7ee32eb6f9a47e42` มี [System Test runner](https://github.com/Lilieay/cs261-group4-100001/blob/93f2caef37aa0877a3fbeeba7ee32eb6f9a47e42/scripts/task128-u9-system.cjs) และชุดทดสอบ cleanup |
+
+Docker สร้างจากไฟล์แอปใน checkout ที่ตรงกับ SHA แอป ผล JSON บันทึกทั้ง `appSha` และ `runnerSha` สคริปต์ตรวจความตรงกันของไฟล์แอปและตรวจว่าไฟล์ runner ที่ใช้ตรงกับ commit ก่อนเริ่มรัน
 
 ผู้ทดสอบใช้บัญชีสังเคราะห์ A และ B จากหน้า Login ผ่าน TU mock ซึ่งให้คนละ user ID คำขอระบบวิ่งจาก Chrome ผ่าน Express ไป FastAPI, SQL Server และ PDF volume จริงใน Compose project แยกจากฐานที่ใช้งาน
 
@@ -27,10 +34,12 @@
 | U9-TC08 | Guide และ PDF อยู่ในกลุ่มวิชาที่ถูกต้อง | บันทึก Guide และ PDF ของ CS261 กับ CS101 ได้ 4 การ์ดใน 2 กลุ่ม ตรวจทั้ง course ID และรหัสวิชาของแต่ละการ์ด รวมถึงตัวนับรีวิวครบ 4 ใบ | Pass | [การ์ดสองกลุ่มวิชา](../assets/task128/U9-TC08-two-course-groups.png) |
 | U9-TC09 | PUT ซ้ำได้ 200 และคงหนึ่ง bookmark ต่อชิ้น | PUT ซ้ำสองครั้งได้ 200 ทั้ง Guide และ PDF กดบันทึกซ้ำบนหน้าอ่านแล้วขึ้น “ได้บันทึกการแบ่งปันนี้ไปแล้ว” และ SQL ยังมีหนึ่งแถวต่อชิ้น | Pass | [Guide](../assets/task128/U9-TC09-guide-duplicate.png) · [PDF](../assets/task128/U9-TC09-summary-duplicate.png) |
 | U9-TC10 | คำขอไม่มีสิทธิ์หรือผลงานไม่ถูกต้องถูกปฏิเสธ | ผ่าน proxy จริงทั้งสองชนิด ไม่ส่ง token, token ผิด และ token ที่ถูกยกเลิกหลัง logout ได้ 401 ชนิด/ID ผิดหรืออ้างบัญชี B ใน body/query ได้ 422 ผลงานไม่มีอยู่ได้ 404 ตามชนิด บัญชี B ยังว่างและ bookmark ของ A ยังอยู่ | Pass | [ผลตรวจ HTTP และ SQL](../assets/task128/results.json) |
-| U9-TC11 | เขียนล้มเหลวก่อน commit แล้ว UI แจ้งข้อผิดพลาดและข้อมูลคงเดิม | Trigger SQL ปฏิเสธการบันทึกของ B จากหน้าอ่านทั้งสองชนิด ได้ 503 `SAVED_ITEMS_UNAVAILABLE` หน้าอ่านอ่านสถานะซ้ำได้ `saved:false` และแสดงข้อผิดพลาด ส่วน bookmark ของ A ยังอยู่ | Pass | [Guide 503](../assets/task128/U9-TC11-guide-sql-rejected.png) · [PDF 503](../assets/task128/U9-TC11-summary-sql-rejected.png) |
+| U9-TC11 | เขียนล้มเหลวก่อน commit แล้ว UI แจ้งข้อผิดพลาดและคง bookmark เดิมของผู้ใช้ | B บันทึก Guide และ PDF ของ CS101 ไว้ก่อน จากนั้น trigger ปฏิเสธการบันทึก Guide และ PDF ของ CS261 จากหน้าอ่านแยกกัน แต่ละ PUT ได้ 503 `SAVED_ITEMS_UNAVAILABLE` GET ของชิ้นที่ลองบันทึกเป็น `saved:false` และหน้าอ่านแสดงข้อผิดพลาด หลังจบแต่ละกรณี bookmark เดิมทั้งสองชิ้นของ B ยังอยู่ในหน้ารายการ, API และ SQL ส่วนรายการของ A ตรงกับก่อนจำลองความล้มเหลว | Pass | [Guide 503](../assets/task128/U9-TC11-guide-sql-rejected.png) · [รายการ B หลัง Guide 503](../assets/task128/U9-TC11-guide-retained-bookmarks.png) · [PDF 503](../assets/task128/U9-TC11-summary-sql-rejected.png) · [รายการ B หลัง PDF 503](../assets/task128/U9-TC11-summary-retained-bookmarks.png) · [ผลรายชนิดใน JSON](../assets/task128/results.json) |
 | U9-TC12 | รายการเดิมและรายการใหม่แสดงร่วมกันโดยไม่ซ้ำ | บันทึก Guide ผ่าน `/api/saved-guides` แล้วบันทึก PDF จากหน้าอ่าน พบทั้งสองในกลุ่ม CS261 การ PUT Guide ผ่าน saved-items ซ้ำยังคงหนึ่ง bookmark | Pass | [รายการ Guide เดิมและ PDF](../assets/task128/U9-TC12-legacy-and-summary.png) |
 
 หลังทดสอบลบเฉพาะผลงานที่ชุดทดสอบสร้าง และเทียบข้อมูลในตารางผลงาน/ไฟล์/bookmark รวมถึง SHA-256 ของไฟล์ใน volume กับค่าก่อนรัน ผลตรงกันและ trigger ทดสอบถูกนำออก
+
+เทสต์ regression ของ cleanup จำลองให้ DELETE แรกของ `summary:42` ได้ 503 แล้วตรวจว่ามีการลองลบ `summary:41` และ `guide:41` ต่อครบ ผลรายงานเก็บชนิด/ID และ HTTP status ของ fixture ที่ลบไม่สำเร็จใน `cleanup.failedFixtures` พร้อมข้อความผิดพลาดเดิมใน `testError` ดู [ผลจำลอง cleanup](../assets/task128/cleanup-failure-regression.txt)
 
 ## Unit, API, Integration และ Regression ที่เกี่ยวข้อง
 
@@ -48,14 +57,17 @@
 
 ## วิธีรันซ้ำ
 
-เปิด Docker Desktop แล้วรันจากโฟลเดอร์ repo ที่รุ่นเดียวกับรายงาน ใช้ `.env` ของชุดทดสอบที่ตั้ง `MSSQL_SA_PASSWORD` แล้ว คำสั่งนี้ใช้พอร์ตแยกและสร้าง SQL/PDF volume ภายใต้ชื่อ Compose project ที่ระบุ
+เปิด Docker Desktop และใช้ checkout แยกสำหรับทดสอบ เตรียม `.env` ของชุดทดสอบที่ตั้ง `MSSQL_SA_PASSWORD` แล้ว คำสั่งนี้เลือก commit ที่มี runner จริง ตรวจว่าไฟล์แอปตรงกับ revision ที่รายงาน แล้วใช้พอร์ตและ SQL/PDF volume แยก
 
 ```powershell
+git switch --detach 93f2caef37aa0877a3fbeeba7ee32eb6f9a47e42
+$env:TASK128_APP_SHA = '0c63713d6764e95b7f19a8edc980b3420d2e8f13'
+git diff --exit-code $env:TASK128_APP_SHA -- backend frontend compose.yaml .gitattributes
 $env:SQLSERVER_HOST_PORT = '24433'
 $env:BACKEND_HOST_PORT = '30800'
 $env:FRONTEND_HOST_PORT = '27800'
 $env:TU_API_MODE = 'mock'
-$project = 'cs261-task123-task128-0c63713'
+$project = 'cs261-task123-task128-r2-0c63713'
 docker compose -p $project up -d --build --wait
 docker compose -p $project run -d --no-deps --name "$project-backend-b" -e TU_MOCK_USERNAME=6800000001 backend
 docker compose -p $project run -d --no-deps --name "$project-frontend-b" -e "BACKEND_URL=http://$project-backend-b:8000" -p 127.0.0.1:27801:5000 frontend
@@ -69,6 +81,7 @@ npm.cmd install --prefix $toolPath --no-audit --no-fund playwright-core@1.65.1
 $env:TASK123_PLAYWRIGHT = Join-Path $toolPath 'node_modules/playwright-core'
 $env:TASK123_PROJECT = $project
 $env:TASK128_EVIDENCE = Join-Path $env:TEMP 'cs261-task128-evidence'
+node --test scripts/task128-cleanup.test.cjs
 node scripts/task128-u9-system.cjs
 ```
 
