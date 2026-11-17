@@ -16,7 +16,7 @@
 | Frontend regression | App SHA `0c63713...` | Node.js 24.22.3; proxy tests ใช้ local TCP mock servers | **104 passed, 0 failed**, 0.60 วินาที |
 | Safety guard tests | Runner SHA `082d556...` | Node.js 24.22.3; Docker metadata mocked เฉพาะ guard test | **10 passed, 0 failed**, 0.07 วินาที; เป็น guard/unit evidence ไม่ใช่ System proof |
 | Browser/Integration/System E2E | App SHA `0c63713...`; Runner SHA `082d556...` | Docker Engine 29.9.3; SQL Server 2022 16.0.4325.4; Chrome 157.0.8103.79; Playwright Core 1.65.1; TU mock สองบัญชี; Backend, SQL Server และ PDF volume จริง | [ผล JSON](../assets/task129/results.json), [ผล boundary](../assets/task129/boundary-results.json), [ผล PUT response failure](../assets/task129/second-put-failure-results.json), [ผล cleanup failure](../assets/task129/cleanup-failed-results.json), [ภาพหลักฐาน](../assets/task129/) |
-| UAT กับ PO | ไม่มี SHA จากรอบ UAT ในบันทึก | **รับ** | [บันทึกมติ](task129-uat-record.md) |
+| UAT กับ PO | รอบตรวจยืนยัน `6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e` | **รับ** | [บันทึกมติ](task129-uat-record.md) |
 
 ผล Unit/API รอบนี้ยืนยันชุด U10 43 passed, 1 warning (Starlette แจ้ง deprecation ของการใช้ httpx กับ TestClient); ไม่ได้รัน Backend test suite ทั้งหมดใน Task129. Frontend regression มี 104 passed, 0 failed. System/E2E ใช้ SQL Server และ PDF volume จริง แต่ Login ใช้ TU mock; จึงไม่ใช่การยืนยันกับ TU authentication service จริง.
 
@@ -142,7 +142,7 @@ node --test frontend/src/*.test.js
 
 | PO/ผู้ตรวจ | ผู้ทดสอบ | วันเวลา (เขตเวลา) | SHA/รุ่นระบบ | ผลตรวจรับจริง/ข้อสังเกต | หลักฐาน/ลิงก์ |
 |---|---|---|---|---|---|
-| กชพร ผดุงเกียรติวงษ์ | ไม่ได้บันทึก | บันทึกมติ 17 พฤศจิกายน 2569 (Asia/Bangkok) | ไม่มี SHA จากรอบ UAT ในบันทึก | รับ | [บันทึกผล UAT](task129-uat-record.md) |
+| กชพร ผดุงเกียรติวงษ์ | ตรวจผ่าน Chrome ด้วย browser runners | 17 พฤศจิกายน 2569 เวลา 22:40–22:42 น. (Asia/Bangkok) | รอบตรวจยืนยัน `6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e` | รับ | [บันทึกผล UAT](task129-uat-record.md) |
 
 แนวทาง UAT ที่เตรียมไว้: ให้ PO Login บน frontend A ด้วยบัญชี TU mock สำหรับทดสอบ, บันทึก Guide สองรายการและ PDF หนึ่งรายการในวิชาเดียวกัน, เปิดหน้ารายการที่บันทึก, ตรวจกลุ่มวิชาและเปิดผลงานตรงชิ้น; ลองรายการว่าง/อีกบัญชี, ยืนยันว่าไม่มี token ได้ 401, ตรวจ ID ผิด/รายการไม่มีอยู่, แล้วให้ผู้ทดสอบตรวจเส้นทาง error ที่มีหลักฐาน SQL จริงใน E2E. PO ต้องยืนยันผลจากการสาธิตจริงและบันทึกชื่อ/เวลา/ผล/ข้อสังเกต ไม่ใช้รายงานนี้กรอกแทน.
 
@@ -153,6 +153,6 @@ node --test frontend/src/*.test.js
 - [x] ตรวจ regression ที่กระทบซ้ำบนรุ่นปัจจุบัน
 - [x] บันทึก expected/actual/status/SHA/environment/auth/evidence สำหรับผลรอบปัจจุบัน
 - [x] บันทึก issue ของ test runner และ retest; ไม่พบ defect ผลิตภัณฑ์ที่ทำให้ TC fail
-- [ ] ทำ UAT กับ PO และบันทึกผลตรวจรับจริง
+- [x] บันทึกมติ PO และแนบผลรอบตรวจยืนยัน UAT
 
-มีผล System/E2E หลักฐาน ขั้นตอนรันซ้ำ และ [บันทึกมติ UAT](task129-uat-record.md) ส่วน SHA ของรอบ UAT และหลักฐานรายเคสยังไม่ได้แนบ
+มีผล System/E2E หลักฐาน ขั้นตอนรันซ้ำ และ [บันทึกมติ UAT](task129-uat-record.md) รอบตรวจยืนยันที่ `6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e` มี [ผล System/E2E](../assets/task129/uat-6591b5b/results.json) และ [ผล TC01/TC05](../assets/task129/uat-6591b5b/boundary-results.json) พร้อมภาพรายเคส
