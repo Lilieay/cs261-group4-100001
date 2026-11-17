@@ -1,0 +1,30 @@
+# Existing application stack, three explicitly synthetic TU accounts for U8 E2E.
+services:
+  backend:
+    environment:
+      TU_API_MODE: mock
+  backend-b:
+    extends: {file: compose.yaml, service: backend}
+    environment: {TU_API_MODE: mock, TU_MOCK_USERNAME: "6800000001"}
+    ports: !override ["127.0.0.1:34801:8000"]
+    depends_on: {backend: {condition: service_healthy}}
+  backend-c:
+    extends: {file: compose.yaml, service: backend}
+    environment: {TU_API_MODE: mock, TU_MOCK_USERNAME: "6800000002"}
+    ports: !override ["127.0.0.1:34802:8000"]
+    depends_on: {backend: {condition: service_healthy}}
+  backend-expiring:
+    extends: {file: compose.yaml, service: backend}
+    environment: {TU_API_MODE: mock, TU_MOCK_USERNAME: "6800000003", AUTH_SESSION_TTL_SECONDS: "1"}
+    ports: !override ["127.0.0.1:34803:8000"]
+    depends_on: {backend: {condition: service_healthy}}
+  frontend-b:
+    extends: {file: compose.yaml, service: frontend}
+    environment: {BACKEND_URL: "http://backend-b:8000"}
+    ports: !override ["127.0.0.1:31801:5000"]
+    depends_on: !override {backend-b: {condition: service_healthy}}
+  frontend-c:
+    extends: {file: compose.yaml, service: frontend}
+    environment: {BACKEND_URL: "http://backend-c:8000"}
+    ports: !override ["127.0.0.1:31802:5000"]
+    depends_on: !override {backend-c: {condition: service_healthy}}
