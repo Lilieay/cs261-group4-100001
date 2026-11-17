@@ -21,5 +21,11 @@
     "node": "26.12.0",
     "environment": "simulated DOM/network test harness; not real browser or SQL"
   },
-  "uat": "PENDING; these results do not constitute PO acceptance"
+  "uat": "PENDING; these results do not constitute PO acceptance",
+  "runnerSupport": {
+    "command": "node --test scripts/task127-support.test.cjs",
+    "sourceSha": "a94550388b0c4d1bdfc5080eb9adfb04264d4eaf",
+    "passed": 11,
+    "environment": "unit test doubles for metadata and cleanup failures; not System/SQL results"
+  }
 }

@@ -2,13 +2,14 @@
 
 สถานะ: **System/E2E ผ่าน รอ PO ทำ UAT ยังไม่ปิด Task127**
 
-ทดสอบวันที่ 17 พฤศจิกายน 2569 (Asia/Bangkok) ใช้ฐาน `sprint2` ที่ `0c63713` ซึ่งรวม Task122 PR #132 ที่ผ่าน review แล้ว ชุด System ที่รันจริงคือ `a9073ac` ผลแต่ละ TC พร้อม expected/actual/status และลิงก์ภาพอยู่ใน [system-results.json](../assets/task127/system-results.json) และ [ตาราง CSV](task127-tc-results.csv) เวลา JSON เป็น UTC
+ทดสอบวันที่ 17 พฤศจิกายน 2569 (Asia/Bangkok) ใช้ฐาน `sprint2` ที่ `0c63713` ซึ่งรวม Task122 PR #132 ที่ผ่าน review แล้ว รอบแก้ตาม review ใช้ชุด System ที่ `a945503` ผลแต่ละ TC พร้อม expected/actual/status และลิงก์ภาพอยู่ใน [system-results.json](../assets/task127/system-results.json) และ [ตาราง CSV](task127-tc-results.csv) เวลา JSON เป็น UTC
 
 ## ผลและขอบเขต
 
 - System/E2E: **18/18 แถวผ่าน** คือ U8-TC01–TC09 แยก Guide และ PDF ทุกกรณี ไม่มีการข้ามทั้ง TC
 - Unit/API Backend ของ U8 ที่รันเพิ่ม: **106 ผ่าน** ใช้ SQLite/auth test double และ mock DAO/session ใน Unit ไม่ใช่ผล SQL Server
 - Regression Frontend เฉพาะรีวิว: **9 ผ่าน** ใช้ test harness จำลอง browser/network แยกจาก System จริง
+- Guard/cleanup ของ System runner: **11 ผ่าน** ตรวจ metadata ผิด port/project/service/TTL/auth, การลบ fixture ที่เหลือต่อเมื่อ DELETE ล้ม และการรักษา exception ต้นเหตุ ใช้ test doubles เฉพาะ helper ไม่ใช่ผล SQL/System จริง
 - System ใช้ Chrome 142.0.7444.176, Docker 29.8.2, SQL Server 2022 16.0.4305.5 และ PDF volume จริง Login เป็น **TU mock** ไม่ได้เชื่อม TU จริง
 - การทดสอบ token หมดอายุใช้ Backend แยกที่ TTL 1 วินาที ออก session ผ่าน Login API จริง รอให้หมดอายุแล้วตรวจ HTTP 401 ไม่ใช้ token ปลอมหรือ mock เวลา
 - Cleanup ผ่าน แถวข้อมูลกับไฟล์/checksum กลับเท่า baseline หลัง Login ไม่มี trigger ทดสอบค้าง บัญชี mock คงไว้รันซ้ำ
@@ -24,11 +25,11 @@
 | TC02 | `test_payload_valid_boundaries`, comment boundaries | สร้างรีวิวไม่มีข้อความระหว่างทดสอบสร้างใหม่ | ให้ 1 และ 5 ดาวโดยไม่เขียนข้อความ แยกข้อมูลก่อนแต่ละคะแนน ตรวจ null และ UI หลัง reload |
 | TC03 | `test_payload_rejects_invalid_rating`, `test_invalid_rating_on_create_and_update` | ทศนิยมกับข้อความเกินขอบเขต | UI ไม่ส่ง POST เมื่อไม่เลือกดาว; ส่ง missing/0/6/-1/2.5 ผ่าน HTTP จาก browser ทั้ง POST/PUT ได้ 422 และข้อมูลเดิมไม่เปลี่ยน |
 | TC04 | lifecycle และ validation | แก้รีวิวเดิม | แก้ดาวอย่างเดียว ข้อความอย่างเดียว ทั้งสองอย่าง และล้างข้อความ ผ่าน UI ตรวจ ID/author/target เดิมและอ่านหลัง reload |
-| TC05 | lifecycle/isolation | ลบ/ยกเลิกลบ ไม่กระทบอีกผลงาน | มีรีวิว R และ X บน target เดียวกัน ยกเลิกแล้วคงอยู่ ลบ R แล้ว X ยังอยู่ ตัวผลงาน/ไฟล์ยังอยู่ และ PDF blob ยังตรง fixture |
+| TC05 | lifecycle/isolation | ลบ/ยกเลิกลบ ไม่กระทบอีกผลงาน | มีรีวิว R และ X บน target เดียวกัน ยกเลิกแล้วคงอยู่ ลบ R แล้วตรวจ GET 200 ว่าไม่มี ID ของ R แต่มี ID ของ X จากนั้นโหลดหน้าใหม่ เห็นรีวิวของ X เพียงรายการเดียว ไม่มี own entry ของ R ตัวผลงาน/ไฟล์ยังอยู่ และ PDF blob ตรง fixture |
 | TC06 | `test_authentication`, forbidden fields, isolation | สองบัญชี/401/403 | X แก้/ลบของ R ได้ 403; ไม่มี token/หมดอายุจริงได้ 401 สำหรับ POST/PUT/DELETE; ปลอม author ใน POST/PUT ได้ 422 และอ่านรีวิวผู้อื่นได้ |
 | TC07 | `test_self_review_and_missing_target`, business rules | owner UI และ self 403 | เจ้าของไม่มีปุ่มเพิ่ม เห็นข้อความห้ามรีวิวตนเอง ส่ง POST ตรงได้ 403 ไม่เพิ่มแถว |
 | TC08 | lifecycle, `test_same_id_targets_are_distinct` | POST ซ้ำ/พร้อมกัน, filtered unique indexes | POST ซ้ำได้ 409 ไม่เปลี่ยนรีวิวเดิม control target ยังว่าง และหลังลบสร้างใหม่ได้ใน TC05 |
-| TC09 | rollback/read/commit failures และ missing target | SQL write failures/refresh/cascade จริง | SQL ปฏิเสธ create/update/delete ได้ 503 หน้าแสดง error ไม่มีข้อมูลใหม่/คงรีวิวเดิม; PUT ล้มแล้วมี GET ใหม่; target ถูกลบแล้ว 404 และ control target ไม่เปลี่ยน |
+| TC09 | rollback/read/commit failures และ missing target | SQL write failures/refresh/cascade จริง | SQL ปฏิเสธ create/update/delete ได้ 503 หน้าแสดง error; หลัง PUT 503 มี GET 200 พร้อม ID/rating/comment เดิม ปิดฟอร์มแล้วเห็นรีวิวเดิมบนหน้า; target ถูกลบแล้ว GET/POST ได้ GUIDE_NOT_FOUND หรือ SUMMARY_NOT_FOUND ตรงชนิด ส่วน PUT/DELETE ได้ REVIEW_NOT_FOUND และ control target ไม่เปลี่ยน |
 
 System TC03/06/08 บางขั้นตอนยิง HTTP จาก browser หรือ Playwright request client เพื่อพิสูจน์ว่า Backend ไม่พึ่งการซ่อนปุ่ม TC06 กรณี TTL ใช้ HTTP ไป Backend อายุสั้นโดยตรง จัดเป็น System security check ไม่ใช่การกด UI และไม่ใช่ mock
 
@@ -72,6 +73,10 @@ node scripts/task127-u8-system.cjs
 บัญชี owner/R/X คือ `6800000000` / `6800000001` / `6800000002` รหัสผ่าน mock `0000000000000` เข้า Frontend 31800/31801/31802 ตามลำดับ ใช้ user IDs ต่างกัน ฐานเดียวกัน บัญชี `6800000003` อยู่บน Backend พอร์ต 34803 สำหรับ TTL 1 วินาทีเท่านั้น ไม่ใช้เป็นบัญชี UAT
 
 สคริปต์สร้าง Guide/PDF ตาม API เดิม ตั้งชื่อ Task127 พร้อม timestamp สร้าง PDF เอง ไม่ใช้ข้อมูลหรือ secret ของมหาวิทยาลัย ตรวจ project/port/proxy ก่อน Login เก็บ baseline หลังสร้าง session แล้ว cleanup เฉพาะ target ของรอบนั้นผ่าน API เจ้าของ Trigger ลบเฉพาะที่รอบนี้สร้าง หากหยุด process กลางทางให้ตรวจชื่อ/ID/เจ้าของก่อนคืน fixture ไม่ล้างตารางหรือ volume
+
+รอบแก้เพิ่ม preflight ของ `backend-expiring` โดยตรวจ project/service, running state, เจ้าของพอร์ต 34803, mock auth และ TTL 1 วินาทีก่อน Login โดยตรง เก็บ Docker metadata ที่ตรวจแล้วใน `environment.expiringBackend` หาก cleanup ลบหนึ่ง fixture ไม่สำเร็จ จะลองรายการที่เหลือต่อ พร้อมเก็บ `cleanupErrors` และ `remainingFixtures` ใน JSON และแสดง IDs บน stderr ข้อผิดพลาด TC ต้นเหตุยังเป็น error เดิม ไม่ถูก cleanup กลบ การรันที่ cleanup ล้มยัง exit nonzero และไม่ผ่าน
+
+รันทดสอบ guard/cleanup เพิ่มจาก root ด้วย `node --test scripts/task127-support.test.cjs` ผลรอบแก้ 11 ผ่าน; การจำลอง cleanup error ใช้ helper tests ส่วน System เต็มรอบใหม่ตรวจ cleanup จริงตาม baseline
 
 รัน Unit/API จาก `backend/` ด้วย Python environment ที่มี requirements และแยก PDF root ว่างเพื่อไม่อ่าน marker จากการรันอื่น:
 
