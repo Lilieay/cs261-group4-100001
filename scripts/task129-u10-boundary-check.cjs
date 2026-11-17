@@ -54,8 +54,11 @@ async function main() {
   let userId, guideId, originalBookmarks, cleanupRequired=false;
   let tc05Visual, runError=null;
   const injectSecondPutFailure=process.env.TASK129_SIMULATE_SECOND_PUT_FAILURE==='1';
+  const injectCleanupFailure=process.env.TASK129_SIMULATE_CLEANUP_FAILURE==='1';
+  assert(!(injectSecondPutFailure&&injectCleanupFailure),'Run failure scenarios separately');
   const result = {appSha,testRunnerSha,runnerFile:'scripts/task129-u10-boundary-check.cjs',project,
-    authMode:'TU mock account A; browser login; SQL Server real',failureInjection:injectSecondPutFailure,
+    authMode:'TU mock account A; browser login; SQL Server real',
+    failureInjection:{secondPutResponse:injectSecondPutFailure,cleanupRequest:injectCleanupFailure},
     cases:[],cleanup:{status:'NOT_RUN'}};
   async function api(endpoint,method='GET') {
     return page.evaluate(async ({endpoint,method}) => {
@@ -154,7 +157,12 @@ async function main() {
   } finally {
     try {
       if(cleanupRequired && userId!==undefined && guideId!==undefined) {
-        const response=await api(`/api/saved-items/guide/${guideId}`,'DELETE');
+        const cleanupPath=`${baseUrl}/api/saved-items/guide/${guideId}`;
+        const abortCleanup=route=>route.abort('failed');
+        if(injectCleanupFailure)await page.route(cleanupPath,abortCleanup);
+        let response;
+        try { response=await api(`/api/saved-items/guide/${guideId}`,'DELETE'); }
+        finally { if(injectCleanupFailure)await page.unroute(cleanupPath,abortCleanup); }
         assert.equal(response.status,200,'Cleanup DELETE should succeed');
         const after=allBookmarks(userId);
         sameIds(after,originalBookmarks);
@@ -165,7 +173,14 @@ async function main() {
           detail:'No PUT was sent; cleanup was not registered'};
       }
     } catch(error) {
-      result.cleanup={status:'FAIL',baselineRestored:false,detail:String(error?.stack || error)};
+      let observedBookmarks=null,baselineRestored=false;
+      try {
+        observedBookmarks=allBookmarks(userId);
+        baselineRestored=JSON.stringify([...observedBookmarks].sort((a,b)=>a-b))
+          ===JSON.stringify([...originalBookmarks].sort((a,b)=>a-b));
+      } catch {}
+      result.cleanup={status:'FAIL',baselineRestored,observedBookmarks,
+        detail:`Cleanup failed; baseline ${baselineRestored?'was verified':'was not restored/verified'}: ${String(error?.stack || error)}`};
       runError ||= error;
     }
 
@@ -192,11 +207,13 @@ async function main() {
 
     try { await page.close(); } catch(error) { result.pageCloseError=String(error); runError ||= error; }
     try { await browser.close(); } catch(error) { result.browserCloseError=String(error); runError ||= error; }
+    result.browserClosed=!result.pageCloseError&&!result.browserCloseError;
     result.completedAt=new Date().toISOString();
     const expectedCaseCount=injectSecondPutFailure?1:2;
     result.passed=!runError && result.cleanup.status==='PASS' && result.cleanup.baselineRestored
       && result.cases.length===expectedCaseCount && result.cases.every(c=>c.status==='PASS');
-    const filename=injectSecondPutFailure?'cleanup-failure-results.json':'boundary-results.json';
+    const filename=injectSecondPutFailure?'second-put-failure-results.json'
+      :injectCleanupFailure?'cleanup-failed-results.json':'boundary-results.json';
     writeFileSync(path.join(evidenceDir,filename),JSON.stringify(result,null,2)+'\n');
   }
   if(runError)throw runError;
