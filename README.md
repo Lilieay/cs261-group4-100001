@@ -1,5 +1,7 @@
 # CS261 Group 4
 
+เอกสารและหลักฐานทั้งหมด: [สารบัญเอกสาร](docs/README.md)
+
 เว็บสำหรับค้นหารายวิชา อ่าน เผยแพร่ และจัดการแนวข้อสอบ ใช้ Frontend (Node.js/Express), Backend (FastAPI/SQLAlchemy) และ Microsoft SQL Server 2022 โดย Docker Compose จัดการทั้งสาม services
 
 ## Fresh Setup — เครื่องใหม่

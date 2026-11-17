@@ -17,7 +17,7 @@
 
 ## TC และระดับทดสอบที่รองรับ
 
-อ้างเกณฑ์ [Task97 รุ่น 0.3](../requirements/task97-u8-requirements-and-test-cases.md), API [Task94](../../task94-api-contract.md), [Unit/API Task114](task114-unit-api-results.md) และ [Integration Task122](task122-u8-docker-integration.md)
+อ้างเกณฑ์ [Task97 รุ่น 0.3](../requirements/task97-u8-requirements-and-test-cases.md), API [Task94](../../shared/api-contract/task94-api-contract.md), [Unit/API Task114](task114-unit-api-results.md) และ [Integration Task122](task122-u8-docker-integration.md)
 
 | TC | Unit/API ที่รองรับ | Integration Task122 | System/E2E รอบนี้ ทั้ง Guide/PDF |
 | --- | --- | --- | --- |

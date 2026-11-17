@@ -533,6 +533,6 @@ Frontend รอตรวจการประกอบ multipart การรั
 ## ไฟล์ประกอบ
 
 - [เอกสาร Word](task94-api-contract.docx)
-- [วิธีใช้ชุดข้อมูลร่วม](task94-fixtures/README.md)
-- [ข้อมูลและตัวอย่าง request response](task94-fixtures/examples.json)
+- [วิธีใช้ชุดข้อมูลร่วม](fixtures/README.md)
+- [ข้อมูลและตัวอย่าง request response](fixtures/examples.json)
 - [สถานะและหมายเหตุการ review](task94-review.md)

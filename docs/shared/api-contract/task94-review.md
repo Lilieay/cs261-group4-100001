@@ -10,9 +10,9 @@
 
 - [API contract แบบ Markdown](task94-api-contract.md)
 - [API contract แบบ Word](task94-api-contract.docx)
-- [วิธีใช้ข้อมูลทดสอบร่วม](task94-fixtures/README.md)
-- [ข้อมูลตั้งต้นและตัวอย่าง request response](task94-fixtures/examples.json)
-- [เครื่องมือตรวจ fixtures และสร้าง PDF](../scripts/task94_fixtures.py)
+- [วิธีใช้ข้อมูลทดสอบร่วม](fixtures/README.md)
+- [ข้อมูลตั้งต้นและตัวอย่าง request response](fixtures/examples.json)
+- [เครื่องมือตรวจ fixtures และสร้าง PDF](../../../scripts/task94_fixtures.py)
 
 Branch `docs/task94-api-contract` ใช้ฐาน `sprint2` commit `db682e2044be73498fea6d9fcfe4c80bd42c1a09`
 
