@@ -6,7 +6,7 @@
 
 ทดสอบระบบที่เชื่อมแล้วครบ `U6-TC01–TC08` ผ่านเส้นทางผู้ใช้จริง ตรวจ regression เฉพาะจุดที่ Story นี้กระทบและทำ UAT กับ PO เชื่อม TC กับผล Unit/API/Integration/System/UAT ที่เกี่ยวข้อง ไม่ใช้ผล mock รับรองชั้นระบบจริง
 
-วันที่ ... พฤศจิกายน 2569 ใช้ `sprint2` commit `297e6d056577e3bb9dac67c948de98ec21593679` (ต่อจากงานที่ต้องเสร็จก่อนเริ่ม: **Task120** เชื่อมและทดสอบระบบ U6 บน Docker ผ่าน DoD แล้ว) ใช้ Docker Engine 29.8.2, SQL Server 2022 16.0.4305.5, Chrome 157.0.8103.78 และ Playwright Core 1.65.1 ยืนยันตัวตนผ่านระบบจริง (ไม่ใช้ mock) บนฐานข้อมูลและ volume PDF จริงใน Compose project แยก
+วันที่ ... พฤศจิกายน 2569 ใช้ `sprint2` commit `297e6d056577e3bb9dac67c948de98ec21593679` (ต่อจากงานที่ต้องเสร็จก่อนเริ่ม: **Task125** เชื่อมและทดสอบระบบ U6 บน Docker ผ่าน DoD แล้ว) ใช้ Docker Engine 29.8.2, SQL Server 2022 16.0.4305.5, Chrome 157.0.8103.78 และ Playwright Core 1.65.1 ยืนยันตัวตนผ่านระบบจริง (ไม่ใช้ mock) บนฐานข้อมูลและ volume PDF จริงใน Compose project แยก
 
 ## ผลที่ได้
 
@@ -37,20 +37,20 @@
 
 ## หลักฐาน
 
-- `U6-TC01` [เผยแพร่สำเร็จและเปิดอ่านได้](../assets/u6/u6-tc01-publish-read.png)
-- `U6-TC02` [ไม่กรอกข้อมูลประกอบก็เผยแพร่ได้](..\assets\task125\U6-TC02.png)
-- `U6-TC03` [ข้อมูลบังคับไม่ครบไม่เผยแพร่](..\assets\task125\U6-TC03.png)
-- `U6-TC04` [ไฟล์ไม่ผ่านเงื่อนไขไม่เผยแพร่](..\assets\task125\U6-TC04.png)
-- `U6-TC05` [ป้องกันเผยแพร่ผิดวิชา/สวมชื่อเจ้าของ](..\implementation\assets\task125\U6-TC05.png)
-- `U6-TC06` [ไม่ได้เข้าสู่ระบบเปิดสรุปไม่ได้](..\assets\task125\U6-TC06.png)
+- `U6-TC01` [เผยแพร่สำเร็จและเปิดอ่านได้](../assets/task125/U6-TC01.png)
+- `U6-TC02` [ไม่กรอกข้อมูลประกอบก็เผยแพร่ได้](../assets/task125/U6-TC02.png)
+- `U6-TC03` [ข้อมูลบังคับไม่ครบไม่เผยแพร่](../assets/task125/U6-TC03.png)
+- `U6-TC04` [ไฟล์ไม่ผ่านเงื่อนไขไม่เผยแพร่](../assets/task125/U6-TC04.png)
+- `U6-TC05` [ป้องกันเผยแพร่ผิดวิชา/สวมชื่อเจ้าของ](../implementation/assets/task125/U6-TC05.png)
+- `U6-TC06` [ไม่ได้เข้าสู่ระบบเปิดสรุปไม่ได้](../assets/task125/U6-TC06.png)
 - `U6-TC07` [เผยแพร่ล้มเหลวไม่แจ้งสำเร็จ](../assets/u6/u6-tc07-publish-failure.png)
 - `U6-TC08` [รายการสรุปแสดงตรงวิชา](../assets/u6/u6-tc08-course-list.png)
-- `UAT` [บันทึกผลตรวจรับร่วมกับ PO](..\assets\task125\U6-TC08.png)
+- `UAT` [บันทึกผลตรวจรับร่วมกับ PO](../assets/task125/U6-TC08.png)
 
 ## วิธีรันซ้ำ
 
 ใช้ [compose.yaml](../../../compose.yaml) เดิม ตั้งค่า environment สำหรับการทดสอบระบบจริง (`TU_API_MODE` โหมดจริง ไม่ใช้ mock) กำหนด `MSSQL_SA_PASSWORD`, `SQLSERVER_HOST_PORT=24433`, `BACKEND_HOST_PORT=30800`, `FRONTEND_HOST_PORT=27800` และใช้ชื่อ Compose project แยกเพื่อแยกฐานข้อมูล SQL กับ PDF volume ออกจากระบบหลัก ตรวจว่า `backend/docker-entrypoint.sh` เป็น LF เมื่อรันบน Windows
 
 ```powershell
-$project = 'cs261-u6-e2e'
+$project = 'cs261-u6-task125-e2e'
 docker compose -p $project up -d --build --wait
