@@ -11,6 +11,7 @@ function loadCourseApi({token = 'test-token', fetchImpl = async () => new Respon
   const redirects = [];
   const calls = [];
   const window = {
+    AppConfig: require('../public/js/app-config'),
     LoginConfig: {tokenStorageKey: 'access_token'},
     location: {replace: url => redirects.push(url)}
   };

@@ -18,14 +18,14 @@ function page({publish = async () => ({id: 12})} = {}) {
     return elements.get(id);
   };
   const window = {
-    GuidePublishConfig: {mode: 'api', academicYears: [2568]},
+    AppConfig: require('../public/js/app-config'),
+    GuideConfig: {academicYears: [2568]},
     currentUserReady: Promise.resolve({id: 1, username: 'student', display_name: 'Student User'}),
     GuideApi: {
       courses: async () => [{id: 4, code: 'CS261', name: 'Software Engineering'}],
       currentUser: () => { redundantUserReads++; throw new Error('Duplicate user request'); },
       publish: async body => { bodies.push(body); return publish(body); }
     },
-    CourseData: {loadExams: () => { throw new Error('Preview data must not be used'); }},
     location: {href: 'http://frontend/upload.html', assign: value => navigations.push(value)}
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/upload.js'), 'utf8'), {

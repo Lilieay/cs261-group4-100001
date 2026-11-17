@@ -35,6 +35,7 @@ function runPage({mine, remove = async () => {}, user = {username: 'student'}}) 
     getElementById: id => panes.get(id) || get('#' + id)
   };
   const window = {
+    AppConfig: require('../public/js/app-config'),
     currentUserReady: Promise.resolve(user),
     GuideApi: {mine, remove},
     location: {replace: value => redirects.push(value), assign: value => navigations.push(value)}

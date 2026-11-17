@@ -47,8 +47,6 @@
   let deleting;
   let selectedFile;
   let coursesRequest;
-  let previewRequest;
-  let previewUrl;
   let editBlock = '';
   let editFailure = '';
 
@@ -152,58 +150,28 @@
     fieldError(fileInput, message);
   }
 
-  function releasePreview() {
-    previewRequest?.abort();
-    previewRequest = undefined;
-    previewFrame.hidden = previewLink.hidden = true;
-    previewFrame.removeAttribute('src');
-    previewLink.removeAttribute('href');
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = undefined;
-  }
+  const pdfPreview = window.PdfPreview.create({dialog: preview, frame: previewFrame, link: previewLink, status: previewStatus});
 
   async function openPreview(file) {
     if (!editor.open || busy || preview.open) return;
     const summary = editing;
-    releasePreview();
     showError(previewError);
     $('summary-edit-preview-title').textContent = file ? 'ตัวอย่างไฟล์ PDF ใหม่' : 'ตัวอย่างไฟล์ PDF เดิม';
     $('summary-edit-preview-name').textContent = file?.name || summary.file.original_name;
-    previewStatus.textContent = 'กำลังเปิดตัวอย่าง…';
-    previewStatus.hidden = false;
-    preview.showModal();
-    const request = new AbortController();
-    previewRequest = request;
     try {
-      let pdf;
-      if (file) {
+      await pdfPreview.show(async signal => {
+        if (!file) return api.openFile(summary.id, signal);
         const message = await api.pdfSignatureError(file);
         if (message) throw new Error(message);
-        pdf = file.type ? file : file.slice(0, file.size, 'application/pdf');
-      } else {
-        pdf = await api.openFile(summary.id, request.signal);
-      }
-      if (!preview.open || request.signal.aborted) return;
-      previewUrl = URL.createObjectURL(pdf);
-      previewFrame.src = `${previewUrl}#view=FitH`;
-      previewLink.href = previewUrl;
-      previewFrame.hidden = previewLink.hidden = false;
+        return file.type ? file : file.slice(0, file.size, 'application/pdf');
+      });
     } catch (error) {
-      if (preview.open && !request.signal.aborted && error.status !== 401) showError(previewError, error.message);
-    } finally {
-      if (previewRequest === request) {
-        previewRequest = undefined;
-        previewStatus.hidden = true;
-      }
+      if (error.status !== 401) showError(previewError, error.message);
     }
   }
 
   previewButton.addEventListener('click', () => openPreview());
   previewNewButton.addEventListener('click', () => openPreview(selectedFile));
-
-  preview.addEventListener('close', () => {
-    if (!preview.open) releasePreview();
-  });
 
   function setCourses(courses, current) {
     const available = new Map([[editing.course.id, editing.course]]);

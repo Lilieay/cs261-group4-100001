@@ -9,6 +9,9 @@
     topics: 'edit-topics', additional_advice: 'edit-notes'
   };
   const field = key => document.getElementById(ids[key]);
+  const years = window.AppConfig.academicYears;
+  field('academic_year').min = Math.min(...years);
+  field('academic_year').max = Math.max(...years);
   let catalog = [], guide = null, onSaved = null, busy = false;
 
   function showError(message) {
@@ -53,7 +56,7 @@
       else if (Array.from(payload[key]).length > limit) errors[key] = `ต้องไม่เกิน ${limit} ตัวอักษร`;
     }
     if (Array.from(payload.additional_advice || '').length > 2000) errors.additional_advice = 'คำแนะนำต้องไม่เกิน 2,000 ตัวอักษร';
-    if (!Number.isInteger(payload.academic_year) || payload.academic_year < 2566 || payload.academic_year > 2569) errors.academic_year = 'กรุณากรอกปีการศึกษาที่ถูกต้อง';
+    if (!years.includes(payload.academic_year)) errors.academic_year = 'กรุณากรอกปีการศึกษาที่ถูกต้อง';
     if (![1, 2, 3].includes(payload.semester)) errors.semester = 'กรุณาเลือกภาคเรียน';
     if (!['midterm', 'final'].includes(payload.exam_period)) errors.exam_period = 'กรุณาเลือกช่วงสอบ';
     if (!['objective', 'subjective', 'mixed'].includes(payload.exam_format)) errors.exam_format = 'กรุณาเลือกรูปแบบข้อสอบ';
@@ -61,7 +64,7 @@
       const control = field(key);
       const value = control.disabled || !text(key) ? null : Number(text(key));
       payload[key] = value;
-      if (!control.disabled && (control.validity.badInput || (value !== null && (!Number.isSafeInteger(value) || value <= 0 || value > 2147483647)))) errors[key] = 'กรุณาระบุจำนวนเต็มมากกว่า 0 หรือเว้นว่าง';
+      if (!control.disabled && (control.validity.badInput || (value !== null && (!Number.isSafeInteger(value) || value <= 0 || value > window.AppConfig.maxId)))) errors[key] = 'กรุณาระบุจำนวนเต็มมากกว่า 0 หรือเว้นว่าง';
     }
     return {payload, errors};
   }

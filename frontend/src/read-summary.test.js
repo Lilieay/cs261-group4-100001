@@ -19,6 +19,7 @@ function reader(state) {
     return elements.get(id);
   };
   const window = {
+    AppConfig: require('../public/js/app-config'),
     location: {search: '?summary=12&source=saved'},
     SavedItems: {state},
     SummaryApi: {
@@ -90,7 +91,7 @@ test('U9 bookmark client preserves Backend 503 detail and reports an unknown res
   const unknown = 'ยังยืนยันผลไม่ได้ กรุณาโหลดสถานะล่าสุด';
   const failed = 'จัดการรายการที่บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง';
   const outcomes = [failed, unknown, null];
-  const window = {HttpClient: {
+  const window = {AppConfig: require('../public/js/app-config'), HttpClient: {
     token: () => 'test-token',
     async request() {
       const message = outcomes.shift();

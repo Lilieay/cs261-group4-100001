@@ -77,18 +77,3 @@ class GuidePublishRequestDTO(BaseModel):
         if self.exam_format == "subjective" and self.objective_count is not None:
             raise ValueError("objective_count is not valid for subjective exams")
         return self
-
-
-class ErrorFieldDTO(BaseModel):
-    field: str
-    message: str
-
-
-class ErrorDetailDTO(BaseModel):
-    code: str
-    message: str
-    fields: list[ErrorFieldDTO] = Field(default_factory=list)
-
-
-class ErrorResponseDTO(BaseModel):
-    error: ErrorDetailDTO

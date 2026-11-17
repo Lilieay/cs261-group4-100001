@@ -294,7 +294,7 @@
 .publish-errors { padding: 14px 16px; margin-bottom: 16px; border: 1px solid #fca5a5; border-radius: 6px; background: #fff5f5; color: #991b1b; }
 .publish-errors strong, .publish-errors a { display: block; line-height: 1.8; }
 .publish-errors a { color: inherit; text-decoration: underline; }
-.publish-mode, .publish-notice { padding: 12px 16px; border: 1px solid #d8dff0; border-radius: 6px; background: #f5f7ff; color: #354563; font-size: 13px; line-height: 1.7; }
+.publish-notice { padding: 12px 16px; border: 1px solid #d8dff0; border-radius: 6px; background: #f5f7ff; color: #354563; font-size: 13px; line-height: 1.7; }
 .publish-status { min-height: 1.5em; margin: 8px 0; color: #43546b; }
 .publish-status:empty { display: none; }
 .publish-status[data-kind="error"] { color: #b91c1c; }

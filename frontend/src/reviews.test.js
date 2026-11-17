@@ -50,6 +50,7 @@ function reviewPage({type, profile, items, write = () => unavailable}) {
   const target = {id: 12, type, title: 'เอกสารทดสอบ', ownerId: 99};
   const calls = [];
   const window = {
+    AppConfig: require('../public/js/app-config'),
     GuideApi: {mine: async () => []},
     HttpClient: {
       clearToken() {},
@@ -77,7 +78,7 @@ function reviewPage({type, profile, items, write = () => unavailable}) {
     }
   };
   dialog.querySelector('.review-editor').reset = () => {};
-  for (const file of ['profile.js', 'reviews.js']) {
+  for (const file of ['profile.js', 'review-api.js', 'reviews.js']) {
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8'), context);
   }
   window.Reviews.open(target, new Element());

@@ -42,6 +42,7 @@ function runPage({mine = async () => [original], update, remove, openFile} = {})
   form.querySelector = () => [...elements.values()].find(element => element.attributes['aria-invalid'] === 'true');
   const pdfUrls = [];
   const window = {
+    AppConfig: require('../public/js/app-config'),
     CourseApi: {searchCourses: async () => []},
     SummaryApi: {mine, update, remove, openFile, pdfSelectionError: () => '', pdfSignatureError: async () => ''}
   };
@@ -51,7 +52,7 @@ function runPage({mine = async () => [original], update, remove, openFile} = {})
     URLSearchParams, AbortController,
     URL: {createObjectURL(pdf) { pdfUrls.push(pdf); return 'blob:pdf'; }, revokeObjectURL() {}}
   };
-  for (const file of ['ui-utils.js', 'my-summaries.js']) {
+  for (const file of ['ui-utils.js', 'pdf-preview.js', 'my-summaries.js']) {
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8'), context);
   }
   function open(action) {

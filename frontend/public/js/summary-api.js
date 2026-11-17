@@ -1,9 +1,9 @@
 (() => {
   'use strict';
 
-  const MAX_PDF_BYTES = 15_000_000;
-  const FILE_TIMEOUT_MS = 120_000;
-  const validId = value => /^[1-9]\d*$/.test(String(value)) && Number(value) <= 2147483647;
+  const MAX_PDF_BYTES = window.AppConfig.pdf.maxBytes;
+  const FILE_TIMEOUT_MS = window.AppConfig.pdf.timeoutMs;
+  const validId = value => /^[1-9]\d*$/.test(String(value)) && Number(value) <= window.AppConfig.maxId;
 
   class SummaryApiError extends Error {
     constructor(message, status = 0, fields = [], code = '') {

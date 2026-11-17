@@ -2,7 +2,7 @@
   'use strict';
 
   const root = '/api/saved-items';
-  const idValid = value => /^[1-9][0-9]*$/.test(String(value)) && Number(value) <= 2147483647;
+  const idValid = value => /^[1-9][0-9]*$/.test(String(value)) && Number(value) <= window.AppConfig.maxId;
   const typeValid = type => type === 'guide' || type === 'summary';
   const failure = (message, status = 0) => Object.assign(new Error(message), {status});
   const unknownWrite = 'ยังยืนยันผลไม่ได้ กรุณาโหลดสถานะล่าสุด';

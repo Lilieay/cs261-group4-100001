@@ -35,8 +35,9 @@ function runPage(file, {url, api, summaryApi, guideApi = {}, data = {}}) {
     createElement: () => new Element(), createTextNode: text => ({textContent: text})
   };
   const window = {
+    AppConfig: require('../public/js/app-config'),
     location: {href: url}, history: {replaceState() {}}, addEventListener() {},
-    CourseApi: api, SummaryApi: summaryApi, GuideApi: {savedState: async () => false, ...guideApi}, CourseData: data,
+    CourseApi: api, SummaryApi: summaryApi, GuideApi: guideApi,
     SavedItems: {state: (_type, id, desired) => (guideApi.savedState || (async () => false))(id, desired)}
   };
   const source = fs.readFileSync(path.join(__dirname, '../public/js', file), 'utf8');
@@ -228,7 +229,7 @@ test('read page resolves a database course and guide by URL without the preview 
         calls.push([id, code]);
         return {id: 71, course: {course_code: 'CS902'}};
       },
-      toPreviewRow: () => ({
+      toGuideRow: () => ({
         id: '71', title: 'แนวข้อสอบจาก API', year: '2568', semester: '1',
         period: 'กลางภาค', formats: ['ผสม'], topics: 'หัวข้อจริง', notes: '',
         objective_count: 10, essay_count: 2, publisher_name: 'ผู้เผยแพร่จริง',
@@ -261,7 +262,7 @@ test('read page allows the my-guides return path and rejects an external return 
       api: {getCourse: async () => ({id: 902, code: 'CS902', name: 'วิชา'})},
       guideApi: {
         read: async () => ({id: 71, course: {course_code: 'CS902'}}),
-        toPreviewRow: () => ({id: '71', title: 'แนวข้อสอบ', year: '2568', semester: '1',
+        toGuideRow: () => ({id: '71', title: 'แนวข้อสอบ', year: '2568', semester: '1',
           period: 'กลางภาค', formats: ['ผสม'], topics: 'หัวข้อ', notes: '',
           objective_count: 1, essay_count: 1, publisher_name: 'ผู้เผยแพร่'})
       },
@@ -299,7 +300,7 @@ test('read bookmark waits for API state and keeps a saved item when pressed agai
   const {get} = runPage('read-courses.js', {
     url: 'http://frontend/read-courses.html?source=api&courseId=4&course=CS261&guide=12',
     api: {getCourse: async () => ({id: 4, code: 'CS261', name: 'Software Engineering'})},
-    guideApi: {read: async () => ({}), toPreviewRow: () => ({title: 'Guide', formats: ['ผสม']}),
+    guideApi: {read: async () => ({}), toGuideRow: () => ({title: 'Guide', formats: ['ผสม']}),
       savedState: async (id, desired) => { calls.push([id, desired]); return desired === undefined ? state.promise : write.promise; }},
     data: {escapeHtml: String, semesterLabel: String, questionCounts: () => ({}), publisherName: () => 'Publisher'}
   });

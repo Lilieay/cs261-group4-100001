@@ -6,13 +6,14 @@ const path = require('node:path');
 
 const source = fs.readFileSync(path.join(__dirname, '../public/js/guide-api.js'), 'utf8');
 
-function loadGuideApi({token = 'test-token', mode = 'preview', apiBaseUrl = 'http://127.0.0.1:8000',
+function loadGuideApi({token = 'test-token', apiBaseUrl = 'http://127.0.0.1:8000',
   fetchImpl = async () => new Response('{}')} = {}) {
   const values = new Map(token ? [['access_token', token]] : []);
   const calls = [];
   const redirects = [];
   const window = {
-    GuidePublishConfig: {mode, apiBaseUrl, tokenStorageKey: 'access_token',
+    AppConfig: require('../public/js/app-config'),
+    GuideConfig: {apiBaseUrl, tokenStorageKey: 'access_token',
       mePath: '/api/auth/me', myGuidesPath: '/api/my-guides', coursesPath: '/courses', publishPath: '/guides', timeoutMs: 15000},
     LoginConfig: {tokenStorageKey: 'access_token'},
     location: {origin: 'http://frontend', replace: url => redirects.push(url)}
@@ -35,7 +36,7 @@ function loadGuideApi({token = 'test-token', mode = 'preview', apiBaseUrl = 'htt
   return {api: window.GuideApi, calls, redirects, values};
 }
 
-test('guide read client uses the same-origin proxy while publish remains in preview mode', async () => {
+test('guide read and publish use the same-origin proxy without a preview fallback', async () => {
   const client = loadGuideApi({fetchImpl: async () => new Response(JSON.stringify({
     id: 12, title: 'แนวข้อสอบ', academic_year: 2568, semester: 1, exam_period: 'midterm',
     publisher_name: 'ผู้เผยแพร่', course: {id: 4, course_code: 'CS261', course_name: 'วิชา', instructor_names: 'อาจารย์'},
@@ -47,7 +48,9 @@ test('guide read client uses the same-origin proxy while publish remains in prev
   assert.equal(detail.course.course_code, 'CS261');
   assert.equal(client.calls[0][0], '/api/guides/12');
   assert.equal(client.calls[0][1].headers.Authorization, 'Bearer test-token');
-  await assert.rejects(client.api.publish({}, 'CS261'), /ยังไม่ได้เปิดโหมด API/);
+  await assert.rejects(client.api.publish({}, 'CS261'), /ยืนยันรายการที่สร้างไม่ได้/);
+  assert.equal(client.calls[1][0], '/api/guides');
+  assert.equal(client.calls[1][1].method, 'POST');
 });
 
 test('guide read client accepts zero legacy question counts', async () => {
@@ -137,7 +140,7 @@ test('delete client uses the owned-guide proxy and validates the deleted record 
 });
 
 test('guide client sends publish through the same-origin proxy and keeps auth and course reads on their existing proxies', async () => {
-  const client = loadGuideApi({mode: 'api', fetchImpl: async url => {
+  const client = loadGuideApi({fetchImpl: async url => {
     if (url === '/api/auth/me') return new Response('{"id":8,"username":"student"}');
     if (url === '/api/courses') return new Response('[{"id":4,"course_code":"CS261","course_name":"วิชา"}]');
     return new Response(JSON.stringify({
@@ -167,35 +170,4 @@ test('guide client redirects when login is missing and clears an expired token',
   await assert.rejects(expired.api.read(31, 'CS261'), error => error.status === 401);
   assert.deepEqual(expired.redirects, ['login.html']);
   assert.equal(expired.values.has('access_token'), false);
-});
-
-
-test('saved client uses authenticated API state and idempotent PUT/DELETE', async () => {
-  const client = loadGuideApi({fetchImpl: async (_, init) => new Response(JSON.stringify({
-    id: 12, saved: init.method !== 'DELETE'
-  }))});
-  assert.equal(await client.api.savedState('12'), true);
-  assert.equal(await client.api.savedState('12', true), true);
-  assert.equal(await client.api.savedState('12', false), false);
-  assert.deepEqual(client.calls.map(([target, init]) => [target, init.method]), [
-    ['/api/saved-guides/12', 'GET'], ['/api/saved-guides/12', 'PUT'], ['/api/saved-guides/12', 'DELETE']
-  ]);
-  assert.ok(client.calls.every(([, init]) => init.headers.Authorization === 'Bearer test-token'));
-  await assert.rejects(client.api.savedState('../1'), /รหัสแนวข้อสอบ/);
-  await assert.rejects(client.api.savedState('2147483648'), /รหัสแนวข้อสอบ/);
-  const invalid = loadGuideApi({fetchImpl: async () => new Response('{"id":99,"saved":true}')});
-  await assert.rejects(invalid.api.savedState(12), /ยืนยันรายการ/);
-});
-
-test('saved list maps current API guides and rejects malformed course identities', async () => {
-  const row = {id: 12, title: 'Saved guide', academic_year: 2568, semester: 1, exam_period: 'midterm',
-    publisher_name: 'Publisher', course: {id: 4, course_code: 'CS261', course_name: 'Software Engineering'},
-    topics: 'Topic', exam_format: 'mixed', objective_count: 10, subjective_count: 2, additional_advice: null};
-  const client = loadGuideApi({fetchImpl: async () => new Response(JSON.stringify([row]))});
-  const rows = await client.api.saved();
-  assert.equal(client.calls[0][0], '/api/saved-guides');
-  assert.equal(rows[0].course_id, 4);
-  assert.equal(rows[0].title, 'Saved guide');
-  row.course.id = null;
-  await assert.rejects(client.api.saved(), /รายการที่บันทึก/);
 });

@@ -214,7 +214,6 @@ for (const missingAt of ['guide', 'summary', 'pdf-file']) {
     };
     const reader = runPage(`${readerPath}.js`, {
       location: url,
-      CourseData: {escapeHtml: String},
       CourseApi: {getCourse: async () => ({id: 4, code: 'CS261'})},
       GuideApi: {read: missing},
       SummaryApi: {

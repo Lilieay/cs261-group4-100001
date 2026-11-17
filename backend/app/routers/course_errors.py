@@ -7,7 +7,8 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.schemas.guides import ErrorDetailDTO, ErrorFieldDTO, ErrorResponseDTO
+from app.http_errors import error_response
+from app.schemas.errors import ErrorFieldDTO
 from app.services.courses import CourseNotFound
 
 logger = logging.getLogger(__name__)
@@ -54,16 +55,3 @@ def http_error(status_code: int) -> tuple[str, str]:
     if status_code == 422:
         return "INVALID_PARAMETERS", "ข้อมูลสำหรับเรียก API ไม่ถูกต้อง"
     return "INTERNAL_ERROR", "เกิดข้อผิดพลาดภายในระบบ"
-
-
-def error_response(
-    status_code: int,
-    code: str,
-    message: str,
-    fields: list[ErrorFieldDTO] | None = None,
-    headers: dict[str, str] | None = None,
-) -> JSONResponse:
-    body = ErrorResponseDTO(
-        error=ErrorDetailDTO(code=code, message=message, fields=fields or [])
-    )
-    return JSONResponse(status_code=status_code, content=body.model_dump(), headers=headers)

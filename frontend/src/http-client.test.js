@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 
 function client(fetch) {
-  const window = {};
+  const window = {AppConfig: require('../public/js/app-config')};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/http-client.js'), 'utf8'), {
     window, fetch, AbortController, setTimeout, clearTimeout,
     sessionStorage: {getItem: () => 'session-token'}, localStorage: {getItem: () => 'legacy-token'}
@@ -45,7 +45,7 @@ test('summary client gives PDF upload, replacement and reading the same 120-seco
   const file = new File(['%PDF-example'], 'original.pdf', {type: 'application/pdf'});
   const summary = {id: 41, course: {id: 2, course_code: 'CS261'}, title: 'Summary',
     owner: {id: 1, display_name: 'Student'}, file: {original_name: file.name, read_path: '/api/summaries/41/file'}};
-  const window = {HttpClient: {token: () => 'session', request: async (url, options) => {
+  const window = {AppConfig: require('../public/js/app-config'), HttpClient: {token: () => 'session', request: async (url, options) => {
     calls.push(options.timeoutMs);
     return {response: {status: 200, ok: true}, payload: url.endsWith('/file') ? file : summary};
   }}};

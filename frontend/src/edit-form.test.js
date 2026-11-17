@@ -22,7 +22,7 @@ function editor(update = async () => ({})) {
   const dialog = get('editor');
   dialog.showModal = () => { dialog.open = true; };
   dialog.close = () => { dialog.open = false; };
-  const window = {GuideApi: {courses: async () => [{id: 4, code: 'CS261', name: 'Old'}, {id: 13, code: 'CS263', name: 'New'}], update}};
+  const window = {AppConfig: require('../public/js/app-config'), GuideApi: {courses: async () => [{id: 4, code: 'CS261', name: 'Old'}, {id: 13, code: 'CS263', name: 'New'}], update}};
   const document = {querySelector: selector => get(selector.slice(1)), getElementById: get, createElement: () => ({})};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/edit-form.js'), 'utf8'), {window, document});
   const row = {id: '7', course_id: 4, title: 'Original', year: '2569', semester: '1', period: 'ปลายภาค',
