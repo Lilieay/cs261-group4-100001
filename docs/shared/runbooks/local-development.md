@@ -180,16 +180,89 @@ docker compose ps
 
 ขั้นตอนนี้เป็นการตรวจเบื้องต้น ดูกรณี PDF รีวิว และผลตรวจรับครบแต่ละ U ได้จาก [สารบัญเอกสาร](../../README.md)
 
+<a id="troubleshooting"></a>
 ## Troubleshooting
 
-**SQL Server ไม่ healthy หรือ Backend init ไม่สำเร็จ**
+### Backend เปิดไม่ขึ้นเพราะ LF และ CRLF
+
+หาก Docker แจ้ง `exec /app/docker-entrypoint.sh: no such file or directory`, `bad interpreter` หรือข้อความที่มี `^M` ทั้งที่ไฟล์มีอยู่ ให้ตรวจ line ending ของ `backend/docker-entrypoint.sh` ไฟล์ shell ที่รันใน Linux container ต้องใช้ LF หากเป็น CRLF ตัว `\r` อาจติดไปกับชื่อ interpreter ในบรรทัด `#!/bin/sh`
+
+ตรวจจาก repository root:
+
+```bash
+git ls-files --eol backend/docker-entrypoint.sh
+```
+
+ค่าที่ต้องการคือ `i/lf` และ `w/lf` โดย `i` เป็นไฟล์ใน Git index และ `w` เป็นไฟล์ในเครื่อง โครงการมี `.gitattributes` กำหนด `backend/docker-entrypoint.sh text eol=lf` อยู่แล้ว
+
+แก้ใน VS Code โดยเปิดไฟล์ คลิก `CRLF` ที่มุมล่างขวา เลือก `LF` แล้วบันทึกเป็น UTF-8 โดยไม่มี BOM หรือใช้ PowerShell:
+
+```powershell
+$entrypointPath = Join-Path (Get-Location).Path 'backend/docker-entrypoint.sh'
+$entrypointText = [System.IO.File]::ReadAllText($entrypointPath)
+$entrypointText = $entrypointText.Replace("`r`n", "`n")
+[System.IO.File]::WriteAllText($entrypointPath, $entrypointText, [System.Text.UTF8Encoding]::new($false))
+```
+
+จากนั้น build และ recreate Backend เพื่อให้ container ใช้ไฟล์ที่แก้แล้ว:
+
+```bash
+docker compose --env-file .env up -d --build backend frontend
+docker compose ps
+```
+
+การ restart container เดิมอย่างเดียวไม่เปลี่ยนไฟล์ที่ COPY เข้า image ส่วนข้อความ Git ว่า `LF will be replaced by CRLF` ในไฟล์อื่นเป็นคำเตือนเรื่อง line ending ไม่ได้แปลว่าแอปเสียทุกครั้ง ให้ตรวจไฟล์ shell ที่ Linux ต้องรันก่อน ไม่ต้องเปลี่ยน `core.autocrlf` ทั้งเครื่อง
+
+### SQL Server ไม่ healthy หรือ Backend ต่อฐานข้อมูลไม่ได้
+
+ดูสถานะและ logs เพื่อแยกปัญหารหัสผ่านออกจากปัญหา startup อื่น:
 
 ```bash
 docker compose ps
 docker compose logs --tail=100 sqlserver backend
 ```
 
-ตรวจว่า Docker Engine ทำงาน, `.env` มีรหัสผ่านที่ถูกต้อง และถ้าใช้ volume เดิมรหัสผ่านตรงกับ volume นั้น Backend จะไม่เปิด API หากเชื่อมต่อหรือ initialize ไม่สำเร็จ
+ถ้า logs ระบุ `Password validation failed` ให้แก้ `MSSQL_SA_PASSWORD` ใน `.env` ให้ผ่านกติกา SQL Server รหัสผ่านต้องยาวอย่างน้อย 8 ตัว และมีอย่างน้อย 3 กลุ่มจากตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และสัญลักษณ์ อย่าใช้ข้อความ placeholder ใน `.env.example` เป็นรหัสผ่านจริง ดู [คู่มือ SQL Server container ของ Microsoft](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-ver16)
+
+ถ้า logs ระบุ `Login failed for user 'sa'` หลังเปลี่ยน `.env` ให้ตรวจว่าใช้ SQL volume เดิมหรือไม่ ค่า `MSSQL_SA_PASSWORD` ใช้ตั้งรหัสผ่านตอนสร้าง SQL Server ครั้งแรก การเปลี่ยน environment หรือ rebuild image ไม่เปลี่ยนรหัสผ่านที่เก็บอยู่ใน volume เดิม พฤติกรรมนี้อธิบายไว้ใน [คู่มือแก้ปัญหาของ Microsoft](https://learn.microsoft.com/en-us/sql/linux/sql-server-linux-docker-container-troubleshooting?view=sql-server-ver16)
+
+กรณี init ครั้งแรกไม่ผ่านกติกา ไม่ได้หมายความว่า SQL Server ยอมรับรหัสผ่านที่อ่อนแอนั้น อาจเป็นการ initialize ที่ยังไม่เสร็จหรือมีข้อมูลจากรอบก่อน ต้องดู logs ประกอบ
+
+#### หากต้องเก็บข้อมูลเดิม
+
+ใส่รหัสผ่านเดิมที่ใช้สร้าง volume กลับใน `.env` แล้วรัน:
+
+```bash
+docker compose --env-file .env up -d --build
+```
+
+ถ้าต้องเปลี่ยนรหัสผ่านจริง ให้ผู้ดูแลเปลี่ยนรหัสผ่านใน SQL Server แล้วปรับ `.env` ให้ตรงกัน หากไม่ทราบรหัสผ่านเดิมและยังต้องใช้ข้อมูล ให้เก็บ volume ไว้เพื่อกู้คืน ห้ามใช้ขั้นตอนล้างด้านล่าง
+
+#### เริ่มฐานข้อมูลใหม่สำหรับเครื่องสาธิตที่ยอมล้างข้อมูลได้
+
+ใช้วิธีนี้เมื่อเพิ่งตั้งค่าเครื่อง ยังไม่มีข้อมูลที่ต้องเก็บ หรือยอมเริ่มระบบจากข้อมูล seed ใหม่ การล้างจะลบทั้งข้อมูล SQL และไฟล์ PDF ใน volumes ของ project ที่ระบุ รวมผู้ใช้ ผลงาน รีวิว และ bookmark ที่เคยเพิ่มไว้
+
+1. แก้ `MSSQL_SA_PASSWORD` ใน `.env` ให้ถูกต้องก่อน
+2. ตรวจว่าเป็น project สาธิตที่ต้องการล้าง:
+
+```bash
+docker compose -p cs261-group4 --env-file .env ps
+docker volume ls --filter label=com.docker.compose.project=cs261-group4
+```
+
+3. เมื่อตรวจชื่อ project และยอมล้างข้อมูลทั้งหมดแล้ว ให้หยุด stack พร้อมลบ volumes จากนั้นสร้างใหม่:
+
+```bash
+docker compose -p cs261-group4 --env-file .env down --volumes
+docker compose -p cs261-group4 --env-file .env up -d --build
+docker compose -p cs261-group4 --env-file .env ps
+```
+
+`cs261-group4` คือชื่อ project ปริยายใน `compose.yaml` หากเคยเริ่มด้วย `-p` ชื่ออื่น ต้องใช้ชื่อนั้นให้ตรงทุกคำสั่ง ขั้นตอนนี้ล้าง SQL กับ PDF พร้อมกันเพื่อไม่ทิ้งไฟล์ที่ไม่มีข้อมูลอ้างอิงหลังสร้างฐานข้อมูลใหม่
+
+การลบแค่ container หรือใช้ `docker compose down` โดยไม่มี `--volumes` ยังเก็บ volume เดิมไว้ จึงอาจกลับไปเจอรหัสผ่านเดิมอีก ไม่ต้องใช้ `docker system prune` หรือ `docker volume prune` ซึ่งอาจกระทบ project อื่น
+
+หลังสร้างใหม่ รอ SQL Server และ Backend พร้อมแล้วจึง Login อีกครั้ง รายการเดิมที่ล้างไปจะไม่กลับมา เหลือเฉพาะข้อมูลที่ระบบ seed ตอนเริ่ม
 
 **พอร์ต 1433, 8000 หรือ 5000 ถูกใช้อยู่**
 

@@ -80,3 +80,4 @@ Session เก็บในหน่วยความจำของ Backend เ
 - [Dataflow และ UML Sequence Diagram ของ U1–U10](docs/shared/diagrams/README.md)
 - [API Contract ที่ใช้ร่วมกัน](docs/shared/api-contract/task94-api-contract.md)
 - [คู่มือเปิดระบบและแก้ปัญหา](docs/shared/runbooks/local-development.md)
+- [แก้ LF/CRLF และรหัสผ่าน SQL ที่ไม่ตรงกับ volume](docs/shared/runbooks/local-development.md#troubleshooting)
