@@ -2,7 +2,7 @@
 
 เว็บแบ่งปันแนวข้อสอบและสรุป PDF ของรายวิชา CS สำหรับนักศึกษามหาวิทยาลัยธรรมศาสตร์ ใช้บัญชี TU เข้าสู่ระบบเพื่อค้นหา อ่าน และแบ่งปันเนื้อหาการเรียนในแต่ละวิชา
 
-[ภาพรวมระบบ](#overview) · [การใช้งาน](#usage) · [ความสามารถ](#features) · [โครงสร้างระบบ](#architecture) · [เปิดระบบบนเครื่อง](docs/shared/runbooks/local-development.md) · [ตั้งค่า .env](docs/shared/runbooks/local-development.md#environment) · [เอกสารโครงการ](docs/README.md) · [แผนภาพ U1–U10](docs/shared/diagrams/README.md)
+[ภาพรวมระบบ](#overview) · [การใช้งาน](#usage) · [ความสามารถ](#features) · [โครงสร้างระบบ](#architecture) · [เปิดระบบบนเครื่อง](docs/shared/runbooks/local-development.md) · [ตั้งค่า .env](docs/shared/runbooks/local-development.md#environment) · [ปิดระบบ](docs/shared/runbooks/local-development.md#stop-system) · [เอกสารโครงการ](docs/README.md) · [แผนภาพ U1–U10](docs/shared/diagrams/README.md)
 
 <a id="overview"></a>
 ## ภาพรวมระบบ
@@ -73,6 +73,15 @@ Session เก็บในหน่วยความจำของ Backend เ
 ทำตาม [คู่มือเปิดระบบด้วย Docker](docs/shared/runbooks/local-development.md) เพื่อตั้งค่า `.env` และเริ่มระบบ ค่าเริ่มต้นใช้ TU mock สำหรับสาธิตในเครื่อง การใช้ TU จริงต้องตั้งค่าการเชื่อมต่อที่ได้รับจากผู้ดูแล
 
 เมื่อใช้พอร์ตปริยาย เปิด [หน้า Login](http://localhost:5000/login.html) และ [API docs](http://localhost:8000/docs) ได้หลังระบบพร้อม
+
+เมื่อใช้งานเสร็จ ปิดระบบโดยเก็บข้อมูล SQL และ PDF ไว้:
+
+```bash
+docker compose --env-file .env down
+```
+
+ดูคำสั่งหยุดชั่วคราวและเปิดกลับได้ที่ [ปิดระบบและเปิดกลับ](docs/shared/runbooks/local-development.md#stop-system)
+
 
 ## อ่านเอกสารต่อ
 

@@ -1,6 +1,6 @@
 # เปิดระบบบนเครื่องด้วย Docker
 
-[กลับหน้าโครงการ](../../../README.md) · [สารบัญเอกสาร](../../README.md)
+[กลับหน้าโครงการ](../../../README.md) · [สารบัญเอกสาร](../../README.md) · [ปิดระบบและเปิดกลับ](#stop-system)
 
 รันคำสั่งทั้งหมดจาก repository root ที่มี `compose.yaml` คู่มือนี้ครอบคลุมการตั้งค่าเครื่องใหม่ การอัปเดตระบบ และการแก้ปัญหาเบื้องต้น
 
@@ -116,6 +116,51 @@ docker compose ps
 - Backend health: <http://localhost:8000/>
 - API docs: <http://localhost:8000/docs>
 - SQL Server (ถ้าต้องเชื่อมจาก host): `localhost,1433`
+
+<a id="stop-system"></a>
+## ปิดระบบและเปิดกลับ
+
+รันคำสั่งจาก repository root ที่มี `compose.yaml` เช่นเดียวกับตอนเปิดระบบ
+
+### หยุดชั่วคราวโดยเก็บ containers และข้อมูลไว้
+
+```bash
+docker compose --env-file .env stop
+```
+
+เปิด containers เดิมกลับโดยไม่ build ใหม่:
+
+```bash
+docker compose --env-file .env start
+```
+
+### ปิดระบบหลังใช้งาน
+
+หยุดและลบ containers กับ network ของ stack โดยเก็บ SQL และ PDF volumes ไว้:
+
+```bash
+docker compose --env-file .env down
+```
+
+เปิดระบบกลับด้วยข้อมูลเดิม:
+
+```bash
+docker compose --env-file .env up -d --build
+```
+
+ใช้รหัสผ่าน SQL เดิมใน `.env` เพื่อเชื่อมต่อกับ volume เดิม หลัง Backend เริ่มใหม่ต้อง Login อีกครั้ง เพราะ Session อยู่ในหน่วยความจำ
+
+### ตรวจว่าปิดแล้ว
+
+```bash
+docker compose --env-file .env ps --all
+```
+
+หลัง `stop` containers จะแสดงสถานะหยุด ส่วนหลัง `down` จะไม่มี containers ของ stack นี้เหลืออยู่
+
+การปิดตามปกติใช้ `stop` หรือ `down` โดยไม่ใส่ `--volumes` ส่วน `down --volumes` ลบข้อมูล SQL และไฟล์ PDF ด้วย ใช้เฉพาะเมื่อตั้งใจล้างระบบตาม [วิธีแก้ปัญหา](#troubleshooting)
+
+หากเปิด stack ด้วย `-p` ชื่ออื่น ให้ใช้ชื่อเดียวกันตอนปิด เช่น `docker compose -p cs261-task122-demo --env-file .env -f compose.yaml -f infra/compose/tests/compose.task122.yaml down` โดยใช้ไฟล์ Compose ชุดเดียวกับตอนเปิด
 
 ## Existing Setup — เครื่องที่เคย clone แล้ว
 
