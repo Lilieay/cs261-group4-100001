@@ -17,6 +17,7 @@ from app.models.guide import Guide
 from app.models.saved_guide import SavedGuide
 from app.models.saved_summary import SavedSummary
 from app.models.summary import Summary, SummaryFile
+from app.models.review import Review
 from app.models.course_seed_ownership import CourseSeedOwnership
 from scripts.seed_data.course_seed_service import CourseSeedService
 from scripts.seed_data.guide_seed_service import GuideSeedService
@@ -82,6 +83,7 @@ def _ensure_summary_exam_columns(database_engine) -> None:
 def main() -> None:
     _ensure_database()
     Base.metadata.create_all(bind=engine)
+    Review.__table__.create(bind=engine, checkfirst=True)
     _ensure_summary_exam_columns(engine)
     PDF_STORAGE_ROOT.mkdir(parents=True, exist_ok=True)
     pdf_storage = LocalPdfStorage(PDF_STORAGE_ROOT)
