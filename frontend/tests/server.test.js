@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const {createApp} = require('./server');
+const {createApp} = require('../src/server');
 
 async function withServer(run) {
   const server = createApp({backendUrl: 'http://backend:8000'}).listen(0);

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {createApp} = require('./server');
+const {createApp} = require('../src/server');
 
 test('U10 proxy forwards list/remove and exact Guide alias, preserves errors and rejects extra inputs', async t => {
   const originalFetch = global.fetch;
