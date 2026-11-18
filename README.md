@@ -2,7 +2,7 @@
 
 เว็บแบ่งปันแนวข้อสอบและสรุป PDF ของรายวิชา CS สำหรับนักศึกษามหาวิทยาลัยธรรมศาสตร์ ใช้บัญชี TU เข้าสู่ระบบเพื่อค้นหา อ่าน และแบ่งปันเนื้อหาการเรียนในแต่ละวิชา
 
-[ภาพรวมระบบ](#overview) · [การใช้งาน](#usage) · [ความสามารถ](#features) · [โครงสร้างระบบ](#architecture) · [เปิดระบบบนเครื่อง](docs/shared/runbooks/local-development.md) · [เอกสารโครงการ](docs/README.md) · [แผนภาพ U1–U10](docs/shared/diagrams/README.md)
+[ภาพรวมระบบ](#overview) · [การใช้งาน](#usage) · [ความสามารถ](#features) · [โครงสร้างระบบ](#architecture) · [เปิดระบบบนเครื่อง](docs/shared/runbooks/local-development.md) · [ตั้งค่า .env](docs/shared/runbooks/local-development.md#environment) · [เอกสารโครงการ](docs/README.md) · [แผนภาพ U1–U10](docs/shared/diagrams/README.md)
 
 <a id="overview"></a>
 ## ภาพรวมระบบ

@@ -1,6 +1,6 @@
 # เอกสารโครงการ
 
-[กลับหน้าโครงการ](../README.md) · [แผนภาพแต่ละ U](#story-diagrams) · [เอกสารตาม Story](#story-documents) · [API Contract](shared/api-contract/task94-api-contract.md) · [เปิดระบบด้วย Docker](shared/runbooks/local-development.md)
+[กลับหน้าโครงการ](../README.md) · [แผนภาพแต่ละ U](#story-diagrams) · [เอกสารตาม Story](#story-documents) · [API Contract](shared/api-contract/task94-api-contract.md) · [เปิดระบบด้วย Docker](shared/runbooks/local-development.md) · [ตั้งค่า .env](shared/runbooks/local-development.md#environment)
 
 เอกสารแบ่งตาม User Story U1–U10 และประเภทงาน ส่วน API Contract ที่ใช้ร่วมกันอยู่ใน `shared/` รายงานและหลักฐานแต่ละรอบเก็บไว้ตาม Task เดิม
 

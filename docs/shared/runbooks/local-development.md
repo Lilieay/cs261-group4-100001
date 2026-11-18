@@ -20,12 +20,77 @@
 git clone https://github.com/Lilieay/cs261-group4-100001.git
 cd cs261-group4-100001
 git switch main
-cp .env.example .env
 ```
 
-เปิด `.env` แล้วกำหนด `MSSQL_SA_PASSWORD` เป็นรหัสผ่าน SQL Server ที่ไม่ซ้ำกับบัญชีอื่นและผ่านข้อกำหนดความซับซ้อนของ SQL Server เก็บไฟล์นี้ไว้ในเครื่อง ห้าม commit รหัสผ่านหรือ TU API key
+<a id="environment"></a>
+### สร้างและตั้งค่าไฟล์ .env
 
-ค่าเริ่มต้น `TU_API_MODE=mock` ใช้บัญชีสาธิตโดยไม่ต้องตั้งค่า TU API หากต้องใช้ Login จริง ให้ตั้ง `TU_API_MODE=real`, `TU_API_URL` และ `TU_API_KEY` ตามค่าที่ได้รับจากผู้ดูแล
+สร้าง `.env` ไว้ที่ repository root ระดับเดียวกับ `compose.yaml` โดยคัดลอกจาก [.env.example](../../../.env.example) ถ้ามี `.env` เดิมอยู่แล้ว ให้แก้ไฟล์เดิม ไม่คัดลอกทับ
+
+PowerShell บน Windows:
+
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+notepad .env
+```
+
+Bash บน macOS, Linux หรือ Git Bash:
+
+```bash
+if [ ! -f .env ]; then cp .env.example .env; fi
+```
+
+จากนั้นเปิด `.env` ด้วย text editor ตรวจว่าชื่อไฟล์เป็น `.env` ไม่ใช่ `.env.txt` และกรอกค่าทีละบรรทัดในรูปแบบ `ชื่อตัวแปร=ค่า` โดยไม่ใส่คำสั่ง `export` หรือ `$env:` ลงในไฟล์
+
+#### ค่าที่ต้องแก้ก่อนเปิดระบบ
+
+สำหรับการสาธิตในเครื่อง ใช้ `TU_API_MODE=mock` และเปลี่ยน `MSSQL_SA_PASSWORD` จากข้อความตัวอย่างเป็นรหัสผ่านที่กำหนดเอง ส่วน `TU_API_URL` และ `TU_API_KEY` เว้นว่างได้
+
+```dotenv
+# แทนข้อความในเครื่องหมายคำพูดด้วยรหัสผ่าน SQL ที่ตั้งเอง
+MSSQL_SA_PASSWORD='YOUR_OWN_SQL_PASSWORD'
+TU_API_MODE=mock
+TU_API_URL=
+TU_API_KEY=
+```
+
+`YOUR_OWN_SQL_PASSWORD` เป็นข้อความให้แทนค่า ไม่ใช่รหัสผ่านสำหรับใช้งาน ตั้งรหัสผ่านให้ผ่านกติกาของ SQL Server โดยผสมตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักขระพิเศษ หากค่ามี `$` หรือ `#` ให้ครอบค่าด้วย single quotes เพื่อเก็บเป็นข้อความตามตัวอักษร และเลือกรหัสผ่านที่ไม่มี single quote เพื่อใส่ในรูปแบบนี้ได้ตรง ๆ
+
+หากใช้ SQL volume เดิม ต้องใส่รหัสผ่านเดิมของ volume นั้น การแก้ตัวแปรนี้ไม่ได้เปลี่ยนรหัสผ่านในฐานข้อมูลที่สร้างแล้ว
+
+#### ตัวแปรทั้งหมดในไฟล์ตัวอย่าง
+
+| ตัวแปร | ค่าปริยายหรือวิธีกรอก |
+| --- | --- |
+| `MSSQL_SA_PASSWORD` | ต้องตั้งเอง ใช้กับ SQL Server และการเชื่อมต่อจาก Backend |
+| `TU_API_MODE` | `mock` สำหรับสาธิต หรือ `real` สำหรับยืนยันบัญชีผ่าน TU API |
+| `TU_API_URL` | เว้นว่างเมื่อใช้ mock ถ้าใช้ real ให้ใส่ URL ที่ผู้ดูแลแจ้ง |
+| `TU_API_KEY` | เว้นว่างเมื่อใช้ mock ถ้าใช้ real ให้ใส่ key ที่ได้รับจากผู้ดูแล |
+| `TU_API_TIMEOUT` | `5` เวลารอ TU API หน่วยวินาที |
+| `AUTH_SESSION_TTL_SECONDS` | `28800` อายุ Session 8 ชั่วโมง ต้องเป็นจำนวนเต็มบวก |
+| `PDF_STORAGE_ROOT` | `/app/data/pdfs` เป็น path ภายใน container คงค่านี้ได้สำหรับ Compose ปกติ |
+| `PDF_SCAN_ORPHANS_ON_STARTUP` | `1` สำหรับ stack ปกติ ตั้ง `0` หากหลาย Backend ใช้ storage ร่วมกัน หรือย้ายฐานข้อมูลและ volume แยกกัน |
+| `FRONTEND_HOST_PORT` | `5000` พอร์ตเปิดเว็บจากเครื่อง host |
+| `BACKEND_HOST_PORT` | `8000` พอร์ต Backend และ API docs จากเครื่อง host |
+| `SQLSERVER_HOST_PORT` | `1433` พอร์ต SQL Server จากเครื่อง host |
+
+Compose กำหนด `DB_CONNECTION_STRING`, `DB_PASSWORD` และ `BACKEND_URL` ให้ services อยู่แล้ว จึงไม่ต้องสร้าง `backend/.env` หรือ `frontend/.env` เพิ่มเมื่อเปิดผ่าน Compose ตามคู่มือนี้
+
+#### ถ้าต้องใช้ TU API จริง
+
+เปลี่ยน `TU_API_MODE=real` แล้วกรอก `TU_API_URL` และ `TU_API_KEY` ด้วยค่าที่ได้รับจริงจากผู้ดูแล อย่านำชื่อบัญชีหรือรหัสผ่านนักศึกษาไปใส่แทน API key อ่านเงื่อนไขการเชื่อมต่อได้ที่ [การตั้งค่า TU API](../../U1/design/task11-tu-api-verification.md)
+
+#### ตรวจไฟล์และเปิดระบบ
+
+ตรวจว่า Compose อ่านค่าตั้งได้ โดยคำสั่งนี้ไม่แสดงค่ารหัสผ่านหรือ API key:
+
+```bash
+docker compose --env-file .env config --quiet
+```
+
+ถ้าไม่มีข้อผิดพลาดจึงเริ่มระบบตามหัวข้อถัดไป คำสั่งนี้ตรวจ configuration เท่านั้น ยังไม่ยืนยันว่ารหัสผ่าน SQL หรือการเชื่อมต่อ TU API ถูกต้อง
+
+เมื่อแก้ `.env` หลังเปิดระบบแล้ว ให้ใช้ `docker compose --env-file .env up -d --build` เพื่อให้ค่าถูกนำไปใช้ใหม่ เก็บ `.env` ไว้ในเครื่องและไม่ commit ลง Git หากพอร์ตชน อ่านตัวอย่างในหัวข้อ Troubleshooting ด้านล่าง
 
 ### เริ่มระบบด้วยคำสั่งเดียว
 
