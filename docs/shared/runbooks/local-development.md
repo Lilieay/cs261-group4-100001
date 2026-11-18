@@ -19,7 +19,7 @@
 ```bash
 git clone https://github.com/Lilieay/cs261-group4-100001.git
 cd cs261-group4-100001
-git switch release
+git switch main
 cp .env.example .env
 ```
 
@@ -57,7 +57,7 @@ docker compose ps
 อัปเดต branch และไฟล์ก่อนเริ่ม:
 
 ```bash
-git switch release
+git switch main
 git pull --ff-only
 ```
 
