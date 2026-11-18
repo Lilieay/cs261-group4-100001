@@ -46,7 +46,7 @@ System TC03/06/08 บางขั้นตอนยิง HTTP จาก browser
 
 ## เตรียมและรันซ้ำ
 
-ใช้ [Compose เดิม](../../../compose.yaml) กับ [override Task127](../../../compose.task127.yaml) ตั้งไฟล์ `.env` ทดสอบที่ไม่ commit:
+ใช้ [Compose เดิม](../../../compose.yaml) กับ [override Task127](../../../infra/compose/tests/compose.task127.yaml) ตั้งไฟล์ `.env` ทดสอบที่ไม่ commit:
 
 ```dotenv
 MSSQL_SA_PASSWORD=<ตั้งรหัสผ่าน SQL สำหรับชุดทดสอบ>
@@ -58,7 +58,7 @@ TU_API_MODE=mock
 
 ```powershell
 $task127Project = 'cs261-task127-0c63713'
-docker compose --env-file .env -p $task127Project -f compose.yaml -f compose.task127.yaml up -d --build --wait
+docker compose --env-file .env -p $task127Project -f compose.yaml -f infra/compose/tests/compose.task127.yaml up -d --build --wait
 docker compose --env-file .env -p $task127Project exec -T backend python -m scripts.init_reviews
 $task127Tools = Join-Path $env:TEMP 'cs261-task127-tools'
 npm.cmd install --prefix $task127Tools --no-audit --no-fund playwright-core@1.65.1
@@ -88,7 +88,7 @@ python -m pytest test/test_reviews_unit.py test/test_reviews_api.py -q --disable
 
 DB string นี้เป็น placeholder ที่ไม่เชื่อมจริง ชุด API เปลี่ยน session เป็น SQLite ตาม fixture ส่วน Frontend จาก root repo ใช้ `node --test frontend/src/reviews.test.js` ผลรอบนี้ Backend 106 ผ่าน/1 warning, Frontend 9 ผ่าน; host Python 3.12.14, pytest 9.2.0, Node 26.12.0
 
-ปิดเฉพาะชุดทดสอบหลังเก็บหลักฐานด้วย `docker compose --env-file .env -p $task127Project -f compose.yaml -f compose.task127.yaml down --remove-orphans` โดยคง volumes ไว้รันซ้ำ
+ปิดเฉพาะชุดทดสอบหลังเก็บหลักฐานด้วย `docker compose --env-file .env -p $task127Project -f compose.yaml -f infra/compose/tests/compose.task127.yaml down --remove-orphans` โดยคง volumes ไว้รันซ้ำ
 
 ## บันทึกการตรวจรับ
 

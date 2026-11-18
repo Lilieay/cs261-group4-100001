@@ -52,11 +52,11 @@ FRONTEND_HOST_PORT=25800
 TU_API_MODE=mock
 ```
 
-ใช้ [Compose เดิม](../../../compose.yaml) และ [override ของ Task122](../../../compose.task122.yaml) ให้ชื่อ project ขึ้นต้น `cs261-task122-` เพื่อแยกข้อมูลทดสอบจากชุดใช้งาน ไม่มีการสร้างโครงการแอปหรือออกแบบ schema U6 ซ้ำ override บังคับ TU mock และให้ Backend B รอ schema จาก Backend A ก่อน
+ใช้ [Compose เดิม](../../../compose.yaml) และ [override ของ Task122](../../../infra/compose/tests/compose.task122.yaml) ให้ชื่อ project ขึ้นต้น `cs261-task122-` เพื่อแยกข้อมูลทดสอบจากชุดใช้งาน ไม่มีการสร้างโครงการแอปหรือออกแบบ schema U6 ซ้ำ override บังคับ TU mock และให้ Backend B รอ schema จาก Backend A ก่อน
 
 ```powershell
 $task122Project = 'cs261-task122-a646cdb'
-docker compose --env-file .env -p $task122Project -f compose.yaml -f compose.task122.yaml up -d --build --wait
+docker compose --env-file .env -p $task122Project -f compose.yaml -f infra/compose/tests/compose.task122.yaml up -d --build --wait
 docker compose --env-file .env -p $task122Project exec -T backend python -m scripts.init_reviews
 ```
 
@@ -84,7 +84,7 @@ node scripts/task122-u8-browser.cjs
 หลังเก็บผล ปิดเฉพาะชุดทดสอบได้ด้วยคำสั่งนี้ โดยเก็บ volume ไว้สำหรับรันซ้ำ:
 
 ```powershell
-docker compose --env-file .env -p $task122Project -f compose.yaml -f compose.task122.yaml down --remove-orphans
+docker compose --env-file .env -p $task122Project -f compose.yaml -f infra/compose/tests/compose.task122.yaml down --remove-orphans
 ```
 
 เตรียมชุดทดสอบ ค่าตั้ง หลักฐานและรายงานครบแล้ว เปิด PR จาก `feat/u8-reviews-backend` เข้า `sprint2` ตามข้อตกลงของทีม ยังต้องให้สมาชิกอีกคน review ก่อน merge
