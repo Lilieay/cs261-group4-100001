@@ -22,8 +22,11 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY scripts ./scripts
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod 0555 /app/docker-entrypoint.sh \
-    && useradd --create-home appuser
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh \
+    && chmod 0555 /app/docker-entrypoint.sh \
+    && useradd --create-home appuser \
+    && mkdir -p /app/data/pdfs \
+    && chown -R appuser:appuser /app/data
 USER appuser
 
 EXPOSE 8000

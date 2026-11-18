@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-17",
+  "timezone": "Asia/Bangkok",
+  "testSourceSha": "33f6ba0f7e7d4d5661942e9aeb71510ec26ab539",
+  "applicationBase": "0c63713",
+  "backend": {
+    "command": "python -m pytest test/test_reviews_unit.py test/test_reviews_api.py -vv --disable-warnings --maxfail=1 -o faulthandler_timeout=15",
+    "cwd": "backend",
+    "passed": 106,
+    "warnings": 1,
+    "python": "3.12.14",
+    "pytest": "9.2.0",
+    "database": "SQLite fixtures; no external database connection",
+    "auth": "test double",
+    "unit_business": "mock DAO/session",
+    "elapsed_seconds": 2.88
+  },
+  "frontend": {
+    "command": "node --test frontend/src/reviews.test.js",
+    "passed": 9,
+    "node": "26.12.0",
+    "environment": "simulated DOM/network test harness; not real browser or SQL"
+  },
+  "uat": "PENDING; these results do not constitute PO acceptance",
+  "runnerSupport": {
+    "command": "node --test scripts/task127-support.test.cjs",
+    "sourceSha": "a94550388b0c4d1bdfc5080eb9adfb04264d4eaf",
+    "passed": 11,
+    "environment": "unit test doubles for metadata and cleanup failures; not System/SQL results"
+  }
+}

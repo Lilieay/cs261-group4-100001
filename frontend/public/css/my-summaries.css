@@ -1,0 +1,247 @@
+.summary-owned-card .card-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.summary-owned-card .card-actions .open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding-inline: 8px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.summary-owned-card .card-actions .open:hover {
+  background: #d9ddf2;
+}
+
+.summary-owned-card .description {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
+.summary-owned-course {
+  margin: 0 0 5px;
+  color: #455671;
+  overflow-wrap: anywhere;
+}
+
+.summary-owner-note {
+  color: #596983;
+  font-size: 12px;
+}
+
+.summary-owner-dialog {
+  --summary-red: #c81032;
+  --summary-border: #d8dff2;
+  --summary-field: #f1f2ff;
+  --publish-field: #f6f8fa;
+  width: min(560px, calc(100% - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid #e6aabf;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.summary-owner-dialog::backdrop {
+  background: #171b2899;
+}
+
+.summary-owner-dialog > form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 28px);
+}
+
+.summary-owner-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--summary-border);
+  background: var(--summary-field);
+}
+
+.summary-owner-header h2, .summary-owner-dialog p {
+  margin: 0;
+}
+
+.summary-owner-header h2 {
+  font-size: clamp(18px, 4vw, 24px);
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.summary-owner-header p {
+  color: #596983;
+  margin-top: 4px;
+}
+
+.summary-owner-icon {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #dfe3f1;
+  color: var(--summary-red);
+}
+
+.summary-owner-body {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+}
+
+.summary-owner-body > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 14px;
+}
+
+.summary-owner-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.summary-owner-field > label {
+  display: block;
+  font-weight: 600;
+}
+
+.summary-owner-field > label span {
+  color: var(--summary-red);
+}
+
+.summary-owner-field :is(input[type="text"], select, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 11px;
+  color: var(--ink);
+  border: 1px solid var(--summary-border);
+  border-radius: 4px;
+  background: var(--summary-field);
+}
+
+.summary-owner-field textarea {
+  resize: vertical;
+}
+
+.summary-owner-field [aria-invalid="true"] {
+  border-color: #c81032;
+}
+
+.summary-owner-dialog .summary-file-picker {
+  display: block;
+}
+
+.summary-owner-dialog .summary-owner-link {
+  min-height: 36px;
+  padding: 5px 8px;
+  border: 0;
+  color: #344d7b;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.summary-edit-file-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.summary-owner-error, .summary-delete-item {
+  padding: 10px 11px;
+  overflow-wrap: anywhere;
+  border: 1px solid #efafb5;
+  border-radius: 7px;
+  color: #a31c2b;
+  background: #fff4f4;
+}
+
+.summary-delete-dialog {
+  width: min(410px, calc(100% - 24px));
+  border-color: #e6a0a3;
+}
+
+.summary-delete-dialog .summary-owner-header {
+  color: #ad1e26;
+  background: #fff6f6;
+  border-color: #efc7ca;
+}
+
+.summary-delete-dialog .summary-owner-header h2 {
+  font-size: 16px;
+}
+
+.summary-delete-item {
+  background: var(--summary-field);
+  border-color: var(--summary-border);
+}
+
+.summary-delete-item p {
+  margin-top: 5px;
+  color: #596983;
+  font-size: 12px;
+}
+
+.summary-owner-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px 18px;
+  border-top: 1px solid var(--summary-border);
+  background: var(--summary-field);
+}
+
+.summary-owner-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 7px 13px;
+  border: 1px solid var(--summary-border);
+  border-radius: 5px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.summary-owner-actions .summary-owner-submit {
+  min-width: min(158px, 100%);
+  border-color: var(--summary-red);
+  color: #fff;
+  background: var(--summary-red);
+  font-weight: 600;
+}
+
+.summary-owner-actions button:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .summary-owned-card .card-actions .open {
+    grid-column: 1 / -1;
+  }
+
+  .summary-owned-card .card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

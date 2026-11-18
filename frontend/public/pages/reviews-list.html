@@ -1,0 +1,54 @@
+<template id="review-list-template">
+  <header class="review-panel-header">
+    <span class="review-panel-icon" data-review-star-icon aria-hidden="true"></span>
+    <div class="review-panel-heading">
+      <p data-review-course></p>
+      <h2 id="reviews-title" tabindex="-1" data-review-title></h2>
+    </div>
+    <button class="review-panel-close" type="button" data-review-action="close" aria-label="ปิดหน้าคะแนนรีวิว"></button>
+  </header>
+
+  <div class="review-panel-body review-list-body">
+    <section class="review-list-overview" data-review-summary aria-label="สรุปคะแนนรีวิว" hidden>
+      <p class="review-notice" data-review-empty hidden>ยังไม่มีรีวิว</p>
+      <div class="review-list-score" data-review-score hidden>
+        <strong data-review-average></strong>
+        <div class="review-star-display" role="img" data-review-score-stars></div>
+        <span data-review-count></span>
+      </div>
+    </section>
+
+    <section class="review-personal" data-review-own-review aria-labelledby="review-personal-title" hidden>
+      <div class="review-personal-heading">
+        <h3 id="review-personal-title">รีวิวของคุณ</h3>
+        <button class="review-control" type="button" data-review-action="edit">แก้ไขรีวิว</button>
+      </div>
+      <div data-review-own-entry></div>
+    </section>
+
+    <div data-review-editor hidden></div>
+    <p class="review-notice" role="status" tabindex="-1" data-review-message hidden></p>
+    <button class="review-control" type="button" data-review-action="reload" hidden>โหลดรีวิวอีกครั้ง</button>
+    <button class="review-control" type="button" data-review-action="retry-profile" hidden>ลองโหลดโปรไฟล์อีกครั้ง</button>
+    <button class="review-control" type="button" data-review-action="recheck" hidden>ตรวจสอบสถานะล่าสุด</button>
+
+    <section class="review-community" data-review-community aria-labelledby="review-community-title" hidden>
+      <h3 id="review-community-title">รีวิวจากคนอื่น</h3>
+      <div data-review-entries></div>
+    </section>
+  </div>
+  <footer class="review-panel-footer" data-review-footer hidden>
+    <p class="review-owner-notice" data-review-owner-note hidden>เจ้าของเอกสารไม่สามารถรีวิวผลงานของตัวเองได้</p>
+    <button class="review-control review-control-primary" type="button" data-review-action="add" hidden>เพิ่มรีวิวของคุณ</button>
+  </footer>
+</template>
+
+<template id="review-item-template">
+  <article class="review-entry">
+    <div class="review-entry-heading">
+      <h4 data-review-author></h4>
+      <div class="review-star-display" role="img" data-review-entry-stars></div>
+    </div>
+    <p data-review-comment hidden></p>
+  </article>
+</template>

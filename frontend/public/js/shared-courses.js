@@ -14,7 +14,7 @@
 
   function card(row) {
     const e = escapeHtml;
-    return `<article class="exam-card"><div><div class="badges"><span class="badge code">${e(row.course_code)}</span><span class="badge">ปีการศึกษา ${e(row.year)}</span><span class="badge semester">ภาคเรียนที่ ${e(row.semester)}</span><span class="badge period">● ${e(row.period)}</span></div><h3 class="exam-card-title" title="${e(row.title)}">${e(row.title)}</h3><p class="description">รายวิชา ${e(row.course_name)}<br>หัวข้อ: ${e(row.topics || 'ไม่ระบุ')}${row.notes.trim() ? `<br>${e(row.notes)}` : ''}</p><div class="metadata"><div><span>รูปแบบข้อสอบ:</span><b>${e(row.formats.join(' / '))}</b></div><div><span>อัตนัย:</span><b>${e(questionCount(row.essay_count))}</b></div><div><span>ปรนัย:</span><b>${e(questionCount(row.objective_count))}</b></div></div></div><aside class="card-side"><div class="card-actions"><button class="open" data-action="read" data-id="${e(row.id)}">${icon('book')}เปิดอ่านแนวข้อสอบ</button><button data-action="edit" data-id="${e(row.id)}">${icon('edit')}แก้ไขข้อมูล</button><button data-action="delete" data-id="${e(row.id)}" aria-label="ลบแนวข้อสอบ">${icon('trash')}ลบแนวข้อสอบ</button></div></aside></article>`;
+    return `<article class="exam-card"><div><div class="badges"><span class="badge code">${e(row.course_code)}</span><span class="badge">ปีการศึกษา ${e(row.year)}</span><span class="badge semester">ภาคเรียนที่ ${e(row.semester)}</span><span class="badge period">● ${e(row.period)}</span></div><h3 class="exam-card-title" title="${e(row.title)}">${e(row.title)}</h3><p class="description">รายวิชา ${e(row.course_name)}<br>หัวข้อ: ${e(row.topics || 'ไม่ระบุ')}${row.notes.trim() ? `<br>${e(row.notes)}` : ''}</p><div class="metadata"><div><span>รูปแบบข้อสอบ:</span><b>${e(row.formats.join(' / '))}</b></div><div><span>อัตนัย:</span><b>${e(questionCount(row.essay_count))}</b></div><div><span>ปรนัย:</span><b>${e(questionCount(row.objective_count))}</b></div></div></div><aside class="card-side"><div class="card-actions"><button class="open" data-action="read" data-id="${e(row.id)}">${icon('book')}เปิดอ่านแนวข้อสอบ</button><button data-action="edit" data-id="${e(row.id)}">${icon('edit')}แก้ไขข้อมูล</button><button class="delete" data-action="delete" data-id="${e(row.id)}" aria-label="ลบแนวข้อสอบ">${icon('trash')}ลบแนวข้อสอบ</button></div></aside></article>`;
   }
 
   const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
@@ -113,8 +113,10 @@
       if (deleting) return;
       $('#delete-guide-title').textContent = row.title;
       $('#delete-guide-course').textContent = `${row.course_code} ${row.course_name}`;
-      $('#delete-confirm').dataset.guideId = row.id;
-      $('#delete-confirm').showModal();
+      const dialog = $('#delete-confirm');
+      dialog.dataset.guideId = row.id;
+      dialog.returnValue = '';
+      dialog.showModal();
       return;
     }
     const params = new URLSearchParams({
@@ -160,6 +162,7 @@
     render();
   });
   const tabs = [$('#exams-tab'), $('#summaries-tab')];
+  let guidesStarted = false;
   function selectTab(selected) {
     tabs.forEach((tab, index) => {
       const active = index === selected;
@@ -167,17 +170,29 @@
       tab.tabIndex = active ? 0 : -1;
       document.getElementById(tab.getAttribute('aria-controls')).hidden = !active;
     });
+    if (selected === 1) window.MySummaries?.load();
+    else if (!guidesStarted) {
+      guidesStarted = true;
+      loadMyGuides();
+    }
+  }
+  function switchTab(selected) {
+    if (tabs[selected].getAttribute('aria-selected') === 'true') return;
+    selectTab(selected);
+    const url = new URL(window.location.href);
+    if (selected === 1) url.searchParams.set('type', 'summaries');
+    else url.searchParams.delete('type');
+    window.history.replaceState(null, '', url);
   }
   tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => selectTab(index));
+    tab.addEventListener('click', () => switchTab(index));
     tab.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index;
-      selectTab(next);
+      switchTab(next);
       tabs[next].focus();
     });
   });
-  render();
-  loadMyGuides();
+  selectTab(new URLSearchParams(window.location.search).get('type') === 'summaries' ? 1 : 0);
 })();

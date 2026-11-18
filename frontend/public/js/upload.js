@@ -1,8 +1,7 @@
 (() => {
   'use strict';
   const $ = selector => document.querySelector(selector);
-  const config = window.GuidePublishConfig;
-  const data = window.CourseData;
+  const config = window.GuideConfig;
   const form = $('#upload-form');
   const fieldset = $('#upload-fields');
   const submit = $('#publish-submit');
@@ -120,25 +119,6 @@
     };
   }
 
-  function previewPublish(input) {
-    // CourseData performs the latest read and an atomic write for every page.
-    const now = new Date().toISOString();
-    const id = `preview-${window.crypto.randomUUID()}`;
-    const essay = input.subjectiveCount === '' ? null : Number(input.subjectiveCount);
-    const objective = input.objectiveCount === '' ? null : Number(input.objectiveCount);
-    const row = {
-      id, owner_id: 'demo-owner', course_code: input.course, title: input.title,
-      year: input.academicYear, semester: input.semester === '3' ? 'ฤดูร้อน' : input.semester,
-      period: input.examPeriod === 'midterm' ? 'กลางภาค' : 'ปลายภาค',
-      formats: [{ objective: 'ปรนัย', subjective: 'อัตนัย', mixed: 'ผสม' }[input.examType]],
-      essay_count: essay, objective_count: objective,
-      question_count: essay === null && objective === null ? null : (essay || 0) + (objective || 0),
-      topics: input.topics, notes: input.note, publisher_name: user.display_name || user.username,
-      rating: null, reviews: 0, views: 0, downloads: 0, created_at: now, updated_at: now
-    };
-    return data.createExam(row);
-  }
-
   function updateControls() {
     fieldset.disabled = !ready || submitting || saved || uncertain;
     submit.textContent = saved ? 'บันทึกแล้ว' : uncertain ? 'กรุณาตรวจผลก่อนส่งซ้ำ'
@@ -150,7 +130,7 @@
 
   function detailUrl(courseCode, id) {
     const query = new URLSearchParams({ course: courseCode, guide: String(id) });
-    if (config.mode === 'api') query.set('source', 'api');
+    query.set('source', 'api');
     return `read-courses.html?${query}`;
   }
 
@@ -169,10 +149,9 @@
     clearErrors();
     status('กำลังเตรียมข้อมูล…');
     try {
-      if (!['preview', 'api'].includes(config.mode)) throw new Error('โหมดเผยแพร่ไม่ถูกต้อง กรุณาตรวจ upload-config.js');
       if (!Array.isArray(config.academicYears) || !config.academicYears.length
         || config.academicYears.some(year => !Number.isInteger(year) || year < 2400 || year > 32767)) {
-        throw new Error('รายการปีการศึกษาไม่ถูกต้อง กรุณาตรวจ upload-config.js');
+        throw new Error('รายการปีการศึกษาไม่ถูกต้อง กรุณาตรวจ guide-config.js');
       }
       user = await window.currentUserReady;
 
@@ -180,23 +159,14 @@
         window.location.replace('login.html');
         return;
       }
-      if (config.mode === 'api') {
-        if (!Number.isSafeInteger(user.id) || user.id <= 0) throw new Error('รูปแบบข้อมูลบัญชีจากเซิร์ฟเวอร์ไม่ถูกต้อง');
-        catalog = await window.GuideApi.courses();
-      } else {
-        catalog = data.catalog;
-        // Reading here detects unavailable or corrupted browser storage early.
-        data.loadExams();
-      }
+      if (!Number.isSafeInteger(user.id) || user.id <= 0) throw new Error('รูปแบบข้อมูลบัญชีจากเซิร์ฟเวอร์ไม่ถูกต้อง');
+      catalog = await window.GuideApi.courses();
       $('#author').value = user.display_name || user.username;
       if (!catalog.length) throw new Error('ยังไม่มีรายวิชาให้เผยแพร่ กรุณาตรวจข้อมูลรายวิชา');
       setupSelect(field('course'), catalog, 'เลือกรายวิชา', row => row.code, row => `${row.code} - ${row.name}`);
       setupSelect(field('academicYear'), config.academicYears, 'เลือกปีการศึกษา', String, String);
       const code = new URL(window.location.href).searchParams.get('course');
       if (!field('course').value && catalog.some(row => row.code === code)) field('course').value = code;
-      $('#publish-mode').textContent = config.mode === 'preview'
-        ? 'โหมดทดลอง: ข้อมูลเก็บเฉพาะเบราว์เซอร์นี้ ยังไม่เผยแพร่ให้ผู้ใช้อื่น'
-        : 'เผยแพร่ด้วยบัญชีที่เข้าสู่ระบบ';
       ready = true;
       syncCounts();
       status('');
@@ -221,17 +191,13 @@
     updateControls();
     status('กำลังบันทึกข้อมูล…');
     try {
-      const row = config.mode === 'api'
-        ? await window.GuideApi.publish(payload(input), input.course)
-        : previewPublish(input);
+      const row = await window.GuideApi.publish(payload(input), input.course);
       saved = true;
       $('#publish-success').hidden = false;
-      $('#publish-success-text').textContent = config.mode === 'preview'
-        ? 'เผยแพร่ข้อมูลทดลองแล้ว กำลังเปิดรายละเอียด'
-        : 'เผยแพร่สำเร็จ กำลังเปิดรายละเอียด';
+      $('#publish-success-text').textContent = 'เผยแพร่สำเร็จ กำลังเปิดรายละเอียด';
       const url = detailUrl(input.course, row.id);
       $('#published-link').href = url;
-      status(config.mode === 'preview' ? 'บันทึกข้อมูลทดลองสำเร็จ' : 'เผยแพร่สำเร็จ', 'success');
+      status('เผยแพร่สำเร็จ', 'success');
       // Keep a usable link and the saved state even if navigation is unavailable.
       try { window.location.assign(url); } catch (_) { $('#published-link').focus(); }
     } catch (error) {

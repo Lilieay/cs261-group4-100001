@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const config = window.GuidePublishConfig;
+  const config = window.GuideConfig;
   class GuideApiError extends Error {
     constructor(message, {status = 0, fields = [], uncertain = false} = {}) {
       super(message);
@@ -17,22 +17,22 @@
     }
   }
 
-  function resolveTarget(path, method, savedPath) {
-    if (savedPath || ['PUT', 'DELETE'].includes(method)) return path;
+  function resolveTarget(path, method) {
+    if (['PUT', 'DELETE'].includes(method)) return path;
     if (method === 'POST' && path === config.publishPath) return '/api/guides';
     if (method === 'GET' && [config.mePath, config.myGuidesPath].includes(path)) return path;
     if (method === 'GET' && path === config.coursesPath) return '/api/courses';
     if (method === 'GET' && path.startsWith('/')) {
       const local = new URL(path, window.location.origin);
       const listPath = /^\/courses\/[1-9]\d*\/guides$/.test(local.pathname);
-      const allowed = listPath || /^\/courses\/[1-9]\d*\/guides\/filter-options$/.test(local.pathname)
-        || /^\/guides\/[1-9]\d*$/.test(local.pathname);
+      const guidePath = /^\/guides\/[1-9]\d*$/.test(local.pathname);
+      const allowed = guidePath || listPath || /^\/courses\/[1-9]\d*\/guides\/filter-options$/.test(local.pathname);
       const allowedQuery = new Set(['academic_year', 'semester', 'exam_period']);
       if (!allowed || (!listPath && local.search)
           || [...local.searchParams.keys()].some(key => !allowedQuery.has(key))) {
         throw new GuideApiError('เส้นทางอ่านแนวข้อสอบไม่ถูกต้อง', {status: 422});
       }
-      return `/api/guides${local.pathname}${local.search}`;
+      return `${guidePath ? '/api' : '/api/guides'}${local.pathname}${local.search}`;
     }
     const base = new URL(config.apiBaseUrl || window.location.origin);
     if (!['http:', 'https:'].includes(base.protocol)) throw new GuideApiError('ที่อยู่ API ต้องเป็น HTTP หรือ HTTPS');
@@ -42,33 +42,30 @@
   }
 
   async function request(path, {method = 'GET', body} = {}) {
-    const savedPath = /^\/api\/saved-guides(?:\/[1-9]\d*)?$/.test(path);
     const token = accessToken();
     if (!token) {
       window.location.replace('login.html');
       throw new GuideApiError('กรุณาเข้าสู่ระบบก่อนใช้งานแนวข้อสอบ', {status: 401});
     }
-    if (method === 'POST' && (!config || config.mode !== 'api' || path !== config.publishPath)) {
+    if (method === 'POST' && (!config || path !== config.publishPath)) {
       throw new GuideApiError('เส้นทางเผยแพร่แนวข้อสอบไม่ถูกต้อง', {status: 422});
     }
-    if (method === 'PUT' && !/^\/api\/my-guides\/[1-9]\d*$/.test(path) && !savedPath) {
+    if (method === 'PUT' && !/^\/api\/my-guides\/[1-9]\d*$/.test(path)) {
       throw new GuideApiError('เส้นทางแก้ไขแนวข้อสอบไม่ถูกต้อง', {status: 422});
     }
-    if (method === 'DELETE' && !/^\/api\/my-guides\/[1-9]\d*$/.test(path) && !savedPath) {
+    if (method === 'DELETE' && !/^\/api\/my-guides\/[1-9]\d*$/.test(path)) {
       throw new GuideApiError('เส้นทางลบแนวข้อสอบไม่ถูกต้อง', {status: 422});
     }
-    const target = resolveTarget(path, method, savedPath);
+    const target = resolveTarget(path, method);
     let response;
     let payload;
     try {
       ({response, payload} = await window.HttpClient.request(target, {
-        method, token, timeoutMs: config.timeoutMs || 15000,
+        method, token, timeoutMs: config.timeoutMs || window.AppConfig.requestTimeoutMs,
         ...(body === undefined ? {} : {headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
       }));
     } catch (_) {
-      throw new GuideApiError(savedPath
-        ? 'ยังยืนยันรายการที่บันทึกไม่ได้ กรุณาโหลดข้อมูลใหม่เพื่อตรวจสอบ'
-        : method === 'POST'
+      throw new GuideApiError(method === 'POST'
         ? 'ยังยืนยันผลเผยแพร่ไม่ได้ กรุณาตรวจรายการของคุณก่อนส่งซ้ำ เพื่อหลีกเลี่ยงรายการซ้ำ'
         : method === 'DELETE'
         ? 'ยังยืนยันผลการลบไม่ได้ กรุณาตรวจรายการของคุณก่อนลองอีกครั้ง'
@@ -147,7 +144,6 @@
   }
 
   async function publish(body, code) {
-    if (!config || config.mode !== 'api') throw new GuideApiError('ยังไม่ได้เปิดโหมด API');
     const {status, payload} = await request(config.publishPath, {method: 'POST', body});
     try {
       if (status !== 201 || payload?.course?.id !== body.course_id) throw new Error('Unexpected creation response');
@@ -167,39 +163,6 @@
     const {payload} = await request(config.myGuidesPath);
     if (!Array.isArray(payload)) throw new GuideApiError('รูปแบบรายการแนวข้อสอบของฉันจากเซิร์ฟเวอร์ไม่ถูกต้อง');
     return payload.map(normalizeMyGuide);
-  }
-
-  function savedGuideId(id) {
-    if (!/^[1-9]\d*$/.test(String(id)) || Number(id) > 2147483647) {
-      throw new GuideApiError('รหัสแนวข้อสอบไม่ถูกต้อง', {status: 422});
-    }
-    return `/api/saved-guides/${id}`;
-  }
-
-  async function saved() {
-    const {payload} = await request('/api/saved-guides');
-    if (!Array.isArray(payload)) throw new GuideApiError('รายการที่บันทึกไม่ถูกต้อง');
-    const ids = new Set();
-    return payload.map(row => {
-      const detail = validateDetail(row, row?.course?.course_code, null, {allowZeroCounts: true});
-      if (!Number.isSafeInteger(detail.course.id) || detail.course.id <= 0
-          || typeof detail.course.course_name !== 'string' || !detail.course.course_name.trim()
-          || typeof detail.course.course_code !== 'string' || !/^CS\d{3}$/.test(detail.course.course_code)
-          || ids.has(detail.id)) throw new GuideApiError('รายการที่บันทึกไม่ถูกต้อง');
-      ids.add(detail.id);
-      return {...toPreviewRow(detail), course_id: detail.course.id, course_name: detail.course.course_name};
-    });
-  }
-
-  async function savedState(id, desired) {
-    const path = savedGuideId(id);
-    const method = desired === undefined ? 'GET' : desired ? 'PUT' : 'DELETE';
-    const {payload} = await request(path, {method});
-    if (payload?.id !== Number(id) || typeof payload.saved !== 'boolean'
-        || (desired !== undefined && payload.saved !== desired)) {
-      throw new GuideApiError('ยืนยันรายการที่บันทึกไม่ได้ กรุณาโหลดข้อมูลใหม่');
-    }
-    return payload.saved;
   }
 
   function normalizeMyGuide(row) {
@@ -285,7 +248,7 @@
     return payload;
   }
 
-  function toPreviewRow(row) {
+  function toGuideRow(row) {
     return {
       id: String(row.id), course_code: row.course.course_code, title: row.title,
       year: String(row.academic_year), semester: String(row.semester),
@@ -297,5 +260,5 @@
     };
   }
 
-  window.GuideApi = Object.freeze({request, currentUser, courses, publish, read, mine, update, remove, list, filterOptions, toPreviewRow, saved, savedState});
+  window.GuideApi = Object.freeze({request, currentUser, courses, publish, read, mine, update, remove, list, filterOptions, toGuideRow});
 })();

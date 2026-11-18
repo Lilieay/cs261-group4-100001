@@ -1,0 +1,15 @@
+erDiagram
+    users ||--o{ saved_guides : bookmarks
+    guides ||--o{ saved_guides : target
+    users ||--o{ saved_summaries : bookmarks
+    summaries ||--o{ saved_summaries : target
+    courses ||--o{ guides : groups
+    courses ||--o{ summaries : groups
+    saved_guides {
+        int user_id PK,FK
+        int guide_id PK,FK
+    }
+    saved_summaries {
+        int user_id PK,FK
+        int summary_id PK,FK
+    }

@@ -1,0 +1,17 @@
+TAP version 13
+# Subtest: a 503 on the first DELETE leaves a typed failure and cleanup still attempts the rest
+ok 1 - a 503 on the first DELETE leaves a typed failure and cleanup still attempts the rest
+  ---
+  duration_ms: 3.4708
+  type: 'test'
+  ...
+# {"attempted":["summary:42","summary:41","guide:41"],"testError":{"name":"Error","message":"Original system test assertion"},"cleanup":{"status":"Fail","failedFixtures":[{"kind":"summary","id":42,"status":503,"error":{"code":"STORAGE_UNAVAILABLE","message":"Simulated DELETE failure"}}],"baselineError":{"name":"Error","message":"The first fixture is still present"}}}
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 226.1058

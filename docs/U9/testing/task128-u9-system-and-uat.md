@@ -1,0 +1,113 @@
+# ผลทดสอบระบบและตรวจรับ U9 Task128
+
+ทดสอบและรัน System Test ซ้ำวันที่ 17 พฤศจิกายน 2569 (เวลาไทย) บน branch `test/task128-u9` ใช้ Chrome 157.0.8103.51, Playwright Core 1.65.1, Node 24.21.0, Docker Engine 29.8.2 และ SQL Server 2022 16.0.4295.3
+
+| Revision | SHA ที่ใช้ |
+| --- | --- |
+| แอปและ Compose | `0c63713d6764e95b7f19a8edc980b3420d2e8f13` จาก `sprint2` ซึ่งรวม Task123 ผ่าน PR #136 |
+| Test runner รอบแก้ PR #140 | `93f2caef37aa0877a3fbeeba7ee32eb6f9a47e42` มี [System Test runner](https://github.com/Lilieay/cs261-group4-100001/blob/93f2caef37aa0877a3fbeeba7ee32eb6f9a47e42/scripts/task128-u9-system.cjs) และชุดทดสอบ cleanup |
+
+Docker สร้างจากไฟล์แอปใน checkout ที่ตรงกับ SHA แอป ผล JSON บันทึกทั้ง `appSha` และ `runnerSha` สคริปต์ตรวจความตรงกันของไฟล์แอปและตรวจว่าไฟล์ runner ที่ใช้ตรงกับ commit ก่อนเริ่มรัน
+
+ผู้ทดสอบใช้บัญชีสังเคราะห์ A และ B จากหน้า Login ผ่าน TU mock ซึ่งให้คนละ user ID คำขอระบบวิ่งจาก Chrome ผ่าน Express ไป FastAPI, SQL Server และ PDF volume จริงใน Compose project แยกจากฐานที่ใช้งาน
+
+## การเทียบเลขเคสใน Trello กับมติ PO
+
+[Task98 ส่วน 5.1 และ 5.2](../requirements/Task98_U9_Requirements_and_Test_Cases_PO_Content_Updated.md#5-u9-test-cases) ระบุว่า TC01–TC05 อ้างการบันทึกทั้งรายวิชา จึงบันทึกเป็น N/A สำหรับการตรวจรับรุ่นนี้และทดสอบกรณีตามมติ PO ปัจจุบันแทน
+
+| เลขใน Trello | Expected ตามเกณฑ์เดิม | Actual ในรุ่นที่ทดสอบ | สถานะ |
+| --- | --- | --- | --- |
+| U9-TC01 | บันทึกทั้งวิชา | ผู้ใช้บันทึก Guide หรือ PDF ทีละชิ้นและเห็นรายการหลังล็อกอินใหม่ ตรวจด้วย TC06–TC07 | N/A |
+| U9-TC02 | บันทึกวิชาที่ไม่มีผลงาน | วิชาเป็นกลุ่มของผลงานที่บันทึก Task98 ใช้ TC06–TC07 แทน | N/A |
+| U9-TC03 | บันทึกวิชาเดิมซ้ำได้หนึ่งรายการ | งดซ้ำที่ระดับประเภทและ ID ผลงาน ตรวจด้วย TC09 | N/A |
+| U9-TC04 | ปฏิเสธการบันทึกทั้งวิชาเมื่อสิทธิ์หรือวิชาผิด | ตรวจสิทธิ์และพารามิเตอร์ที่ระดับผลงานด้วย TC10 | N/A |
+| U9-TC05 | บันทึกทั้งวิชาล้มเหลวและไม่ขึ้นข้อความสำเร็จ | ตรวจข้อความและข้อมูลคงเดิมที่ระดับผลงานด้วย TC11 | N/A |
+
+## System และ End-to-End
+
+ผลดิบจากสคริปต์อยู่ใน [results.json](../assets/task128/results.json) ภาพถ่ายจากชุด Docker เดียวกัน
+
+| Test case | Expected | Actual | Status | หลักฐาน |
+| --- | --- | --- | --- | --- |
+| U9-TC06 | บันทึก Guide ได้ รายการอยู่ครบหลัง reload และล็อกอินใหม่ | กดบันทึกจากหน้าอ่านได้ 200 การ์ดอยู่ใต้ CS261 หลัง reload และล็อกอินใหม่ SQL มีหนึ่ง bookmark ของ A | Pass | [Guide หลังล็อกอินใหม่](../assets/task128/U9-TC06-after-relogin.png) |
+| U9-TC07 | บันทึก PDF ได้ รายการอยู่ครบหลัง reload และล็อกอินใหม่ | ตัวอ่านเปิด PDF จาก volume จริง กดบันทึกได้ 200 การ์ดอยู่ใต้ CS261 หลัง reload และล็อกอินใหม่ SQL มีหนึ่ง bookmark ของ A | Pass | [PDF หลังล็อกอินใหม่](../assets/task128/U9-TC07-after-relogin.png) |
+| U9-TC08 | Guide และ PDF อยู่ในกลุ่มวิชาที่ถูกต้อง | บันทึก Guide และ PDF ของ CS261 กับ CS101 ได้ 4 การ์ดใน 2 กลุ่ม ตรวจทั้ง course ID และรหัสวิชาของแต่ละการ์ด รวมถึงตัวนับรีวิวครบ 4 ใบ | Pass | [การ์ดสองกลุ่มวิชา](../assets/task128/U9-TC08-two-course-groups.png) |
+| U9-TC09 | PUT ซ้ำได้ 200 และคงหนึ่ง bookmark ต่อชิ้น | PUT ซ้ำสองครั้งได้ 200 ทั้ง Guide และ PDF กดบันทึกซ้ำบนหน้าอ่านแล้วขึ้น “ได้บันทึกการแบ่งปันนี้ไปแล้ว” และ SQL ยังมีหนึ่งแถวต่อชิ้น | Pass | [Guide](../assets/task128/U9-TC09-guide-duplicate.png) · [PDF](../assets/task128/U9-TC09-summary-duplicate.png) |
+| U9-TC10 | คำขอไม่มีสิทธิ์หรือผลงานไม่ถูกต้องถูกปฏิเสธ | ผ่าน proxy จริงทั้งสองชนิด ไม่ส่ง token, token ผิด และ token ที่ถูกยกเลิกหลัง logout ได้ 401 ชนิด/ID ผิดหรืออ้างบัญชี B ใน body/query ได้ 422 ผลงานไม่มีอยู่ได้ 404 ตามชนิด บัญชี B ยังว่างและ bookmark ของ A ยังอยู่ | Pass | [ผลตรวจ HTTP และ SQL](../assets/task128/results.json) |
+| U9-TC11 | เขียนล้มเหลวก่อน commit แล้ว UI แจ้งข้อผิดพลาดและคง bookmark เดิมของผู้ใช้ | B บันทึก Guide และ PDF ของ CS101 ไว้ก่อน จากนั้น trigger ปฏิเสธการบันทึก Guide และ PDF ของ CS261 จากหน้าอ่านแยกกัน แต่ละ PUT ได้ 503 `SAVED_ITEMS_UNAVAILABLE` GET ของชิ้นที่ลองบันทึกเป็น `saved:false` และหน้าอ่านแสดงข้อผิดพลาด หลังจบแต่ละกรณี bookmark เดิมทั้งสองชิ้นของ B ยังอยู่ในหน้ารายการ, API และ SQL ส่วนรายการของ A ตรงกับก่อนจำลองความล้มเหลว | Pass | [Guide 503](../assets/task128/U9-TC11-guide-sql-rejected.png) · [รายการ B หลัง Guide 503](../assets/task128/U9-TC11-guide-retained-bookmarks.png) · [PDF 503](../assets/task128/U9-TC11-summary-sql-rejected.png) · [รายการ B หลัง PDF 503](../assets/task128/U9-TC11-summary-retained-bookmarks.png) · [ผลรายชนิดใน JSON](../assets/task128/results.json) |
+| U9-TC12 | รายการเดิมและรายการใหม่แสดงร่วมกันโดยไม่ซ้ำ | บันทึก Guide ผ่าน `/api/saved-guides` แล้วบันทึก PDF จากหน้าอ่าน พบทั้งสองในกลุ่ม CS261 การ PUT Guide ผ่าน saved-items ซ้ำยังคงหนึ่ง bookmark | Pass | [รายการ Guide เดิมและ PDF](../assets/task128/U9-TC12-legacy-and-summary.png) |
+
+หลังทดสอบลบเฉพาะผลงานที่ชุดทดสอบสร้าง และเทียบข้อมูลในตารางผลงาน/ไฟล์/bookmark รวมถึง SHA-256 ของไฟล์ใน volume กับค่าก่อนรัน ผลตรงกันและ trigger ทดสอบถูกนำออก
+
+เทสต์ regression ของ cleanup จำลองให้ DELETE แรกของ `summary:42` ได้ 503 แล้วตรวจว่ามีการลองลบ `summary:41` และ `guide:41` ต่อครบ ผลรายงานเก็บชนิด/ID และ HTTP status ของ fixture ที่ลบไม่สำเร็จใน `cleanup.failedFixtures` พร้อมข้อความผิดพลาดเดิมใน `testError` ดู [ผลจำลอง cleanup](../assets/task128/cleanup-failure-regression.txt)
+
+## Unit, API, Integration และ Regression ที่เกี่ยวข้อง
+
+| ระดับ | ผลรอบนี้ | กรณีที่รองรับ |
+| --- | --- | --- |
+| Frontend unit และ proxy | 104 ผ่าน | [อ่านและบันทึก PDF](../../../frontend/src/read-summary.test.js) ครอบคลุม TC07/TC11 รวมถึง refresh สถานะตอนกลับมาโฟกัส [รายการที่บันทึก](../../../frontend/src/saved-courses.test.js) ครอบคลุม TC08/TC09/TC12 และกรณีกลับมาหลังเปิดรายการที่ถูกลบได้ 404 |
+| Backend unit และ API | 480 ผ่าน, 6 ข้าม และ 81 subtests ผ่าน | [Service](../../../backend/test/test_saved_items_service.py) และ [API Guide/PDF](../../../backend/test/test_saved_items_api.py) รองรับ TC06/TC07/TC09–TC12 [API รายการ](../../../backend/test/test_saved_items_u10_api.py) รองรับ TC08/TC10/TC12 [Auth unit](../../../backend/test/test_auth.py) ตรวจหมดอายุจากเวลา ส่วน System Test ตรวจ token ผิดและ token ที่ถูกยกเลิกจริงหลัง logout |
+| SQL Server Integration | 3 ผ่านเมื่อเปิด `U9_TEST_SQLSERVER` และ `TASK116_TEST_SQLSERVER` | [PUT พร้อมกันและผลงานถูกลบระหว่างบันทึก](../../../backend/test/test_saved_items_sqlserver.py) รองรับ TC09/TC10 [บันทึกและอ่านสถานะทั้งสองชนิดบน SQL Server](../../../backend/test/test_saved_items_sqlserver_integration.py) รองรับ TC06/TC07 |
+| Task123 Browser Integration | รันซ้ำผ่านทั้ง Guide และ PDF บน Docker ชุดเดียวกัน [บันทึกผลรันซ้ำ](../assets/task128/task123-regression.txt) · [ผลเดิมจาก Task123](task123-u9-docker-integration.md) | TC06/TC07/TC09/TC11 และ regression ผลตอบกลับ PUT หายหลังเขียนสำเร็จ, การอ่านใหม่ และ 404 หลังลบผลงาน |
+
+## ข้อพบและการทดสอบซ้ำ
+
+- สองรอบแรก Playwright รอ PUT ของ PDF หรือรอไปหน้ารายการเกินเวลา ปรับการทดสอบให้รอปุ่มพร้อมและใช้ Enter กับปุ่มและลิงก์จริง แล้วรันใหม่ผ่าน TC06–TC12 บน SHA เดิม
+- การตั้งค่า Docker เริ่มต้นให้คะแนนรีวิวตอบ 503 จนลง schema รีวิวด้วย `scripts.init_reviews` ตาม [วิธีรัน Task122](../../U8/testing/task122-u8-docker-integration.md) หลังตั้งค่าแล้ว TC08 เห็นตัวนับรีวิวครบ 4 การ์ด
+
+## วิธีรันซ้ำ
+
+เปิด Docker Desktop และใช้ checkout แยกสำหรับทดสอบ เตรียม `.env` ของชุดทดสอบที่ตั้ง `MSSQL_SA_PASSWORD` แล้ว คำสั่งนี้เลือก commit ที่มี runner จริง ตรวจว่าไฟล์แอปตรงกับ revision ที่รายงาน แล้วใช้พอร์ตและ SQL/PDF volume แยก
+
+```powershell
+git switch --detach 93f2caef37aa0877a3fbeeba7ee32eb6f9a47e42
+$env:TASK128_APP_SHA = '0c63713d6764e95b7f19a8edc980b3420d2e8f13'
+git diff --exit-code $env:TASK128_APP_SHA -- backend frontend compose.yaml .gitattributes
+$env:SQLSERVER_HOST_PORT = '24433'
+$env:BACKEND_HOST_PORT = '30800'
+$env:FRONTEND_HOST_PORT = '27800'
+$env:TU_API_MODE = 'mock'
+$project = 'cs261-task123-task128-r2-0c63713'
+docker compose -p $project up -d --build --wait
+docker compose -p $project run -d --no-deps --name "$project-backend-b" -e TU_MOCK_USERNAME=6800000001 backend
+docker compose -p $project run -d --no-deps --name "$project-frontend-b" -e "BACKEND_URL=http://$project-backend-b:8000" -p 127.0.0.1:27801:5000 frontend
+```
+
+ถ้าเป็น SQL volume ใหม่ ให้สร้างตารางรีวิวตาม Task122 หนึ่งครั้งด้วย `docker compose -p $project exec -T backend python -m scripts.init_reviews` เมื่อ Backend ทั้งสองตัว healthy ให้รัน
+
+```powershell
+$toolPath = Join-Path $env:TEMP 'cs261-task128-tools'
+npm.cmd install --prefix $toolPath --no-audit --no-fund playwright-core@1.65.1
+$env:TASK123_PLAYWRIGHT = Join-Path $toolPath 'node_modules/playwright-core'
+$env:TASK123_PROJECT = $project
+$env:TASK128_EVIDENCE = Join-Path $env:TEMP 'cs261-task128-evidence'
+node --test scripts/task128-cleanup.test.cjs
+node scripts/task128-u9-system.cjs
+```
+
+หากต้องการทำซ้ำ regression ของ Task123 ให้รัน `node scripts/task123-u9-browser.cjs` หลังชุด Task128 จบ โดยใช้ตัวแปร `TASK123_PROJECT` และ `TASK123_PLAYWRIGHT` เดิม
+
+สคริปต์ตรวจ project และพอร์ตก่อนเปิดเบราว์เซอร์ แล้วสร้างและลบข้อมูลทดสอบรายรอบ หากจะปิดชุดทดสอบให้ใช้ `docker compose -p $project down --remove-orphans` เพื่อเก็บ volumes ไว้สำหรับรันรอบถัดไป
+
+## บันทึกการตรวจรับ U9
+
+**มติ PO: รับ U9**
+
+| รายการ | ค่าที่บันทึก |
+| --- | --- |
+| PO | กชพร ผดุงเกียรติวงษ์ |
+| วันบันทึกมติ | 17 พฤศจิกายน 2569 (Asia/Bangkok) |
+| รอบตรวจยืนยันผ่าน Chrome | 17 พฤศจิกายน 2569 เวลา 22:39–22:40 น. (Asia/Bangkok) |
+| SHA รอบตรวจยืนยัน | [`6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e`](https://github.com/Lilieay/cs261-group4-100001/commit/6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e) |
+| สภาพแวดล้อม | Chrome 157.0.8103.79, Docker 29.8.2, SQL Server 2022 จริง (`mcr.microsoft.com/mssql/server:2022-latest`) และ PDF volume จริง ใช้ TU mock สำหรับ Login |
+| ผลรอบตรวจยืนยัน | 7/7 และ cleanup คืน baseline ผ่าน [ผล JSON](../assets/task128/uat-6591b5b/results.json) |
+
+| TC | ผลที่ตรวจได้ในรอบนี้ | หลักฐาน |
+| --- | --- | --- |
+| U9-TC06 | ผ่าน · บันทึกแนวข้อสอบจากหน้าอ่านได้ HTTP 200 กลับมา Login ใหม่ยังเห็นชิ้นเดิม และ SQL มี bookmark เดียว | [ดูผล](../assets/task128/uat-6591b5b/U9-TC06-after-relogin.png) |
+| U9-TC07 | ผ่าน · บันทึก PDF จากหน้าอ่านได้ HTTP 200 หลังโหลดใหม่และ Login ใหม่ยังเห็นรายการเดิม | [ดูผล](../assets/task128/uat-6591b5b/U9-TC07-after-relogin.png) |
+| U9-TC08 | ผ่าน · เห็น Guide กับ PDF สี่การ์ดในสองกลุ่มวิชา CS261 และ CS101 | [ดูผล](../assets/task128/uat-6591b5b/U9-TC08-two-course-groups.png) |
+| U9-TC09 | ผ่าน · PUT ซ้ำได้ 200 ทั้ง Guide และ PDF หน้าแจ้งว่าบันทึกแล้วและ SQL ยังมี bookmark เดียวต่อชิ้น | [ดูผล](../assets/task128/uat-6591b5b/U9-TC09-guide-duplicate.png) |
+| U9-TC10 | ผ่าน · คำขอที่ไม่มี token หรือ token ไม่ถูกต้องได้ 401 ข้อมูลผิดได้ 422 ผลงานหายได้ 404 และอีกบัญชียังไม่มี bookmark | [ดูผล](../assets/task128/uat-6591b5b/results.json) |
+| U9-TC11 | ผ่าน · SQL ปฏิเสธการบันทึกทั้ง Guide และ PDF ด้วย 503 หน้าแจ้งล้มเหลว รายการใหม่ยังไม่บันทึก และรายการเดิมของทั้งสองบัญชียังอยู่ | [ดูผล](../assets/task128/uat-6591b5b/U9-TC11-summary-retained-bookmarks.png) |
+| U9-TC12 | ผ่าน · Guide ที่บันทึกด้วย API เดิมกับ PDF อยู่ด้วยกันใน CS261 และ Guide ไม่ซ้ำหลังบันทึกซ้ำ | [ดูผล](../assets/task128/uat-6591b5b/U9-TC12-legacy-and-summary.png) |

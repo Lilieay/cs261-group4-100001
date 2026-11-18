@@ -1,0 +1,28 @@
+{
+  "appSha": "0c63713d6764e95b7f19a8edc980b3420d2e8f13",
+  "testRunnerSha": "082d5567e3c997cc6483605e5859d9bbcefa7045",
+  "runnerFile": "scripts/task129-u10-boundary-check.cjs",
+  "project": "cs261-task124-0c63713",
+  "authMode": "TU mock account A; browser login; SQL Server real",
+  "failureInjection": {
+    "secondPutResponse": true,
+    "cleanupRequest": false
+  },
+  "cases": [
+    {
+      "id": "U10-TC01-CLEANUP-FAILURE-INJECTION",
+      "expected": "Second PUT response fails after upstream commit; cleanup still restores original bookmark baseline",
+      "actual": "second browser request failed; upstream status 200; one relation existed before cleanup",
+      "status": "PASS",
+      "guideId": 1
+    }
+  ],
+  "cleanup": {
+    "status": "PASS",
+    "baselineRestored": true,
+    "detail": "DELETE completed and saved_guides exactly matches pre-PUT baseline"
+  },
+  "browserClosed": true,
+  "completedAt": "2026-11-17T12:51:26.282Z",
+  "passed": true
+}

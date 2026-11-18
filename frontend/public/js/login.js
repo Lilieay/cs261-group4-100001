@@ -55,7 +55,7 @@
     pending = true;
     busy();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), config.timeoutMs || 15000);
+    const timer = setTimeout(() => controller.abort(), config.timeoutMs || window.AppConfig.requestTimeoutMs);
     try {
       const base = new URL(config.apiBaseUrl || window.location.origin);
       if (!['http:', 'https:'].includes(base.protocol)) throw new Error('Invalid API protocol');

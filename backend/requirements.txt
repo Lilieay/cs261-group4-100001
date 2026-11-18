@@ -6,3 +6,5 @@ SQLAlchemy
 pyodbc
 python-dotenv
 truststore>=0.10,<0.11
+python-multipart>=0.0.20
+pypdf>=5.0,<7.0

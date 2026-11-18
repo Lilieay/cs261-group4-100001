@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant UI
+  participant API as API / Service
+  participant DAO as ReviewDAO
+  participant DB as SQL Server
+  UI->>API: ส่งคะแนนและข้อความ
+  API->>DAO: เช็กล็อกอินและข้อมูล แล้วส่งคำขอเพิ่มรีวิว
+  DAO->>DB: อ่านเจ้าของพร้อมล็อกผลงาน แล้ว INSERT เมื่อ Service อนุญาต
+  DB-->>DAO: คืนรีวิวที่เพิ่ม
+  DAO-->>API: ส่งรีวิวกลับ
+  API->>DB: Commit
+  API-->>UI: 201 แสดงรีวิวใหม่

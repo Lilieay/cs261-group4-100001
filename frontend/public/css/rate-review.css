@@ -1,0 +1,143 @@
+.review-editor {
+  margin-top: 16px;
+}
+
+.review-rating {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.review-rating legend,
+.review-comment-field label {
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.review-required {
+  color: var(--review-accent);
+}
+
+.review-rating-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 230px;
+  margin-top: 4px;
+}
+
+.review-rating-options label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.review-rating-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.review-rating-options [data-review-star-icon] {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  --star-size: 26px;
+}
+
+.review-rating-options label:not([data-filled]) .review-star-icon {
+  color: var(--star-empty, #74809a);
+}
+
+.review-rating-options label:not([data-filled]) .review-star-fill {
+  opacity: 0;
+}
+
+.review-rating-options label:hover [data-review-star-icon] {
+  border-radius: 7px;
+  background: var(--review-tint);
+}
+
+.review-rating-options input:focus-visible + span {
+  outline: 2px solid #2f5a96;
+  outline-offset: -3px;
+  border-radius: 5px;
+}
+
+.review-rating-options label:has(input:disabled) {
+  cursor: wait;
+}
+
+.review-selected-rating {
+  margin: 1px 0 0;
+  color: var(--review-muted);
+  font-size: 12px;
+}
+
+.review-comment-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.review-comment-field label span {
+  color: var(--review-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.review-comment-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 10px;
+  resize: vertical;
+  border: 1px solid var(--review-stroke);
+  border-radius: 6px;
+  background: var(--review-paper);
+  color: var(--review-ink);
+  font-size: 13px;
+}
+
+.review-comment-field textarea::placeholder {
+  color: var(--review-muted);
+}
+
+.review-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.u8-review-dialog .review-remove-button {
+  margin-inline-end: auto;
+  color: var(--review-accent-hover);
+}
+
+.review-delete-prompt {
+  margin-top: 19px;
+  padding: 13px 15px;
+  border: 1px solid #eab4c7;
+  border-radius: 8px;
+  background: #fff3f5;
+  color: #8c1730;
+}
+
+.review-delete-prompt h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.review-delete-prompt p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}

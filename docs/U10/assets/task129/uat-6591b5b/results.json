@@ -1,0 +1,152 @@
+{
+  "passed": true,
+  "appSha": "6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e",
+  "testRunnerSha": "6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e",
+  "environment": {
+    "browser": "157.0.8103.79",
+    "docker": "29.8.2",
+    "sqlServer": "16.0.4305.5"
+  },
+  "authMode": "TU mock; two backend processes; distinct SQL user IDs",
+  "project": "cs261-task124-uat-6591b5b",
+  "date": "2026-11-17T15:41:59.770Z",
+  "results": [
+    {
+      "name": "preflight verifies frontend port owners and A/B proxies on the selected Compose project",
+      "project": "cs261-task124-uat-6591b5b",
+      "urls": [
+        "http://127.0.0.1:29800",
+        "http://127.0.0.1:29801"
+      ]
+    },
+    {
+      "name": "U10-TC03: A GETs 200 empty list and the actual search link opens the course search page; anonymous list is 401",
+      "userIds": [
+        2,
+        3
+      ],
+      "listStatus": 200,
+      "items": [],
+      "searchPath": "/courses.html"
+    },
+    {
+      "name": "INTRODUCTION TO SOFTWARE ENGINEERING",
+      "code": "CS261"
+    },
+    {
+      "name": "PDF reader blob matches selected fixture",
+      "id": 1,
+      "viewerSha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+      "fixtureSha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b"
+    },
+    {
+      "name": "PDF reader blob matches selected fixture",
+      "id": 2,
+      "viewerSha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+      "fixtureSha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44"
+    },
+    {
+      "name": "U10-TC02: two Guides and two different PDFs are grouped; second Guide and selected PDFs open exact items"
+    },
+    {
+      "name": "U10-TC04: B sees only own list; cannot remove A-only G2; A still sees it; invalid token returns 401",
+      "guideId": 6,
+      "deleteStatus": 200,
+      "saved": false,
+      "bookmarkUsers": [
+        2
+      ],
+      "invalidTokenStatus": 401
+    },
+    {
+      "name": "guide: DELETE 503 followed by actual GET 200 retaining current user's bookmark",
+      "deleteStatus": 503,
+      "getStatus": 200,
+      "items": 4
+    },
+    {
+      "name": "U10-TC07: A removes G1 twice; only A bookmark is removed and all source data plus B bookmark remain",
+      "firstDeleteStatus": 200,
+      "repeatDeleteStatus": 200,
+      "repeatSaved": false,
+      "remainingBookmarkUsers": [
+        3
+      ],
+      "guidePresent": true,
+      "coursePresent": true,
+      "summaryAndPdfUnchanged": true
+    },
+    {
+      "name": "guide: SQL DELETE rollback, UI error/reload, remove/repeat, content and other account preserved"
+    },
+    {
+      "name": "summary: DELETE 503 followed by actual GET 200 retaining current user's bookmark",
+      "deleteStatus": 503,
+      "getStatus": 200,
+      "items": 4
+    },
+    {
+      "name": "summary: SQL DELETE rollback, UI error/reload, remove/repeat, content and other account preserved"
+    },
+    {
+      "name": "real SELECT failure shows error rather than empty or partial list; retry recovers all four bookmarks"
+    },
+    {
+      "name": "guide: lost browser DELETE response triggers real GET list; current SQL state shown without claiming original request success"
+    },
+    {
+      "name": "summary: lost browser DELETE response triggers real GET list; current SQL state shown without claiming original request success"
+    },
+    {
+      "name": "guide: stale saved card opens typed 404; Back refreshes list and preserves other work"
+    },
+    {
+      "name": "summary: stale saved card opens typed 404; Back refreshes list and preserves other work"
+    },
+    {
+      "name": "invalid IDs/type/user override rejected; no-token DELETE rejected; A ends empty; B retains its own PDF and Guide"
+    },
+    {
+      "name": "cleanup restored baseline SQL rows and PDF checksums; test trigger absent"
+    }
+  ],
+  "fixtures": [
+    {
+      "id": 5,
+      "kind": "guide",
+      "owner": 0,
+      "title": "Task124-1794930087629 guide 0",
+      "deleted": true
+    },
+    {
+      "id": 1,
+      "kind": "summary",
+      "owner": 0,
+      "title": "Task124-1794930087629 summary 1",
+      "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+      "deleted": true
+    },
+    {
+      "id": 2,
+      "kind": "summary",
+      "owner": 0,
+      "title": "Task124-1794930087629 summary 2",
+      "sha256": "cc2bae85496866e66a6d0c176b91e121ac93402511c8aa564b7155c069334c44",
+      "deleted": true
+    },
+    {
+      "id": 6,
+      "kind": "guide",
+      "owner": 0,
+      "title": "Task124-1794930087629 guide 3",
+      "deleted": true
+    },
+    {
+      "id": 7,
+      "kind": "guide",
+      "owner": 1,
+      "title": "Task124-1794930087629 guide 4",
+      "deleted": true
+    }
+  ]
+}

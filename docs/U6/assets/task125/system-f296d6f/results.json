@@ -1,0 +1,756 @@
+{
+  "sourceSha": "f296d6f731c1d6c8d43011b7193c3b7a80bf33fa",
+  "startedAt": "2026-11-17T23:55:33.244Z",
+  "authMode": "TU mock",
+  "checks": [
+    "Both browser ports and proxy backends belong to the selected mock Docker stack",
+    "U6-TC03: missing/whitespace title, missing course and missing file rejected by UI without POST and by API without SQL/PDF changes",
+    "U6-TC04: wrong extension/MIME, disguised content and PDF over 15000000 bytes rejected; no SQL/file residue",
+    "U6-TC05: missing course, actual non-CS course and owner/user spoof rejected during POST with no SQL/PDF changes",
+    "U6-TC02: optional description empty; POST201 stores null and valid PDF",
+    "UI publish, course list, second account and matching PDF bytes",
+    "U6-TC01: other account opens the exact PDF through course UI, reloads it and checksum matches",
+    "U6-TC08: CS261 contains its PDF; CS104 stays empty in UI/API without cross-course items",
+    "U6-TC06: missing, invalid and revoked sessions cannot read course list, summary details or PDF",
+    "U6-TC06: actual 1-second session expires and all protected API reads return401; unauthenticated reader redirects to login",
+    "SQL publish failure shows a form error, leaves the success dialog closed and preserves SQL/PDF",
+    "Storage publish failure shows a form error, leaves the success dialog closed and preserves SQL/PDF",
+    "Unauthenticated PDF read and unknown course publish are rejected",
+    "Backend restarted with existing volume, fresh login retrieves unchanged metadata and PDF",
+    "Cleanup removed the fixture SQL rows and PDF files"
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "response": {
+        "id": 2,
+        "username": "6800000000",
+        "display_name": "Student User",
+        "role": "student"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "response": {
+        "id": 3,
+        "username": "6800000001",
+        "display_name": "Student User",
+        "role": "student"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses?search=CS261",
+      "status": 200,
+      "response": [
+        {
+          "id": 12,
+          "course_code": "CS261",
+          "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING",
+          "instructor_name": "ผศ.ดร.ทรงศักดิ์ รองวิริยะพานิช",
+          "description": "คุณลักษณะซอฟต์แวร์ คุณภาพของซอฟต์แวร์และโครงการซอฟต์แวร์ หลักการของวิศวกรรมซอฟต์แวร์ ระเบียบวิธีในการพัฒนาซอฟต์แวร์ กระบวนการพัฒนาซอฟต์แวร์ที่สำคัญ การวางแผนและจัดการโครงการ การประเมินเวลาและค่าใช้จ่าย วิเคราะห์และการระบุข้อกำหนด เทคนิคการวิเคราะห์และออกแบบซอฟต์แวร์ แนะนำสถาปัตยกรรมซอฟต์แวร์ เทคนิคการพัฒนาโปรแกรม การตรวจสอบและการทวนสอบซอฟต์แวร์ วิวัฒนาการของซอฟต์แวร์ สภาพแวดล้อมการผลิตซอฟต์แวร์และเครื่องมือช่วยจัดการโครงการ กรณีศึกษา มีฝึกปฏิบัตินอกเวลา"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMETERS",
+          "message": "title is required",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMETERS",
+          "message": "title is required",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMETERS",
+          "message": "ข้อมูลสำหรับเรียก API ไม่ถูกต้อง",
+          "fields": [
+            {
+              "field": "course_id",
+              "message": "ต้องเป็นจำนวนเต็มบวกไม่เกิน 2,147,483,647"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMETERS",
+          "message": "ต้องส่งเฉพาะช่องที่กำหนดและแต่ละช่องส่งได้ครั้งเดียว",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "PDF_INVALID",
+          "message": "กรุณาเลือกไฟล์นามสกุล .pdf",
+          "fields": [
+            {
+              "field": "file",
+              "message": "กรุณาเลือกไฟล์นามสกุล .pdf"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "PDF_INVALID",
+          "message": "เนื้อหาไฟล์ไม่ใช่ PDF ที่ถูกต้อง",
+          "fields": [
+            {
+              "field": "file",
+              "message": "เนื้อหาไฟล์ไม่ใช่ PDF ที่ถูกต้อง"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "scenario": "15000001 bytes",
+      "status": 413,
+      "data": {
+        "error": {
+          "code": "PDF_TOO_LARGE",
+          "message": "ไฟล์ PDF ต้องมีขนาดไม่เกิน 15,000,000 ไบต์",
+          "fields": [
+            {
+              "field": "file",
+              "message": "ไฟล์ PDF ต้องมีขนาดไม่เกิน 15,000,000 ไบต์"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "COURSE_NOT_FOUND",
+          "message": "ไม่พบรายวิชา CS",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "COURSE_NOT_FOUND",
+          "message": "ไม่พบรายวิชา CS",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMETERS",
+          "message": "ต้องส่งเฉพาะช่องที่กำหนดและแต่ละช่องส่งได้ครั้งเดียว",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMETERS",
+          "message": "ต้องส่งเฉพาะช่องที่กำหนดและแต่ละช่องส่งได้ครั้งเดียว",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses?search=CS104",
+      "status": 200,
+      "response": [
+        {
+          "id": 5,
+          "course_code": "CS104",
+          "course_name": "INTRODUCTION TO COMPUTER PROGRAMMING USING PYTHON",
+          "instructor_name": "ผศ.ดร.อรจิรา สิทธิศักดิ์",
+          "description": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses/5/summaries",
+      "status": 200,
+      "response": {
+        "items": [],
+        "course_id": 5
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses/12/summaries",
+      "status": 200,
+      "response": {
+        "items": [
+          {
+            "id": 2,
+            "course": {
+              "id": 12,
+              "course_code": "CS261",
+              "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+            },
+            "title": "Task125 1794959733194",
+            "description": null,
+            "academic_year": 2569,
+            "semester": 1,
+            "exam_period": "midterm",
+            "owner": {
+              "id": 2,
+              "display_name": "Student User"
+            },
+            "file": {
+              "original_name": "task125-original.pdf",
+              "content_type": "application/pdf",
+              "size_bytes": 346,
+              "read_path": "/api/summaries/2/file"
+            },
+            "created_at": "2026-11-17T23:55:54.112000Z",
+            "updated_at": "2026-11-17T23:55:54.112000Z"
+          }
+        ],
+        "course_id": 12
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses/12/summaries",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses/12/summaries",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "response": {
+        "id": 3,
+        "username": "6800000001",
+        "display_name": "Student User",
+        "role": "student"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "status": 200,
+      "response": {
+        "message": "ออกจากระบบสำเร็จ"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses/12/summaries",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/courses/12/summaries",
+      "auth": "expired 1-second session",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2",
+      "auth": "expired 1-second session",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "auth": "expired 1-second session",
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "กรุณาเข้าสู่ระบบ",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/summaries",
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "COURSE_NOT_FOUND",
+          "message": "ไม่พบรายวิชา CS",
+          "fields": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "response": {
+        "id": 2,
+        "username": "6800000000",
+        "display_name": "Student User",
+        "role": "student"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2",
+      "status": 200,
+      "response": {
+        "id": 2,
+        "course": {
+          "id": 12,
+          "course_code": "CS261",
+          "course_name": "INTRODUCTION TO SOFTWARE ENGINEERING"
+        },
+        "title": "Task125 1794959733194",
+        "description": null,
+        "academic_year": 2569,
+        "semester": 1,
+        "exam_period": "midterm",
+        "owner": {
+          "id": 2,
+          "display_name": "Student User"
+        },
+        "file": {
+          "original_name": "task125-original.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 346,
+          "read_path": "/api/summaries/2/file"
+        },
+        "created_at": "2026-11-17T23:55:54.112000Z",
+        "updated_at": "2026-11-17T23:55:54.112000Z"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/summaries/2/file",
+      "status": 200,
+      "response": {
+        "sha256": "441321aa1266e49892167b2514e764861c5f683c3d839e09b20d7fcbab7ac35b",
+        "bytes": 346
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/summaries/2",
+      "status": 204,
+      "response": null
+    }
+  ],
+  "snapshots": [
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 1,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 2,
+      "summary": true,
+      "file": true,
+      "key": "7db39d0708cc4eab8cb323437c1df4b6",
+      "summary_count": 1,
+      "file_count": 1,
+      "objects": [
+        "7db39d0708cc4eab8cb323437c1df4b6"
+      ]
+    },
+    {
+      "id": 2,
+      "summary": true,
+      "file": true,
+      "key": "7db39d0708cc4eab8cb323437c1df4b6",
+      "summary_count": 1,
+      "file_count": 1,
+      "objects": [
+        "7db39d0708cc4eab8cb323437c1df4b6"
+      ]
+    },
+    {
+      "id": 2,
+      "summary": true,
+      "file": true,
+      "key": "7db39d0708cc4eab8cb323437c1df4b6",
+      "summary_count": 1,
+      "file_count": 1,
+      "objects": [
+        "7db39d0708cc4eab8cb323437c1df4b6"
+      ]
+    },
+    {
+      "id": 2,
+      "summary": true,
+      "file": true,
+      "key": "7db39d0708cc4eab8cb323437c1df4b6",
+      "summary_count": 1,
+      "file_count": 1,
+      "objects": [
+        "7db39d0708cc4eab8cb323437c1df4b6"
+      ]
+    },
+    {
+      "id": 2,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    },
+    {
+      "id": 2,
+      "summary": false,
+      "file": false,
+      "key": null,
+      "summary_count": 0,
+      "file_count": 0,
+      "objects": []
+    }
+  ],
+  "browser": "157.0.8103.79",
+  "finishedAt": "2026-11-17T23:56:10.304Z",
+  "cleanup": true,
+  "status": "PASS"
+}
