@@ -24,7 +24,7 @@ def utc_now():
 
 
 class ReviewBase(DeclarativeBase):
-    """Keep optional U8 DDL out of the U1–U5 initializer's create_all."""
+    """Keep review DDL separate from the shared model metadata."""
 
 
 class Review(ReviewBase):
