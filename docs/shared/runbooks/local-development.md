@@ -238,7 +238,7 @@ docker compose ps
 git ls-files --eol backend/docker-entrypoint.sh
 ```
 
-ค่าที่ต้องการคือ `i/lf` และ `w/lf` โดย `i` เป็นไฟล์ใน Git index และ `w` เป็นไฟล์ในเครื่อง โครงการมี `.gitattributes` กำหนด `backend/docker-entrypoint.sh text eol=lf` อยู่แล้ว
+ค่าที่ต้องการคือ `i/lf` และ `w/lf` โดย `i` เป็นไฟล์ใน Git index และ `w` เป็นไฟล์ในเครื่อง โครงการมี `.gitattributes` กำหนด `backend/docker-entrypoint.sh text eol=lf` อยู่แล้ว และ Dockerfile ปรับ CRLF เป็น LF ระหว่าง build อีกชั้น เพื่อรองรับ checkout บน Windows ที่ยังได้ CRLF หาก clone รุ่นเก่ามา ให้ดึงการแก้ล่าสุดแล้ว build image ใหม่ก่อน
 
 แก้ใน VS Code โดยเปิดไฟล์ คลิก `CRLF` ที่มุมล่างขวา เลือก `LF` แล้วบันทึกเป็น UTF-8 โดยไม่มี BOM หรือใช้ PowerShell:
 
