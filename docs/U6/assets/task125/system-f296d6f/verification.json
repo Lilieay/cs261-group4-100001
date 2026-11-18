@@ -1,0 +1,11 @@
+{
+  "sourceSha": "f296d6f731c1d6c8d43011b7193c3b7a80bf33fa",
+  "runnerSha256Lf": "6781250051df24b0d7c7197c29faa5dc85ee7474809add392e135c663822b33c",
+  "frontendPassed": 104,
+  "backendPassed": 480,
+  "backendSubtests": 81,
+  "backendSkipped": 6,
+  "warning": "Existing Starlette/httpx deprecation warning",
+  "authMode": "TU mock",
+  "browser": "157.0.8103.79"
+}
