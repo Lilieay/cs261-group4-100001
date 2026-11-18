@@ -1,0 +1,37 @@
+[
+  {
+    "original": "output/task120-u6-docker-integration.docx",
+    "retained": "docs/U6/testing/task120-u6-docker-integration-output.docx",
+    "sha256": "8ba18c44268ae772670313f7984876562678e62f3f440a552674835a845e694b"
+  },
+  {
+    "original": "output/task123-u9-docker-integration.docx",
+    "retained": "docs/U9/testing/task123-u9-docker-integration.docx",
+    "sha256": "90bd1ec9affbb4e279b4d3f05dc057a068a9b185a3bb46809811c75752629eb4"
+  },
+  {
+    "original": "output/task123-u9-integration-plan.md",
+    "retained": "docs/U9/testing/task123-u9-integration-plan.md",
+    "sha256": "fdc6fdf23c1c95ecd6e2c5cd056119a10065cb97e3eebed845311e06e80ad79d"
+  },
+  {
+    "original": "output/u6-diagram-draft/diagram-u6.docx",
+    "retained": "docs/U6/design/diagrams/diagram-u6.docx",
+    "sha256": "dab6ffe6d9e0b9db99ccb8b4ffebb6f5287b3e277267e18561359d59d6d82f7d"
+  },
+  {
+    "original": "output/u6-diagram-draft/u6-dataflow.png",
+    "retained": "docs/U6/design/diagrams/u6-dataflow.png",
+    "sha256": "1188af0098332b76cb65066972995657d4924f459e1f443d637e4da9aeac0656"
+  },
+  {
+    "original": "output/u6-diagram-draft/u6-sequence.png",
+    "retained": "docs/U6/design/diagrams/u6-sequence.png",
+    "sha256": "a5a65cc09590857b6443529a753a472bb94a4f20cf9db715927a8c73d4dd1432"
+  },
+  {
+    "original": "output/u6-diagram-draft/diagram-u6-draft.md",
+    "retained": "docs/U6/design/diagrams/diagram-u6-source.md",
+    "sha256": "7060e6e4aac7918fcf398b6844d1190a345ea92f19ba96e410b2f459e2f2af64"
+  }
+]

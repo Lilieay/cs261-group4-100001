@@ -9,6 +9,10 @@
 - [ผลทบทวน API Contract](shared/api-contract/task94-review.md)
 - [Fixtures และวิธีตรวจสอบ](shared/api-contract/fixtures/README.md)
 
+## แผนภาพสำหรับใช้อธิบาย
+
+- [Dataflow และ UML Sequence Diagram ครบ U1–U10](shared/diagrams/README.md)
+
 ## เอกสารตาม User Story
 
 | Story | ข้อกำหนด | ออกแบบ | พัฒนาและวิธีใช้งาน | ทดสอบ | หลักฐาน |
