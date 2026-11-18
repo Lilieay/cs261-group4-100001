@@ -1,168 +1,82 @@
 # CS261 Group 4
 
-เอกสารและหลักฐานทั้งหมด: [สารบัญเอกสาร](docs/README.md)
+เว็บแบ่งปันแนวข้อสอบและสรุป PDF ของรายวิชา CS สำหรับนักศึกษามหาวิทยาลัยธรรมศาสตร์ ใช้บัญชี TU เข้าสู่ระบบเพื่อค้นหา อ่าน และแบ่งปันเนื้อหาการเรียนในแต่ละวิชา
 
-เว็บสำหรับค้นหารายวิชา อ่าน เผยแพร่ และจัดการแนวข้อสอบ ใช้ Frontend (Node.js/Express), Backend (FastAPI/SQLAlchemy) และ Microsoft SQL Server 2022 โดย Docker Compose จัดการทั้งสาม services
+[ภาพรวมระบบ](#overview) · [การใช้งาน](#usage) · [ความสามารถ](#features) · [โครงสร้างระบบ](#architecture) · [เปิดระบบบนเครื่อง](docs/shared/runbooks/local-development.md) · [เอกสารโครงการ](docs/README.md) · [แผนภาพ U1–U10](docs/shared/diagrams/README.md)
 
-## Fresh Setup — เครื่องใหม่
+<a id="overview"></a>
+## ภาพรวมระบบ
 
-### สิ่งที่ต้องเตรียม
+ระบบรวบรวมเนื้อหาที่นักศึกษาแบ่งปันไว้ตามรายวิชา ผู้ใช้ค้นหาวิชา CS แล้วเลือกอ่านแนวข้อสอบหรือสรุป PDF ของวิชานั้นได้ แนวข้อสอบมีข้อมูลปี ภาคเรียน และช่วงสอบสำหรับกรองรายการ ส่วนสรุป PDF เปิดอ่านไฟล์ผ่านหน้าเว็บได้
 
-- Git
-- Docker Desktop ที่เปิดใช้งาน Linux containers และ Docker Engine แล้ว
-- RAM และพื้นที่ดิสก์เพียงพอสำหรับ SQL Server 2022
+ผู้ใช้เผยแพร่เนื้อหาของตนเอง แก้ไขหรือลบรายการของตน ให้คะแนนและเขียนรีวิวผลงานของผู้อื่น รวมถึงบันทึกผลงานไว้อ่านภายหลังได้ รายการที่บันทึกจัดกลุ่มตามวิชา โดยการบันทึกและนำออกทำทีละแนวข้อสอบหรือสรุป PDF
 
-ไม่ต้องติดตั้ง Python, Node.js หรือ SQL Server บนเครื่อง host
+<a id="usage"></a>
+## การใช้งาน
 
-### Clone และตั้งค่า
+1. เข้าสู่ระบบด้วยบัญชี TU แล้วค้นหารหัสหรือชื่อรายวิชา CS
+2. เปิดรายวิชา เลือกแนวข้อสอบหรือสรุป PDF แล้วเปิดอ่านรายการที่ต้องการ
+3. บันทึกผลงานไว้อ่านภายหลัง หรือให้คะแนนและเขียนรีวิว
+4. หากต้องการแบ่งปัน ให้เลือกวิชาแล้วเผยแพร่แนวข้อสอบหรืออัปโหลดสรุป PDF
+5. จัดการผลงานของตนจากหน้ารายการของฉัน และกลับมาเปิดผลงานที่บันทึกจากหน้ารายการที่บันทึก
 
-```bash
-git clone https://github.com/Lilieay/cs261-group4-100001.git
-cd cs261-group4-100001
-git switch main
-cp .env.example .env
-```
+การแก้ไขและลบผลงานตรวจเจ้าของที่ Backend การนำผลงานออกจากรายการที่บันทึกจะลบเฉพาะ bookmark ของผู้ใช้ โดยเก็บผลงานต้นฉบับไว้
 
-เปิด `.env` แล้วกำหนด `MSSQL_SA_PASSWORD` เป็นรหัสผ่าน SQL Server ที่ไม่ซ้ำกับบัญชีอื่นและผ่านข้อกำหนดความซับซ้อนของ SQL Server เก็บไฟล์นี้ไว้ในเครื่อง ห้าม commit รหัสผ่านหรือ TU API key
+<a id="features"></a>
+## ความสามารถของระบบ
 
-ค่าเริ่มต้น `TU_API_MODE=mock` ใช้บัญชีสาธิตโดยไม่ต้องตั้งค่า TU API หากต้องใช้ Login จริง ให้ตั้ง `TU_API_MODE=real`, `TU_API_URL` และ `TU_API_KEY` ตามค่าที่ได้รับจากผู้ดูแล
+| Story | ผู้ใช้ทำอะไรได้ |
+| --- | --- |
+| U1 | เข้าสู่ระบบ ตรวจสถานะ และออกจากระบบด้วยบัญชี TU |
+| U2 | ค้นหารายวิชา CS และเปิดข้อมูลรายวิชา |
+| U3 | ดูรายการ กรอง และอ่านแนวข้อสอบ |
+| U4 | เผยแพร่แนวข้อสอบในรายวิชา |
+| U5 | ดู แก้ไข และลบแนวข้อสอบของตน |
+| U6 | เผยแพร่สรุป PDF และให้ผู้ใช้อื่นเปิดอ่าน |
+| U7 | ดู แก้ไข และลบสรุป PDF ของตน |
+| U8 | ให้คะแนน เขียนรีวิว และจัดการรีวิวของตน |
+| U9 | บันทึกแนวข้อสอบหรือสรุป PDF ไว้อ่านภายหลัง |
+| U10 | ดู เปิด และนำผลงานออกจากรายการที่บันทึก |
 
-### เริ่มระบบด้วยคำสั่งเดียว
+ดูข้อกำหนด การออกแบบ และผลทดสอบแยกแต่ละ Story ได้ที่ [เอกสารโครงการ](docs/README.md)
 
-จากโฟลเดอร์ที่มี `compose.yaml`:
+<a id="architecture"></a>
+## โครงสร้างระบบ
 
-```bash
-docker compose up -d --build
-```
+Browser เปิดหน้าเว็บจาก Frontend และส่งคำขอ API ผ่าน Node proxy ไปยัง Backend จากนั้น Backend ตรวจ Session และข้อมูลคำขอ ก่อนอ่านหรือบันทึกข้อมูลใน SQL Server ส่วนเนื้อไฟล์ PDF เก็บใน private storage และส่งกลับผ่าน API ที่ตรวจสิทธิ์แล้ว
 
-Compose สร้าง Frontend/Backend images และดึง SQL Server image จากนั้นเริ่ม SQL Server, รอ healthcheck, แล้วให้ Backend สร้าง database และตารางที่ยังไม่มี พร้อม seed รายวิชา demo และแนวข้อสอบตัวอย่าง ก่อนเปิด API ส่วน Frontend จะเริ่มหลัง Backend healthcheck ผ่าน
+| ส่วน | เทคโนโลยีและหน้าที่ |
+| --- | --- |
+| Frontend | HTML, CSS และ JavaScript สำหรับหน้าจอ ใช้ Node.js และ Express ให้บริการหน้าเว็บและ proxy API |
+| Backend | Python, FastAPI และ SQLAlchemy สำหรับกติกาการทำงาน การตรวจสิทธิ์ และการเข้าถึงข้อมูล |
+| ฐานข้อมูล | Microsoft SQL Server 2022 เก็บผู้ใช้ รายวิชา ผลงาน รีวิว bookmark และตัวอ้างอิงไฟล์ |
+| PDF storage | Docker volume เก็บไฟล์ PDF แยกจากฐานข้อมูล |
+| การยืนยันตัวตน | TU API หรือ TU mock ตามค่าตั้งของ environment |
+| การเปิดระบบ | Docker Compose จัดการ Frontend, Backend และ SQL Server |
 
-ตรวจสถานะ:
+Session เก็บในหน่วยความจำของ Backend เมื่อ restart Backend ผู้ใช้ต้องเข้าสู่ระบบใหม่ ส่วนข้อมูล SQL และ PDF อยู่ใน volumes
 
-```bash
-docker compose ps
-```
+## โฟลเดอร์หลัก
 
-ควรเห็น containers 3 ตัว: `sqlserver`, `backend` และ `frontend` สถานะ backend/frontend ควรเป็น `healthy`/`running` ตาม healthcheck ที่กำหนด
+| ตำแหน่ง | เนื้อหา |
+| --- | --- |
+| [frontend/](frontend/) | หน้าเว็บ JavaScript และ Node proxy |
+| [frontend/tests/](frontend/tests/) | ชุดทดสอบ Frontend |
+| [backend/](backend/) | API, services, DAO และ models |
+| [docs/](docs/README.md) | ข้อกำหนด แผนภาพ วิธีใช้งาน และผลทดสอบ |
+| [scripts/](scripts/) | สคริปต์ทดสอบและเครื่องมือของโครงการ |
+| [infra/compose/tests/](infra/compose/tests/) | Compose overrides สำหรับทดสอบใน stack แยก |
+| [compose.yaml](compose.yaml) | การตั้งค่า stack หลัก |
 
-### Default-port URLs
+## เริ่มใช้งานบนเครื่อง
 
-- หน้า Login: <http://localhost:5000/login.html>
-- Backend health: <http://localhost:8000/>
-- API docs: <http://localhost:8000/docs>
-- SQL Server (ถ้าต้องเชื่อมจาก host): `localhost,1433`
+ทำตาม [คู่มือเปิดระบบด้วย Docker](docs/shared/runbooks/local-development.md) เพื่อตั้งค่า `.env` และเริ่มระบบ ค่าเริ่มต้นใช้ TU mock สำหรับสาธิตในเครื่อง การใช้ TU จริงต้องตั้งค่าการเชื่อมต่อที่ได้รับจากผู้ดูแล
 
-## Existing Setup — เครื่องที่เคย clone แล้ว
+เมื่อใช้พอร์ตปริยาย เปิด [หน้า Login](http://localhost:5000/login.html) และ [API docs](http://localhost:8000/docs) ได้หลังระบบพร้อม
 
-อัปเดต branch และไฟล์ก่อนเริ่ม:
+## อ่านเอกสารต่อ
 
-```bash
-git switch main
-git pull --ff-only
-```
-
-เก็บ `.env` เดิมไว้ แล้วรันคำสั่งเดียวกัน:
-
-```bash
-docker compose up -d --build
-```
-
-ถ้ามี volume เดิม ต้องใช้ `MSSQL_SA_PASSWORD` เดิมที่ใช้สร้าง SQL Server volume นั้น การ init ใช้ `CREATE DATABASE IF MISSING` และ ORM `create_all`; seed จะ reuse รายวิชา/แนวข้อสอบของชุดตัวอย่างที่ตรงกัน ไม่มีการ drop database, ล้างตาราง หรือ reset volume และข้อมูลที่ผู้ใช้เพิ่มไว้จะยังอยู่
-
-Initialization จัดการข้อมูล seed ตามกติกาของแต่ละ service: แนวข้อสอบ seed ที่มีชื่อและผู้เผยแพร่ตรงกับชุด `test` จะถูกปรับ fields ให้ตรงกับ dataset ปัจจุบันทุกครั้งที่เริ่มระบบ ส่วนรายวิชาที่ seed ไว้มี snapshot ตรวจการแก้ไข หากพบว่ารายวิชาที่ระบบ seed และบันทึก ownership ไว้ถูกแก้ ระบบจะหยุด initialization เพื่อไม่เขียนทับข้อมูลที่เปลี่ยนไป ข้อมูลที่ผู้ใช้สร้างเองซึ่งไม่ใช่รายการ seed จะไม่ถูกลบหรือ refresh โดย seed startup
-
-## Manual Docker Workflow
-
-ทำทีละขั้นเพื่อศึกษา Docker ได้ โดยแต่ละคำสั่งใช้ startup และ seed logic ชุดเดียวกับคำสั่งเริ่มระบบแบบครั้งเดียว:
-
-```bash
-docker compose build
-docker compose up -d sqlserver
-docker compose up -d backend
-docker compose up -d frontend
-docker compose ps
-```
-
-`docker compose up -d backend` จะรอ SQL Server healthy ตาม dependency จากนั้น Backend จะ initialize database ภายใน Backend container เดิม หากสำเร็จจึงเริ่ม FastAPI; หากล้มเหลว Uvicorn จะไม่เริ่ม Frontend รอ Backend healthy ก่อนเริ่มเช่นกัน ไม่มี init หรือ seed container แยก
-
-- **Image** คือแม่แบบที่ได้จาก build; **container** คือ process ที่รันจาก image
-- `docker compose build` สร้าง Frontend และ Backend images ส่วน `docker compose up` สร้างและรัน containers; `--build` สั่ง build ก่อนรัน
-- **Healthcheck/dependency** ให้ Compose รอ SQL Server และ Backend พร้อมก่อนเริ่ม service ถัดไป
-- **Database initialization** สร้าง database เมื่อยังไม่มี แล้วสร้างเฉพาะ ORM tables ที่ยังไม่มี
-- **Seed data** ใช้ CourseSeedService ชุด `demo` และ GuideSeedService ชุด `test` ภายใน transaction เดียวกัน; รายวิชาที่ตรงกับ seed จะ reuse ส่วนแนวข้อสอบ seed เดิมจะ refresh fields ให้ตรง dataset เมื่อเริ่มระบบ รายวิชา seed ที่ถูกแก้จนไม่ตรง snapshot อาจทำให้ initialization ล้มเหลว ข้อมูลผู้ใช้ที่ไม่ใช่รายการ seed จะถูกเก็บไว้
-- **Volume** `sqlserver_data` เก็บไฟล์ฐานข้อมูลนอก container การ recreate หรือ rebuild containers จึงไม่ลบข้อมูล
-
-## Demo Account & URLs
-
-เมื่อใช้ `TU_API_MODE=mock`:
-
-| Username | Password |
-|---|---|
-| `6800000000` | `0000000000000` |
-
-หน้าเว็บและ API ใช้ URL พอร์ตปริยายตามหัวข้อ Fresh Setup ด้านบน บัญชีนี้ใช้สำหรับ mock demo เท่านั้น ไม่ใช่บัญชี TU จริง
-
-ผู้ใช้ที่ Login สำเร็จถูกเก็บใน SQL Server ส่วน token เก็บในหน่วยความจำของ Backend เมื่อเริ่ม Backend ใหม่ต้อง Login ใหม่ ปุ่ม Logout จะยกเลิก token และอายุ Session ปริยายคือ 8 ชั่วโมง ปรับได้ด้วย `AUTH_SESSION_TTL_SECONDS`
-
-ตรวจการใช้งานหลังเริ่มระบบ:
-
-1. Login แล้วค้นหา CS261 เปิดรายวิชา กรองปี ภาคเรียน และช่วงสอบ แล้วเปิดอ่านแนวข้อสอบ
-2. เผยแพร่รายการ แล้วตรวจหน้าอ่าน หน้ารายวิชา และหน้าแนวข้อสอบของฉันหลัง reload
-3. แก้ไขรายการของตนเองและย้ายรายวิชา ตรวจว่าหน้าต่าง ๆ ใช้ข้อมูลล่าสุด
-4. บันทึกแนวข้อสอบแล้วนำออกจากรายการที่บันทึก โดยต้นฉบับยังอยู่
-5. ทดลองยกเลิกลบและยืนยันลบรายการของตนเอง แล้วตรวจว่าเปิดอ่านรายการที่ลบไม่ได้
-6. Logout แล้วตรวจว่าส่วนที่ต้อง Login เข้าใช้ไม่ได้
-
-ขั้นตอนนี้เป็นการตรวจเบื้องต้น ไม่แทนผล UAT ตาม DoD ของแต่ละ U ส่วนระบบรีวิวคะแนนอยู่ใน Sprint 2
-
-## Troubleshooting
-
-**SQL Server ไม่ healthy หรือ Backend init ไม่สำเร็จ**
-
-```bash
-docker compose ps
-docker compose logs --tail=100 sqlserver backend
-```
-
-ตรวจว่า Docker Engine ทำงาน, `.env` มีรหัสผ่านที่ถูกต้อง และถ้าใช้ volume เดิมรหัสผ่านตรงกับ volume นั้น Backend จะไม่เปิด API หากเชื่อมต่อหรือ initialize ไม่สำเร็จ
-
-**พอร์ต 1433, 8000 หรือ 5000 ถูกใช้อยู่**
-
-กำหนดพอร์ต host ที่ว่างใน `.env` แล้วรัน `docker compose up -d` อีกครั้ง:
-
-```dotenv
-FRONTEND_HOST_PORT=5001
-BACKEND_HOST_PORT=8001
-SQLSERVER_HOST_PORT=1434
-```
-
-ตัวแปรเหล่านี้เปลี่ยนเฉพาะพอร์ตบน host; พอร์ตภายใน containers ยังคงเป็น 5000, 8000 และ 1433 ตามลำดับ ใช้ URL `localhost:5001` สำหรับ Frontend และ `localhost:8001` สำหรับ Backend เมื่อกำหนดค่าตัวอย่างนี้
-
-**ดู logs แบบต่อเนื่อง**
-
-```bash
-docker compose logs -f backend
-```
-
-กด `Ctrl+C` เพื่อหยุดดู logs โดยไม่หยุด containers
-
-**Restart หลังแก้ `.env` หรือ source**
-
-```bash
-docker compose up -d --build
-```
-
-Compose จะ recreate services ที่จำเป็นและรัน initialization แบบ idempotent อีกครั้ง การเริ่มใหม่ไม่ลบ volume ใช้ `docker compose down` เพื่อหยุดและลบ containers/network โดยเก็บข้อมูลไว้ ห้ามใช้ `docker compose down -v` กับฐานข้อมูลที่ต้องการเก็บ
-
-## Additional Documentation
-
-- [Backend และ Login runbook](docs/U1/runbooks/task16-backend-docker-runbook.md)
-- [การตั้งค่า TU API](docs/U1/design/task11-tu-api-verification.md)
-- [Course seed runbook](docs/U2/runbooks/task26-course-seed-data.md)
-- [Guide seed runbook](docs/U3/runbooks/task41-guide-seed-data.md)
-- [Task60 isolated Docker test runbook](docs/U4/runbooks/task60-docker-runbook.md)
-- [Task60 UI–API test report](docs/U4/testing/task60-ui-api-test-report.md)
-- [Task60 API–DAO test report](docs/U4/testing/task60-api-dao-test-report.md)
-- [Task60 system test report](docs/U4/testing/task60-system-test-report.md)
-- [Task81 Docker integration report](docs/U5/testing/task81-docker-integration-test-report.md)
-- [Task82 deletion test report](docs/U5/testing/task82-delete-my-guides-test-report.md)
+- [สารบัญเอกสารและผลทดสอบแต่ละ U](docs/README.md)
+- [Dataflow และ UML Sequence Diagram ของ U1–U10](docs/shared/diagrams/README.md)
+- [API Contract ที่ใช้ร่วมกัน](docs/shared/api-contract/task94-api-contract.md)
+- [คู่มือเปิดระบบและแก้ปัญหา](docs/shared/runbooks/local-development.md)

@@ -1,5 +1,7 @@
 # เอกสารโครงการ
 
+[กลับหน้าโครงการ](../README.md) · [แผนภาพแต่ละ U](#story-diagrams) · [เอกสารตาม Story](#story-documents) · [API Contract](shared/api-contract/task94-api-contract.md) · [เปิดระบบด้วย Docker](shared/runbooks/local-development.md)
+
 เอกสารแบ่งตาม User Story U1–U10 และประเภทงาน ส่วน API Contract ที่ใช้ร่วมกันอยู่ใน `shared/` รายงานและหลักฐานแต่ละรอบเก็บไว้ตาม Task เดิม
 
 ## เอกสารกลาง
@@ -9,10 +11,28 @@
 - [ผลทบทวน API Contract](shared/api-contract/task94-review.md)
 - [Fixtures และวิธีตรวจสอบ](shared/api-contract/fixtures/README.md)
 
+<a id="story-diagrams"></a>
 ## แผนภาพสำหรับใช้อธิบาย
 
 - [Dataflow และ UML Sequence Diagram ครบ U1–U10](shared/diagrams/README.md)
 
+
+เปิดคำอธิบาย flow หรือเลือกดูภาพแต่ละประเภทจากตารางได้โดยตรง
+
+| Story | แผนภาพและคำอธิบาย | UML Sequence Diagram | Dataflow Diagram |
+| --- | --- | --- | --- |
+| U1 | [คำอธิบาย U1](U1/design/u1-diagrams.md) | [Sequence](U1/design/diagrams/u1-sequence.png) | [Dataflow](U1/design/diagrams/u1-dataflow.png) |
+| U2 | [คำอธิบาย U2](U2/design/u2-diagrams.md) | [Sequence](U2/design/diagrams/u2-sequence.png) | [Dataflow](U2/design/diagrams/u2-dataflow.png) |
+| U3 | [คำอธิบาย U3](U3/design/u3-diagrams.md) | [Sequence](U3/design/diagrams/u3-sequence.png) | [Dataflow](U3/design/diagrams/u3-dataflow.png) |
+| U4 | [คำอธิบาย U4](U4/design/u4-diagrams.md) | [Sequence](U4/design/diagrams/u4-sequence.png) | [Dataflow](U4/design/diagrams/u4-dataflow.png) |
+| U5 | [คำอธิบาย U5](U5/design/u5-diagrams.md) | [Sequence](U5/design/diagrams/u5-sequence.png) | [Dataflow](U5/design/diagrams/u5-dataflow.png) |
+| U6 | [คำอธิบาย U6](U6/design/u6-diagrams.md) | [Sequence](U6/design/diagrams/u6-sequence.png) | [Dataflow](U6/design/diagrams/u6-dataflow.png) |
+| U7 | [คำอธิบาย U7](U7/design/u7-diagrams.md) | [Sequence](U7/design/diagrams/u7-sequence.png) | [Dataflow](U7/design/diagrams/u7-dataflow.png) |
+| U8 | [คำอธิบาย U8](U8/design/u8-diagrams.md) | [Sequence](U8/design/diagrams/u8-sequence.png) | [Dataflow](U8/design/diagrams/u8-dataflow.png) |
+| U9 | [คำอธิบาย U9](U9/design/u9-diagrams.md) | [Sequence](U9/design/diagrams/u9-sequence.png) | [Dataflow](U9/design/diagrams/u9-dataflow.png) |
+| U10 | [คำอธิบาย U10](U10/design/u10-diagrams.md) | [Sequence](U10/design/diagrams/u10-sequence.png) | [Dataflow](U10/design/diagrams/u10-dataflow.png) |
+
+<a id="story-documents"></a>
 ## เอกสารตาม User Story
 
 | Story | ข้อกำหนด | ออกแบบ | พัฒนาและวิธีใช้งาน | ทดสอบ | หลักฐาน |
