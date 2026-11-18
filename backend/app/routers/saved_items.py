@@ -10,7 +10,8 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.dependencies import current_user, get_saved_items_service
-from app.schemas.guides import ErrorDetailDTO, ErrorFieldDTO, ErrorResponseDTO
+from app.http_errors import error_response as build_error_response
+from app.schemas.errors import ErrorFieldDTO
 from app.schemas.saved_item import SavedItemListResponse, SavedItemState, SavedItemType
 from app.services.auth import AuthenticatedUser
 from app.services.saved_items import (
@@ -31,12 +32,8 @@ def error_response(
     fields: list[ErrorFieldDTO] | None = None,
     headers: dict[str, str] | None = None,
 ) -> JSONResponse:
-    body = ErrorResponseDTO(
-        error=ErrorDetailDTO(code=code, message=message, fields=fields or [])
-    )
-    return JSONResponse(
-        status_code=status_code,
-        content=body.model_dump(),
+    return build_error_response(
+        status_code, code, message, fields,
         headers={**(headers or {}), "Cache-Control": "no-store"},
     )
 

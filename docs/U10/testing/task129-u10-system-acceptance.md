@@ -15,7 +15,7 @@
 | Unit/API U10 | App SHA `0c63713...` | Windows, Python 3.12.14, pytest 9.1.1; API ใช้ SQLite fixture; auth dependency เป็น test double; Unit ใช้ fake DAO/Session | **43 passed, 1 Starlette/httpx deprecation warning**, 1.32 วินาที |
 | Frontend regression | App SHA `0c63713...` | Node.js 24.22.3; proxy tests ใช้ local TCP mock servers | **104 passed, 0 failed**, 0.60 วินาที |
 | Safety guard tests | Runner SHA `082d556...` | Node.js 24.22.3; Docker metadata mocked เฉพาะ guard test | **10 passed, 0 failed**, 0.07 วินาที; เป็น guard/unit evidence ไม่ใช่ System proof |
-| Browser/Integration/System E2E | App SHA `0c63713...`; Runner SHA `082d556...` | Docker Engine 29.9.3; SQL Server 2022 16.0.4325.4; Chrome 157.0.8103.79; Playwright Core 1.65.1; TU mock สองบัญชี; Backend, SQL Server และ PDF volume จริง | [ผล JSON](../assets/task129/results.json), [ผล boundary](../assets/task129/boundary-results.json), [ผล PUT response failure](../assets/task129/second-put-failure-results.json), [ผล cleanup failure](../assets/task129/cleanup-failed-results.json), [ภาพหลักฐาน](../assets/task129/) |
+| Browser/Integration/System E2E | App SHA `0c63713...`; Runner SHA `082d556...` | Docker Engine 29.9.3; SQL Server 2022 16.0.4325.4; Chrome 157.0.8103.79; Playwright Core 1.65.1; TU mock สองบัญชี; Backend, SQL Server และ PDF volume จริง | [ผล JSON](../assets/task129/results.json), [ผล boundary](../assets/task129/boundary-results.json), [ผล PUT response failure](../assets/task129/second-put-failure-results.json), [ผล cleanup failure](../assets/task129/cleanup-failed-results.json), [ภาพหลักฐาน](../assets/task129) |
 | UAT กับ PO | รอบตรวจยืนยัน `6591b5b4d64fecfb9ec9b03bac43a9452ea81e3e` | **รับ** | [บันทึกมติ](task129-uat-record.md) |
 
 ผล Unit/API รอบนี้ยืนยันชุด U10 43 passed, 1 warning (Starlette แจ้ง deprecation ของการใช้ httpx กับ TestClient); ไม่ได้รัน Backend test suite ทั้งหมดใน Task129. Frontend regression มี 104 passed, 0 failed. System/E2E ใช้ SQL Server และ PDF volume จริง แต่ Login ใช้ TU mock; จึงไม่ใช่การยืนยันกับ TU authentication service จริง.
@@ -56,7 +56,7 @@ $entrypoint = 'backend/docker-entrypoint.sh'
 $text = [System.IO.File]::ReadAllText((Resolve-Path $entrypoint))
 [System.IO.File]::WriteAllText((Resolve-Path $entrypoint), ($text -replace "`r`n", "`n"), [System.Text.UTF8Encoding]::new($false))
 $task129Project = 'cs261-task124-0c63713'
-docker compose --env-file .env -p $task129Project -f compose.yaml -f compose.task124.yaml up -d --build --wait
+docker compose --env-file .env -p $task129Project -f compose.yaml -f infra/compose/tests/compose.task124.yaml up -d --build --wait
 git checkout -- $entrypoint
 docker compose --env-file .env -p $task129Project exec -T backend python -m scripts.init_reviews
 node --test scripts/task124-guards.test.cjs
@@ -105,14 +105,14 @@ with engine.connect() as connection:
     remaining = connection.exec_driver_sql('SELECT COUNT(*) FROM dbo.saved_guides WHERE user_id=? AND guide_id=?', ($task129UserId, $task129GuideId)).scalar()
 assert remaining == 0, remaining
 print('Removed only the injected test relation; baseline restored.')
-"@ | docker compose --env-file .env -p $task129Project -f compose.yaml -f compose.task124.yaml exec -T backend python -
+"@ | docker compose --env-file .env -p $task129Project -f compose.yaml -f infra/compose/tests/compose.task124.yaml exec -T backend python -
 
 # Re-run the normal boundary suite to restore the passing TC05 image/results.
 Remove-Item Env:TASK129_SIMULATE_SECOND_PUT_FAILURE -ErrorAction SilentlyContinue
 node scripts/task129-u10-boundary-check.cjs
 ```
 
-`task124-u10-browser.cjs` validates Docker project/ports/proxies/auth before login, runs UI/SQL/PDF/regression scenarios, then restores its fixture baseline and writes screenshots/JSON. Boundary runner checks TC01/TC05 against SQL Server, registers cleanup before the first PUT, and verifies saved-guide baseline whether the second response succeeds or fails. The failure-injection run commits the second PUT upstream, aborts only the browser response, then verifies cleanup. Cleanup status and baseline verification are written even on failure, and browser closure is in the finalization path. ภาพ TC05 เป็นผล API จริงและจะแสดง baseline PASS เฉพาะเมื่อ cleanup ตรวจยืนยันสำเร็จ. เก็บค่า SHA ของแอปและ runner แยกกัน พร้อม Docker/SQL/browser versions และ auth mode; ห้ามบันทึก password/token. ห้ามใช้ `down -v`. หลัง UAT และเก็บหลักฐานเสร็จ ปิดเฉพาะ project ทดสอบด้วย `docker compose --env-file .env -p $task129Project -f compose.yaml -f compose.task124.yaml down --remove-orphans` (ไม่ลบ volumes).
+`task124-u10-browser.cjs` validates Docker project/ports/proxies/auth before login, runs UI/SQL/PDF/regression scenarios, then restores its fixture baseline and writes screenshots/JSON. Boundary runner checks TC01/TC05 against SQL Server, registers cleanup before the first PUT, and verifies saved-guide baseline whether the second response succeeds or fails. The failure-injection run commits the second PUT upstream, aborts only the browser response, then verifies cleanup. Cleanup status and baseline verification are written even on failure, and browser closure is in the finalization path. ภาพ TC05 เป็นผล API จริงและจะแสดง baseline PASS เฉพาะเมื่อ cleanup ตรวจยืนยันสำเร็จ. เก็บค่า SHA ของแอปและ runner แยกกัน พร้อม Docker/SQL/browser versions และ auth mode; ห้ามบันทึก password/token. ห้ามใช้ `down -v`. หลัง UAT และเก็บหลักฐานเสร็จ ปิดเฉพาะ project ทดสอบด้วย `docker compose --env-file .env -p $task129Project -f compose.yaml -f infra/compose/tests/compose.task124.yaml down --remove-orphans` (ไม่ลบ volumes).
 
 Unit/API และ Frontend regression ที่รันในรอบนี้:
 

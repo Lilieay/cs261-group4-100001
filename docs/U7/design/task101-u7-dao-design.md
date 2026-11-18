@@ -9,8 +9,8 @@
 | แหล่งข้อมูล | รุ่นที่ตรวจและสิ่งที่ใช้ |
 | --- | --- |
 | Trello export `o61hTRJw - group4section-100001 (4).json` | snapshot ที่ผู้ใช้ส่ง วันที่ 10 พฤศจิกายน 2569 ใช้รายละเอียด Task101, checklist, U7-TC01 ถึง U7-TC08 |
-| [Task94 API contract v0.4](https://github.com/Lilieay/cs261-group4-100001/blob/sprint2/docs/task94-api-contract.md) | อ้าง route, DTO, error และกติกา PUT multipart ของ U7 |
-| [Task96 U7 requirements](https://github.com/Lilieay/cs261-group4-100001/blob/sprint2/docs/U7/task96-u7-requirements.md) | ใช้เกณฑ์ U7-TC01 ถึง U7-TC08 ฉบับที่ merge แล้ว |
+| [Task94 API contract v0.4](https://github.com/Lilieay/cs261-group4-100001/blob/sprint2/docs/shared/api-contract/task94-api-contract.md) | อ้าง route, DTO, error และกติกา PUT multipart ของ U7 |
+| [Task96 U7 requirements](https://github.com/Lilieay/cs261-group4-100001/blob/sprint2/docs/U7/requirements/task96-u7-requirements.md) | ใช้เกณฑ์ U7-TC01 ถึง U7-TC08 ฉบับที่ merge แล้ว |
 | [Task100 แบบข้อมูลสรุปและ storage](https://github.com/Lilieay/cs261-group4-100001/blob/sprint2/docs/U6/design/task100-u6-pdf-backend-design.md) | อ้าง ER, ตาราง summaries และ summary_files พร้อม FK และแนวเก็บกวาดไฟล์ |
 | มติผู้ใช้ที่ยืนยันวันที่ 10 พฤศจิกายน 2569 | เปลี่ยนวิชาและแทนที่ PDF ได้, ไม่ส่งไฟล์ใหม่ให้คงไฟล์เดิม, PDF ไม่เกิน 15,000,000 bytes, ต้อง Login เพื่ออ่าน, ไม่มี type/category, description เว้นว่างหรือล้างได้ |
 

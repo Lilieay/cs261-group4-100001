@@ -51,7 +51,7 @@ Baseline เก็บหลัง Login ก่อนสร้างผลงา�
 
 ## วิธีรันซ้ำ
 
-ใช้ Docker Desktop แบบ Linux containers, Node, Chrome หรือ Edge บน source รุ่นที่ระบุ ใช้ [compose.yaml เดิม](../../../compose.yaml) ร่วมกับ [override ทดสอบ](../../../compose.task124.yaml) ตั้งรหัสผ่าน SQL ของชุดทดสอบเองใน `.env` โดยไม่ commit:
+ใช้ Docker Desktop แบบ Linux containers, Node, Chrome หรือ Edge บน source รุ่นที่ระบุ ใช้ [compose.yaml เดิม](../../../compose.yaml) ร่วมกับ [override ทดสอบ](../../../infra/compose/tests/compose.task124.yaml) ตั้งรหัสผ่าน SQL ของชุดทดสอบเองใน `.env` โดยไม่ commit:
 
 ```dotenv
 MSSQL_SA_PASSWORD=<รหัสผ่านทดสอบที่ตรงกติกา SQL Server>
@@ -63,7 +63,7 @@ TU_API_MODE=mock
 
 ```powershell
 $task124Project = 'cs261-task124-d854470'
-docker compose --env-file .env -p $task124Project -f compose.yaml -f compose.task124.yaml up -d --build --wait
+docker compose --env-file .env -p $task124Project -f compose.yaml -f infra/compose/tests/compose.task124.yaml up -d --build --wait
 docker compose --env-file .env -p $task124Project exec -T backend python -m scripts.init_reviews
 ```
 
@@ -98,7 +98,7 @@ Guard tests ใช้ Docker metadata จำลองเพื่อตรวจ
 หลังเก็บหลักฐานแล้วปิดเฉพาะชุดทดสอบ โดยเก็บ volumes สำหรับรันซ้ำ:
 
 ```powershell
-docker compose --env-file .env -p $task124Project -f compose.yaml -f compose.task124.yaml down --remove-orphans
+docker compose --env-file .env -p $task124Project -f compose.yaml -f infra/compose/tests/compose.task124.yaml down --remove-orphans
 ```
 
 ผลรอบแรกหยุดเพราะสคริปต์รอข้อความ 404 ของ PDF ว่า “ไม่พบสรุป PDF” แต่ระบบตอบ “ไม่พบสรุป” ปรับตัวตรวจให้ตรงข้อความจริงแล้วรันทั้งชุดซ้ำผ่าน ไม่มีการแก้พฤติกรรมแอปเพื่อให้ทดสอบผ่าน

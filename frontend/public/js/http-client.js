@@ -1,8 +1,7 @@
 (() => {
   'use strict';
 
-  const tokenKey = () => window.LoginConfig?.tokenStorageKey
-    || window.GuidePublishConfig?.tokenStorageKey || 'access_token';
+  const tokenKey = () => window.LoginConfig?.tokenStorageKey || 'access_token';
 
   function token(allowLegacy = false) {
     return sessionStorage.getItem(tokenKey())

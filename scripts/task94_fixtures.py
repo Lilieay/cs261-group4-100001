@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURES = ROOT / "docs/task94-fixtures/examples.json"
+FIXTURES = ROOT / "docs/shared/api-contract/fixtures/examples.json"
 PDF_LIMIT = 15_000_000
 
 
@@ -65,7 +65,7 @@ def build_pdfs(directory):
 
 def check_fixtures():
     examples = json.loads(FIXTURES.read_text(encoding="utf-8"))
-    contract = (ROOT / "docs/task94-api-contract.md").read_text(encoding="utf-8")
+    contract = (ROOT / "docs/shared/api-contract/task94-api-contract.md").read_text(encoding="utf-8")
     cases = examples["cases"]
     ids = [case["id"] for case in cases]
     assert len(ids) == len(set(ids)), "Duplicate case IDs"

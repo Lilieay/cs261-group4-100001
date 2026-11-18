@@ -2,7 +2,7 @@
   'use strict';
 
   const root = '/api/saved-items';
-  const idValid = value => /^[1-9][0-9]*$/.test(String(value)) && Number(value) <= 2147483647;
+  const idValid = value => /^[1-9][0-9]*$/.test(String(value)) && Number(value) <= window.AppConfig.maxId;
   const typeValid = type => type === 'guide' || type === 'summary';
   const failure = (message, status = 0) => Object.assign(new Error(message), {status});
   const unknownWrite = 'ยังยืนยันผลไม่ได้ กรุณาโหลดสถานะล่าสุด';
@@ -20,7 +20,7 @@
     }
     let result;
     try {
-      result = await window.HttpClient.request(path, {method, token, timeoutMs: 15_000});
+      result = await window.HttpClient.request(path, {method, token, timeoutMs: window.AppConfig.requestTimeoutMs});
     } catch (_) {
       throw failure(method === 'GET' ? 'เชื่อมต่อบริการรายการที่บันทึกไม่สำเร็จ' : unknownWrite);
     }

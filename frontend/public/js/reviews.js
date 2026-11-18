@@ -2,68 +2,11 @@
   'use strict';
 
   const labels = ['', 'ควรปรับปรุง', 'พอใช้', 'ดี', 'ดีมาก', 'ดีเยี่ยม'];
-  const invalidResponse = () => Object.assign(new Error('ยืนยันข้อมูลรีวิวจากระบบไม่ได้'), {status: 502});
-  const validId = value => /^[1-9]\d*$/.test(String(value)) && Number(value) <= 2147483647;
-  const pathFor = target => {
-    if (!['guide', 'summary'].includes(target.type) || !validId(target.id)) throw new Error('ไม่พบเอกสาร');
-    return `/api/${target.type === 'guide' ? 'guides' : 'summaries'}/${target.id}/reviews`;
-  };
-
-  async function request(path, method = 'GET', body) {
-    const token = window.HttpClient.token();
-    if (!token) throw Object.assign(new Error('กรุณาเข้าสู่ระบบใหม่'), {status: 401});
-    let result;
-    try {
-      result = await window.HttpClient.request(path, {
-        method, token, timeoutMs: 15000,
-        ...(body && {headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
-      });
-    } catch (_) {
-      throw Object.assign(new Error('เชื่อมต่อบริการรีวิวไม่สำเร็จ'), {status: 0});
-    }
-    const {response, payload} = result;
-    if (!response.ok) {
-      const serverMessage = payload?.error?.message;
-      const message = typeof serverMessage === 'string' ? serverMessage.trim() : '';
-      const fallback = response.status === 503 ? '' : 'ทำรายการรีวิวไม่สำเร็จ';
-      throw Object.assign(new Error(message || fallback), {status: response.status, code: payload?.error?.code});
-    }
-    if (response.status !== ({GET: 200, POST: 201, PUT: 200, DELETE: 204})[method]) throw invalidResponse();
-    return payload;
-  }
-
-  function validReview(item, target) {
-    return validId(item?.id) && validId(item.author?.id) && typeof item.author.display_name === 'string'
-      && Number.isInteger(item.rating) && item.rating >= 1 && item.rating <= 5
-      && (item.comment === null || typeof item.comment === 'string')
-      && item.target_type === target.type && item.target_id === Number(target.id);
-  }
-
+  const {read} = window.ReviewApi;
   const totals = items => ({
     count: items.length,
     average: items.length ? (items.reduce((sum, item) => sum + item.rating, 0) / items.length).toFixed(1) : null
   });
-  const reads = new Map();
-  function read(target, fresh = false) {
-    const path = pathFor(target);
-    const cached = reads.get(path);
-    if (!fresh && cached && Date.now() < cached.expiry) return cached.promise;
-    if (reads.size >= 100) reads.delete(reads.keys().next().value);
-    const entry = {expiry: Date.now() + 30000};
-    entry.promise = request(path).then(result => {
-      if (result?.target_type !== target.type || result.target_id !== Number(target.id)
-        || !Array.isArray(result.items) || !result.items.every(item => validReview(item, target))) {
-        throw invalidResponse();
-      }
-      return result.items;
-    }).catch(error => {
-      if (reads.get(path) === entry) reads.delete(path);
-      throw error;
-    });
-    reads.set(path, entry);
-    return entry.promise;
-  }
-
   function showCardScore(button, target, items) {
     const {average, count} = totals(items);
     const score = button.querySelector('[data-review-card-score]');
@@ -248,7 +191,7 @@
         message('กรุณาเข้าสู่ระบบใหม่เพื่อจัดการรีวิว');
         return;
       }
-      if (!Number.isInteger(user.id) || !validId(user.id)) throw invalidResponse();
+      if (!Number.isSafeInteger(user.id) || user.id <= 0 || user.id > window.AppConfig.maxId) throw new Error('รูปแบบบัญชีไม่ถูกต้อง');
       const owner = state.target.type === 'guide'
         ? (await window.GuideApi.mine()).some(row => Number(row.id) === Number(state.target.id))
         : Number(state.target.ownerId) === user.id;
@@ -360,20 +303,17 @@
 
   async function write(state, method, payload) {
     const previous = state.editing;
-    const path = previous ? `/api/reviews/${previous.id}` : pathFor(state.target);
     setBusy(state, true);
     message('กำลังดำเนินการ…');
     try {
-      const result = await request(path, method, payload);
-      if (method !== 'DELETE' && (!validReview(result, state.target) || result.author.id !== state.user?.id
-        || (previous && result.id !== previous.id))) throw invalidResponse();
+      const result = await window.ReviewApi.write(state.target, {
+        method, id: previous?.id, authorId: state.user?.id, body: payload
+      });
       updateItems(state, method === 'DELETE' ? state.items.filter(item => item.id !== previous.id)
         : previous ? state.items.map(item => item.id === previous.id ? result : item) : [result, ...state.items]);
-      reads.delete(pathFor(state.target));
       renderList(state, method === 'DELETE' ? 'ลบรีวิวแล้ว' : 'บันทึกรีวิวแล้ว');
     } catch (error) {
       if (error.status === 0 || error.status >= 500) {
-        reads.delete(pathFor(state.target));
         const operation = method === 'DELETE' ? 'ลบรีวิว' : 'บันทึกรีวิว';
         const outcome = (error.status === 503 && error.message) || `ยังยืนยันผลการ${operation}ครั้งนี้ไม่ได้`;
         state.pending = {previous, outcome};

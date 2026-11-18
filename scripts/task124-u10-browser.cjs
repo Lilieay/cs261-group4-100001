@@ -1,5 +1,5 @@
 // U10 browser -> Express -> FastAPI -> real SQL Server and PDF storage.
-// Requires compose.yaml + compose.task124.yaml on an isolated mock-auth stack.
+// Requires compose.yaml + infra/compose/tests/compose.task124.yaml on an isolated mock-auth stack.
 const assert = require('node:assert/strict');
 const {execFileSync} = require('node:child_process');
 const {createHash} = require('node:crypto');

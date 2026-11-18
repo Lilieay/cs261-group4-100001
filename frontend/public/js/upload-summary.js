@@ -33,7 +33,7 @@
   const summaryApi = window.SummaryApi;
   let courses = [];
   let selectedFile;
-  let previewUrl;
+  const pdfPreview = window.PdfPreview.create({dialog: preview, frame: previewFrame, link: previewOpen});
   let user;
   let pendingCheck;
 
@@ -99,18 +99,8 @@
       return;
     }
     const pdf = file.type ? file : file.slice(0, file.size, 'application/pdf');
-    previewUrl = URL.createObjectURL(pdf);
     $('summary-preview-name').textContent = file.name;
-    previewFrame.src = `${previewUrl}#view=FitH`;
-    previewOpen.href = previewUrl;
-    preview.showModal();
-  });
-
-  preview.addEventListener('close', () => {
-    previewFrame.removeAttribute('src');
-    previewOpen.removeAttribute('href');
-    URL.revokeObjectURL(previewUrl);
-    previewUrl = undefined;
+    await pdfPreview.show(async () => pdf);
   });
 
   success.addEventListener('close', () => {
@@ -242,6 +232,6 @@
     if (user) loadCourses();
     else window.location.reload();
   });
-  for (const year of window.GuidePublishConfig.academicYears) $('summary-year').add(new Option(year, year));
+  for (const year of window.AppConfig.academicYears) $('summary-year').add(new Option(year, year));
   loadCourses();
 })();

@@ -7,7 +7,8 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.schemas.guides import ErrorDetailDTO, ErrorFieldDTO, ErrorResponseDTO
+from app.http_errors import error_response as _error_response
+from app.schemas.errors import ErrorFieldDTO
 from app.services.publish_guide import GuidePublishNotFound
 from app.services.read_guide import GuideReadNotFound
 
@@ -70,24 +71,3 @@ def _http_error(status_code: int) -> tuple[str, str]:
     if status_code == 404:
         return "GUIDE_NOT_FOUND", "ไม่พบแนวข้อสอบ"
     return "INTERNAL_ERROR", "เกิดข้อผิดพลาดภายในระบบ"
-
-
-def _error_response(
-    status_code: int,
-    code: str,
-    message: str,
-    fields: list[ErrorFieldDTO] | None = None,
-    headers: dict[str, str] | None = None,
-) -> JSONResponse:
-    body = ErrorResponseDTO(
-        error=ErrorDetailDTO(
-            code=code,
-            message=message,
-            fields=fields or [],
-        )
-    )
-    return JSONResponse(
-        status_code=status_code,
-        content=body.model_dump(),
-        headers=headers,
-    )

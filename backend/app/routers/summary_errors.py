@@ -7,7 +7,8 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.routing import APIRoute
 from starlette.exceptions import HTTPException
 
-from app.schemas.guides import ErrorDetailDTO, ErrorFieldDTO, ErrorResponseDTO
+from app.http_errors import error_response
+from app.schemas.errors import ErrorFieldDTO
 from app.services.pdf_validator import PdfValidationError
 from app.services.summaries import (
     SummaryCourseNotFound,
@@ -101,11 +102,8 @@ def _error_response(
     message: str | None = None,
 ) -> JSONResponse:
     status_code, default_message = ERRORS[code]
-    body = ErrorResponseDTO(
-        error=ErrorDetailDTO(code=code, message=message or default_message, fields=fields or [])
-    )
-    response = JSONResponse(
-        status_code=status_code, content=body.model_dump(), headers=headers
+    response = error_response(
+        status_code, code, message or default_message, fields, headers
     )
     if status_code == 401:
         response.headers["WWW-Authenticate"] = "Bearer"

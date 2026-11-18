@@ -1,11 +1,10 @@
 (() => {
   'use strict';
-  const data = window.CourseData;
+  const data = window.UiUtils;
   const e = data.escapeHtml;
   const params = new URL(window.location.href).searchParams;
-  let course = params.get('source') === 'api' ? null : data.findCourse(params.get('course'));
+  let course = null;
   const guideId = params.get('guide');
-  const apiMode = params.get('source') === 'api';
   let apiRow = null;
   let apiError = '';
   let authRequired = false;
@@ -42,8 +41,7 @@
       `<section class="info-card topics-card"><h2>หัวข้อที่เคยออกสอบ</h2><p class="reading-text">${e(row.topics || 'ไม่ระบุ')}</p></section>`,
       `<section class="info-card format-card"><h2>รูปแบบแนวข้อสอบ — ${e(format)}</h2><div class="format-grid"><div>ปรนัย : <strong>${e(count(counts.objective))}</strong></div><div>อัตนัย : <strong>${e(count(counts.essay))}</strong></div></div></section>`,
       `<section class="info-card advice-card"><h2>คำแนะนำเพิ่มเติม</h2><p class="reading-text">${e(String(row.notes || '').trim() || 'ไม่ระบุ')}</p></section>`,
-      `${apiMode ? '' : '<p class="reading-preview">ข้อมูลตัวอย่างร่วมกับหน้ารายวิชาที่แบ่งปัน</p>'}`,
-      `<div class="actions"><button class="save-button" type="button" aria-pressed="${Boolean(row.saved)}" ${apiMode && (!savedKnown || saving) ? 'disabled' : ''} aria-busy="${saving}"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg> ${row.saved ? 'บันทึกแล้ว' : 'บันทึก'}</button><button class="review-button" type="button" ${apiMode ? '' : 'disabled'}><span class="review-open-icon" data-review-star-icon aria-hidden="true"></span> รีวิว</button></div>`,
+      `<div class="actions"><button class="save-button" type="button" aria-pressed="${Boolean(row.saved)}" ${(!savedKnown || saving) ? 'disabled' : ''} aria-busy="${saving}"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg> ${row.saved ? 'บันทึกแล้ว' : 'บันทึก'}</button><button class="review-button" type="button"><span class="review-open-icon" data-review-star-icon aria-hidden="true"></span> รีวิว</button></div>`,
       `${savedError ? `<p role="alert">${e(savedError)}</p><button type="button" class="saved-retry-button">ลองโหลดสถานะบันทึกอีกครั้ง</button>` : ''}`
     ].join('');
   }
@@ -54,16 +52,11 @@
       === new URL('shared-courses.html', window.location.href).pathname
       ? 'กลับแนวข้อสอบของฉัน' : back.href.includes('saved-courses.html') ? 'กลับรายการที่บันทึก' : 'กลับหน้ารายวิชา';
     back.setAttribute('aria-label', backLabel);
-    let row = null;
-    let error = '';
-    try {
-      if (apiMode) { row = apiRow; error = apiError; }
-      else row = course && guideId ? data.loadExams().find(item => item.id === guideId && item.course_code === course.code) : null;
-    }
-    catch (failure) { error = failure.message; }
+    const row = apiRow;
+    const error = apiError;
     if (!row) {
       document.title = 'ไม่พบแนวข้อสอบ';
-      content.innerHTML = `<section class="reading-empty" role="status"><h1>${error ? 'โหลดข้อมูลไม่สำเร็จ' : 'ไม่พบแนวข้อสอบ'}</h1><p>${e(error || 'รายการไม่มีอยู่หรือถูกลบแล้ว')}</p>${authRequired ? '<p><a href="login.html">เข้าสู่ระบบใหม่</a></p>' : ''}${apiMode && error && !authRequired ? '<button class="reading-retry-button" type="button">ลองอีกครั้ง</button>' : ''}<a class="reading-back-button" href="${e(back.href)}">${backLabel}</a></section>`;
+      content.innerHTML = `<section class="reading-empty" role="status"><h1>${error ? 'โหลดข้อมูลไม่สำเร็จ' : 'ไม่พบแนวข้อสอบ'}</h1><p>${e(error || 'รายการไม่มีอยู่หรือถูกลบแล้ว')}</p>${authRequired ? '<p><a href="login.html">เข้าสู่ระบบใหม่</a></p>' : ''}${error && !authRequired ? '<button class="reading-retry-button" type="button">ลองอีกครั้ง</button>' : ''}<a class="reading-back-button" href="${e(back.href)}">${backLabel}</a></section>`;
       return;
     }
     document.title = `${row.title} | อ่านแนวข้อสอบ`;
@@ -72,54 +65,40 @@
   }
   content.addEventListener('click', async event => {
     const review = event.target.closest('.review-button');
-    if (review && apiMode && apiRow) {
+    if (review && apiRow) {
       window.Reviews.open({id: apiRow.id, type: 'guide', title: apiRow.title,
         courseCode: course.code, courseName: course.name}, review);
       return;
     }
-    if (apiMode && event.target.closest('.reading-retry-button, .saved-retry-button')) {
+    if (event.target.closest('.reading-retry-button, .saved-retry-button')) {
       loadApiDetail();
       return;
     }
     if (!event.target.closest('.save-button') || saving) return;
     const status = document.querySelector('#reading-status');
-    if (apiMode) {
-      if (!apiRow || !savedKnown) return;
-      if (apiRow.saved) {
-        status.textContent = 'ได้บันทึกการแบ่งปันนี้ไปแล้ว';
-        status.dataset.kind = 'success';
-        return;
-      }
-      saving = true;
-      render();
-      status.textContent = 'กำลังบันทึก…';
-      try {
-        apiRow.saved = await window.SavedItems.state('guide', guideId, true);
-        status.textContent = 'เพิ่มในรายวิชาที่บันทึกแล้ว';
-        status.dataset.kind = 'success';
-      } catch (error) {
-        status.textContent = error.message || 'บันทึกรายการไม่สำเร็จ';
-        status.dataset.kind = 'error';
-        // Keep the write outcome visible while refreshing the current status.
-        try { apiRow.saved = await window.SavedItems.state('guide', guideId); }
-        catch (_) { savedKnown = false; savedError = 'ตรวจสอบสถานะบันทึกไม่ได้ กรุณาลองอีกครั้ง'; }
-      } finally {
-        saving = false;
-        render();
-        content.querySelector('.save-button')?.focus();
-      }
+    if (!apiRow || !savedKnown) return;
+    if (apiRow.saved) {
+      status.textContent = 'ได้บันทึกการแบ่งปันนี้ไปแล้ว';
+      status.dataset.kind = 'success';
       return;
     }
+    saving = true;
+    render();
+    status.textContent = 'กำลังบันทึก…';
     try {
-      const row = data.getExam(guideId);
-      if (row.course_code !== course?.code) throw new Error('ไม่พบแนวข้อสอบ');
-      const saved = data.toggleSaved(guideId);
-      status.textContent = saved ? 'เพิ่มในรายวิชาที่บันทึกแล้ว' : 'นำออกจากรายวิชาที่บันทึกแล้ว';
+      apiRow.saved = await window.SavedItems.state('guide', guideId, true);
+      status.textContent = 'เพิ่มในรายวิชาที่บันทึกแล้ว';
       status.dataset.kind = 'success';
-      content.querySelector('.save-button')?.focus();
     } catch (error) {
       status.textContent = error.message || 'บันทึกรายการไม่สำเร็จ';
       status.dataset.kind = 'error';
+      // Keep the write outcome visible while refreshing the current status.
+      try { apiRow.saved = await window.SavedItems.state('guide', guideId); }
+      catch (_) { savedKnown = false; savedError = 'ตรวจสอบสถานะบันทึกไม่ได้ กรุณาลองอีกครั้ง'; }
+    } finally {
+      saving = false;
+      render();
+      content.querySelector('.save-button')?.focus();
     }
   });
   async function loadApiDetail() {
@@ -150,7 +129,7 @@
       }
       const response = await window.GuideApi.read(guideId, course.code);
       if (version !== loadVersion) return;
-      apiRow = window.GuideApi.toPreviewRow(response);
+      apiRow = window.GuideApi.toGuideRow(response);
       render();
       try {
         const saved = await window.SavedItems.state('guide', guideId);
@@ -168,11 +147,6 @@
     }
     render();
   }
-  if (apiMode) {
-    loadApiDetail();
-    window.addEventListener('focus', loadApiDetail);
-  } else {
-    render();
-    data.subscribe(render);
-  }
+  loadApiDetail();
+  window.addEventListener('focus', loadApiDetail);
 })();
